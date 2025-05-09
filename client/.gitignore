@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules/
+.pnpm-store/
+.turbo/
+
+# Build output
+dist/
+dist-ssr/
+out/
+.next/
+.cache/
+
+# Local environment files
+.env
+.env.*  # Ignore all environment variants
+*.local
+
+# Package manager lock files (optional)
+# Uncomment if you use a monorepo and don't want to commit lockfiles
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Editor directories and files
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript build artifacts
+*.tsbuildinfo
+
+# client specific files
+client/README.md
+
+# Mac system files
+Thumbs.db
+

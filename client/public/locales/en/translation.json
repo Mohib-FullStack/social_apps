@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "Home",
+    "register": "Register",
+    "updateUser": "Update User",
+    "userTable": "User Table",
+    "userGroups": "User Groups",
+    "createGroup": "Create Group",
+    "updateGroup": "Update Group",
+    "groupTable": "Group Table",
+    "creation": "Creation",
+    "memos": "Memos",
+    "constructionWork": "Construction Work",
+    "technicalSills": "Technical Sills",
+    "conception": "Conception",
+    "calendarAdaptations": "Calendar Adaptations",
+    "gae": "GAE",
+    "gazette": "Gazette",
+    "administration": "Administration",
+    "login": "Login",
+    "logout": "Logout"
+  }
+}

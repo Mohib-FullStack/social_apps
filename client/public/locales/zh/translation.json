@@ -1,0 +1,24 @@
+{
+  "navbar": {
+    "home": "主页",
+    "register": "注册",
+    "updateUser": "更新用户",
+    "userTable": "用户表",
+    "userGroups": "用户组",
+    "createGroup": "创建组",
+    "updateGroup": "更新组",
+    "groupTable": "组表",
+    "creation": "创建",
+    "memos": "备忘录",
+    "constructionWork": "施工工作",
+    "technicalSills": "技术琐事",
+    "conception": "概念",
+    "calendarAdaptations": "日历适应",
+    "gae": "GAE",
+    "gazette": "公报",
+    "administration": "行政",
+    "login": "登录",
+    "logout": "登出",
+    "language": "语言"
+  }
+}

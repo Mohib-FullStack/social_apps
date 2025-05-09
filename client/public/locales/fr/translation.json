@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "Accueil",
+    "register": "S'inscrire",
+    "updateUser": "Mettre à jour l'utilisateur",
+    "userTable": "Tableau des utilisateurs",
+    "userGroups": "Groupes d'utilisateurs",
+    "createGroup": "Créer un groupe",
+    "updateGroup": "Mettre à jour le groupe",
+    "groupTable": "Tableau des groupes",
+    "creation": "Création",
+    "memos": "Mémos",
+    "constructionWork": "Travaux de construction",
+    "technicalSills": "Compétences techniques",
+    "conception": "Conception",
+    "calendarAdaptations": "Adaptations du calendrier",
+    "gae": "GAE",
+    "gazette": "Gazette",
+    "administration": "Administration",
+    "login": "Connexion",
+    "logout": "Déconnexion"
+  }
+}

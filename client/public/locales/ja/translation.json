@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "ホーム",
+    "register": "登録",
+    "updateUser": "ユーザーを更新",
+    "userTable": "ユーザーテーブル",
+    "userGroups": "ユーザーグループ",
+    "createGroup": "グループを作成",
+    "updateGroup": "グループを更新",
+    "groupTable": "グループテーブル",
+    "creation": "作成",
+    "memos": "メモ",
+    "constructionWork": "建設作業",
+    "technicalSills": "技術スキル",
+    "conception": "概念",
+    "calendarAdaptations": "カレンダーの適応",
+    "gae": "GAE",
+    "gazette": "広報誌",
+    "administration": "管理",
+    "login": "ログイン",
+    "logout": "ログアウト"
+  }
+}

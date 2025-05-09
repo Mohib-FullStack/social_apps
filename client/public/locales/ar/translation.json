@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "الرئيسية",
+    "register": "تسجيل",
+    "updateUser": "تحديث المستخدم",
+    "userTable": "جدول المستخدمين",
+    "userGroups": "مجموعات المستخدمين",
+    "createGroup": "إنشاء مجموعة",
+    "updateGroup": "تحديث المجموعة",
+    "groupTable": "جدول المجموعات",
+    "creation": "إنشاء",
+    "memos": "مذكرات",
+    "constructionWork": "أعمال البناء",
+    "technicalSills": "مهارات تقنية",
+    "conception": "تصور",
+    "calendarAdaptations": "تعديلات التقويم",
+    "gae": "GAE",
+    "gazette": "جريدة",
+    "administration": "الإدارة",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج"
+  }
+}

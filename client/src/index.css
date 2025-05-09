@@ -1,0 +1,63 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: tan; /* Global background */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #3f51b5; /* Example background color */
+  color: white;
+  text-align: center;
+  padding: 10px 0;
+  z-index: 1000; /* Ensure it is above other elements */
+}
+
+/* Main content takes the remaining space between navbar and footer */
+.main-content {
+  flex: 1;
+  margin-top: 64px; /* Adjust based on your navbar height */
+  margin-bottom: 48px; /* Adjust based on your footer height */
+  padding: 16px; /* Optional padding for main content */
+  overflow: auto; /* Ensure content is scrollable if it overflows */
+}
+
+@media screen and (max-width: 992px) {
+  body {
+    background-color: blue;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  body {
+    background-color: olive;
+  }
+}

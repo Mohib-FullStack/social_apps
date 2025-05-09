@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "Doheem",
+    "register": "Umellen",
+    "updateUser": "Benotzer aktualiséieren",
+    "userTable": "Benotzertabell",
+    "userGroups": "Benotzergruppen",
+    "createGroup": "Grupp erstellen",
+    "updateGroup": "Grupp aktualiséieren",
+    "groupTable": "Gruppentabell",
+    "creation": "Schafung",
+    "memos": "Memoen",
+    "constructionWork": "Bauaarbechten",
+    "technicalSills": "Technesch Fäegkeeten",
+    "conception": "Konzeptioun",
+    "calendarAdaptations": "Kalenner Adaptatiounen",
+    "gae": "GAE",
+    "gazette": "Gazett",
+    "administration": "Administratioun",
+    "login": "Aloggen",
+    "logout": "Ausloggen"
+  }
+}

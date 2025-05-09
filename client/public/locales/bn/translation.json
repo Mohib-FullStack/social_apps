@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "হোম",
+    "register": "নিবন্ধন",
+    "updateUser": "ব্যবহারকারী আপডেট করুন",
+    "userTable": "ব্যবহারকারী টেবিল",
+    "userGroups": "ব্যবহারকারী গোষ্ঠী",
+    "createGroup": "গ্রুপ তৈরি করুন",
+    "updateGroup": "গ্রুপ আপডেট করুন",
+    "groupTable": "গ্রুপ টেবিল",
+    "creation": "তৈরি করা",
+    "memos": "মেমো",
+    "constructionWork": "নির্মাণ কাজ",
+    "technicalSills": "প্রযুক্তিগত দক্ষতা",
+    "conception": "ধারণা",
+    "calendarAdaptations": "ক্যালেন্ডার অভিযোজন",
+    "gae": "GAE",
+    "gazette": "গেজেট",
+    "administration": "প্রশাসন",
+    "login": "লগইন",
+    "logout": "লগআউট"
+  }
+}

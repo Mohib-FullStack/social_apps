@@ -1,0 +1,23 @@
+{
+  "navbar": {
+    "home": "Inicio",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "administration": "Administración"
+  },
+  "footer": {
+    "contact": "Contáctenos",
+    "privacy": "Política de privacidad"
+  },
+  "home": {
+    "welcome": "¡Bienvenido a nuestro sitio web!"
+  },
+  "login": {
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "submit": "Enviar"
+  },
+  "error": {
+    "not_found": "Página no encontrada"
+  }
+}
