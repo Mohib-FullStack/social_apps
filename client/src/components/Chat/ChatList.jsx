@@ -1,9 +1,9 @@
 // components/Chat/ChatList.jsx
-import { List, ListItem, ListItemAvatar, Avatar, ListItemText, Typography, Badge } from '@mui/material';
+import { Avatar, Badge, List, ListItem, ListItemAvatar, ListItemText, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axiosInstance from '../../axiosInstance';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../axiosInstance';
 
 const ChatList = () => {
   const [chats, setChats] = useState([]);

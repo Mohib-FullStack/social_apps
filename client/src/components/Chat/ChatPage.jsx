@@ -1,8 +1,8 @@
 // pages/ChatPage.jsx
 import { Box, Grid, Paper, Typography } from '@mui/material';
 import { useState } from 'react';
-import ChatList from './components/Chat/ChatList';
-import ChatWindow from './components/Chat/ChatWindow';
+import ChatList from './ChatList';
+import ChatWindow from './ChatWindow';
 
 const ChatPage = () => {
   const [selectedChat, setSelectedChat] = useState(null);

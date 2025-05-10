@@ -15,6 +15,18 @@ const Message = sequelize.define('Message', {
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  reactions: {
+    type: DataTypes.JSON,
+    defaultValue: {}  // Store as { userId: emoji } pairs
+  },
+  edited: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  readBy: {
+    type: DataTypes.ARRAY(DataTypes.INTEGER), // Array of user IDs
+    defaultValue: []
   }
 }, {
   tableName: 'Messages',
@@ -29,3 +41,9 @@ const Message = sequelize.define('Message', {
 });
 
 module.exports = Message;
+
+
+
+
+
+

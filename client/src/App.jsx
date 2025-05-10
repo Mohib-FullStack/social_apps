@@ -33,7 +33,7 @@ import { SocketProvider } from './context/SocketContext'; // Import the SocketPr
 import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar';
-import ChatPage from './components/ChatComponents/ChatPage';
+import ChatPage from './components/Chat/ChatPage';
 
 
 const App = () => {

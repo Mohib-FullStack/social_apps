@@ -450,13 +450,15 @@ const userSlice = createSlice({
         state.status = 'succeeded'
       })
       .addCase(activateUser.rejected, handleRejected)
-  },
-})
 
-//! fetchChats
+      //! fetchChats
 .addCase(fetchChats.fulfilled, (state, action) => {
   state.chats = action.payload;
 });
+  },
+})
+
+
 
 // Export actions
 export const { loginUserSuccess, logoutUserReducer } = userSlice.actions
