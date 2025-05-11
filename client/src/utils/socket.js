@@ -1,4 +1,4 @@
-// src/utils/socket.js
+ // src/utils/socket.js
 import { io } from 'socket.io-client';
 
 class SocketService {
@@ -105,7 +105,6 @@ class SocketService {
 const socketService = new SocketService();
 
 export default socketService;
-
 
 
 

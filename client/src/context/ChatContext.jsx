@@ -33,4 +33,4 @@ export const ChatContext = createContext();
 };
 
 
-export default ChatContext
+export default ChatProvider

@@ -270,7 +270,7 @@ export const fetchChats = createAsyncThunk(
   'user/fetchChats',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get('/api/chats');
+      const response = await axiosInstance.get('/chats');
       return response.data.payload;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to fetch chats');

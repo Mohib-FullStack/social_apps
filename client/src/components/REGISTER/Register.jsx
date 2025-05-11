@@ -38,6 +38,7 @@ import { useSocket } from '../../context/SocketContext';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
 import { registerUser } from '../../features/user/userSlice';
 
+
 const ALLOWED_FILE_TYPES = [
   'image/jpg',
   'image/jpeg',
@@ -511,100 +512,6 @@ const RegisterForm = () => {
       </motion.div>
     );
   }
-
-  // if (emailSent) {
-  //   return (
-  //     <motion.div
-  //       initial={{ opacity: 0 }}
-  //       animate={{ opacity: 1 }}
-  //       transition={{ duration: 0.5 }}
-  //       style={{ maxWidth: '800px', margin: 'auto', padding: '24px' }}
-  //     >
-  //       <Card
-  //         sx={{
-  //           padding: 4,
-  //           boxShadow: 4,
-  //           borderRadius: '20px',
-  //           backgroundColor: 'background.paper',
-  //           marginTop: 8,
-  //           marginBottom: 5,
-  //           textAlign: 'center',
-  //         }}
-  //       >
-  //         <Email sx={{ fontSize: 80, color: 'primary.main', mb: 3 }} />
-
-  //         <Typography
-  //           variant="h4"
-  //           component="h1"
-  //           gutterBottom
-  //           sx={{ fontWeight: 'bold' }}
-  //         >
-  //           Verify Your Email
-  //         </Typography>
-
-  //         <Typography
-  //           variant="body1"
-  //           paragraph
-  //           sx={{ mb: 3, fontSize: '1.1rem' }}
-  //         >
-  //           We've sent a verification link to: <br />
-  //           <Box
-  //             component="span"
-  //             sx={{
-  //               fontWeight: 'bold',
-  //               color: 'primary.main',
-  //               fontSize: '1.2rem',
-  //               wordBreak: 'break-all',
-  //             }}
-  //           >
-  //             {submittedEmail}
-  //           </Box>
-  //         </Typography>
-
-  //         <Box
-  //           sx={{
-  //             backgroundColor: 'background.paper',
-  //             p: 3,
-  //             borderRadius: 2,
-  //             borderLeft: '4px solid',
-  //             borderColor: 'warning.main',
-  //             textAlign: 'left',
-  //             mb: 3,
-  //           }}
-  //         >
-  //           <Typography variant="body2" component="div">
-  //             <strong>Important:</strong>
-  //             <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-  //               <li>
-  //                 Check your inbox and spam folder for this exact email address
-  //               </li>
-  //               <li>Links expire in 15 minutes</li>
-  //               <li>No resend option - register again if needed</li>
-  //             </ul>
-  //           </Typography>
-  //         </Box>
-
-  //         <Typography variant="body2" paragraph sx={{ mb: 3 }}>
-  //           <strong>Wrong email address?</strong>
-  //           <Box sx={{ mt: 1.5 }}>
-  //             <Button
-  //               variant="outlined"
-  //               color="warning"
-  //               component={Link}
-  //               to="/register"
-  //               sx={{ mr: 2 }}
-  //             >
-  //               Register with correct email
-  //             </Button>
-  //             <Button variant="text" component={Link} to="/contact-support">
-  //               Need help?
-  //             </Button>
-  //           </Box>
-  //         </Typography>
-  //       </Card>
-  //     </motion.div>
-  //   );
-  // }
 
   return (
     <motion.div
