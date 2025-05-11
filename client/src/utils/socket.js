@@ -1,4 +1,4 @@
- // src/utils/socket.js
+// src/utils/socket.js
 import { io } from 'socket.io-client';
 
 class SocketService {
@@ -10,9 +10,9 @@ class SocketService {
     this.maxConnectionAttempts = 5;
   }
 
-  connect() {
+  connect(queryParams = '?validation=true') {
     if (!this.socket) {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030';
+      const socketUrl = `${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030'}${queryParams}`;
       console.log('Connecting to socket at:', socketUrl); // Debug log
       
       this.socket = io(socketUrl, {
@@ -70,7 +70,7 @@ class SocketService {
   validateField(field, value) {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
-        return reject(new Error('Socket not connected'));
+        this.socket = this.connect();
       }
 
       const requestId = Date.now().toString();
@@ -105,6 +105,8 @@ class SocketService {
 const socketService = new SocketService();
 
 export default socketService;
+
+
 
 
 

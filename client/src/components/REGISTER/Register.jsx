@@ -38,7 +38,6 @@ import { useSocket } from '../../context/SocketContext';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
 import { registerUser } from '../../features/user/userSlice';
 
-
 const ALLOWED_FILE_TYPES = [
   'image/jpg',
   'image/jpeg',
@@ -69,8 +68,6 @@ const debounce = (func, delay) => {
   };
 };
 
-
-
 const RegisterForm = () => {
   const {
     control,
@@ -84,8 +81,7 @@ const RegisterForm = () => {
   } = useForm({ mode: 'onBlur' });
 
   const navigate = useNavigate();
-
-  const { socketService, isConnected } = useSocket();
+  const { socketService } = useSocket();
   const dispatch = useDispatch();
   const { error, status } = useSelector((state) => state.user);
 
@@ -94,9 +90,7 @@ const RegisterForm = () => {
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
-  const [connectionState, setConnectionState] = useState(
-    isConnected ? 'connected' : 'disconnected'
-  );
+  const [connectionState, setConnectionState] = useState('disconnected');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
@@ -107,6 +101,37 @@ const RegisterForm = () => {
     onDrop: (acceptedFiles) => handleFileUpload(acceptedFiles),
   });
 
+  // Updated socket initialization
+  useEffect(() => {
+    const initializeSocket = async () => {
+      try {
+        setConnectionState('connecting');
+        // Connect with validation flag
+        await socketService.connect('?validation=true');
+        setConnectionState('connected');
+        
+        // Add global validation listener
+        socketService.socket.on('field-validation', ({ field, valid, message }) => {
+          if (!valid) {
+            setError(field, { type: 'manual', message });
+          } else {
+            clearErrors(field);
+          }
+        });
+      } catch (error) {
+        console.error('Socket connection error:', error);
+        setConnectionState('error');
+      }
+    };
+
+    initializeSocket();
+
+    return () => {
+      socketService.disconnect();
+    };
+  }, [setError, clearErrors, socketService]);
+
+  // Updated validateField function
   const validateField = useCallback(
     async (field, value) => {
       if (!value) return null;
@@ -114,21 +139,13 @@ const RegisterForm = () => {
       try {
         setIsValidating(true);
         const response = await socketService.validateField(field, value);
-
-        if (response.valid) {
-          clearErrors(field);
-          return null;
-        } else {
+        
+        if (!response.valid) {
           setError(field, { type: 'manual', message: response.message });
-          dispatch(
-            showSnackbar({
-              message: response.message,
-              severity: 'error',
-              autoHideDuration: 5000,
-            })
-          );
           return response.message;
         }
+        clearErrors(field);
+        return null;
       } catch (error) {
         console.error(`Validation error for ${field}:`, error);
         return null;
@@ -136,7 +153,7 @@ const RegisterForm = () => {
         setIsValidating(false);
       }
     },
-    [clearErrors, setError, dispatch, socketService]
+    [clearErrors, setError, socketService]
   );
 
   const debouncedValidation = useCallback(
@@ -193,29 +210,9 @@ const RegisterForm = () => {
   };
 
   useEffect(() => {
-    const initializeSocket = async () => {
-      try {
-        setConnectionState('connecting');
-        await socketService.connect();
-        setConnectionState('connected');
-      } catch (error) {
-        console.error('Socket connection error:', error);
-        setConnectionState('error');
-      }
-    };
-
-    initializeSocket();
-
-    return () => {
-      socketService.disconnect();
-    };
-  }, [socketService]);
-
-  useEffect(() => {
     if (status === 'succeeded') {
       setIsSubmitting(false);
       setEmailSent(true);
-      // Store the submitted email in localStorage
       const email = watch('email');
       setSubmittedEmail(email);
       localStorage.setItem('registrationEmail', email);
@@ -310,7 +307,6 @@ const RegisterForm = () => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
 
-    // Manually trigger all validations
     const results = await Promise.all([
       trigger('firstName'),
       trigger('lastName'),
@@ -322,7 +318,6 @@ const RegisterForm = () => {
       trigger('confirmPassword'),
     ]);
 
-    // Check if any validation failed
     if (results.some((valid) => !valid)) {
       setIsSubmitting(false);
       dispatch(
@@ -337,33 +332,27 @@ const RegisterForm = () => {
     clearErrors();
 
     try {
-      // Create FormData
       const formData = new FormData();
 
-      // Append all regular fields
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null && key !== 'profileImage') {
           formData.append(key, value);
         }
       });
 
-      // Format phone number before submission
       const phoneNumber = parsePhoneNumberFromString(data.phone);
       if (phoneNumber?.isValid()) {
         formData.set('phone', phoneNumber.number);
       }
 
-      // Handle date formatting
       if (data.birthDate instanceof Date) {
         formData.set('birthDate', data.birthDate.toISOString().split('T')[0]);
       }
 
-      // Append file only if it exists
       if (files.length > 0) {
         formData.append('profileImage', files[0]);
       }
 
-      // Dispatch the action
       await dispatch(registerUser(formData));
     } catch (error) {
       console.error('Registration error:', error);
@@ -440,7 +429,7 @@ const RegisterForm = () => {
   
           <Typography
             variant="body1"
-            component="div"  // Changed from default 'p' to 'div'
+            component="div"
             paragraph
             sx={{ mb: 3, fontSize: '1.1rem' }}
           >
@@ -469,7 +458,7 @@ const RegisterForm = () => {
               mb: 3,
             }}
           >
-            <Typography variant="body2" component="div">  {/* Changed to div */}
+            <Typography variant="body2" component="div">
               <strong>Important:</strong>
               <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
                 <li>
@@ -481,8 +470,8 @@ const RegisterForm = () => {
             </Typography>
           </Box>
   
-          <Box component="div" sx={{ mb: 3 }}>  {/* Changed from Typography to Box */}
-            <Typography variant="body2" component="div">  {/* Changed to div */}
+          <Box component="div" sx={{ mb: 3 }}>
+            <Typography variant="body2" component="div">
               <strong>Wrong email address?</strong>
             </Typography>
             <Box sx={{ mt: 1.5 }}>
@@ -493,10 +482,8 @@ const RegisterForm = () => {
                 to="/register"
                 onClick={(e) => {
                   e.preventDefault();
-                  // Clear any pending state
                   setIsSubmitting(false);
                   setEmailSent(false);
-                  // Then navigate
                   navigate('/register');
                 }}
                 sx={{ mr: 2 }}
@@ -572,7 +559,7 @@ const RegisterForm = () => {
             <Button
               variant="text"
               size="small"
-              onClick={() => socketService.connect()}
+              onClick={() => socketService.connect('?validation=true')}
               sx={{ ml: 1 }}
             >
               Retry Connection
@@ -997,6 +984,9 @@ const RegisterForm = () => {
 };
 
 export default RegisterForm;
+
+
+
 
 
 

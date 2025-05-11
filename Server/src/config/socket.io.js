@@ -77,8 +77,15 @@ const initializeSocketIO = async (httpServer, redisConfig) => {
     }
   }
 
-  // Authentication middleware
+  // Updated authentication middleware to allow guest validation
   io.use(async (socket, next) => {
+    // Allow unauthenticated connections for validation
+    if (socket.handshake.query?.validation === 'true') {
+      socket.isGuest = true;
+      return next();
+    }
+
+    // Existing auth logic for authenticated users
     try {
       const token = socket.handshake.auth.token;
       if (!token) {
@@ -112,39 +119,46 @@ const initializeSocketIO = async (httpServer, redisConfig) => {
 
   // Connection handler with enhanced validation
   io.on('connection', (socket) => {
-    logger.info(`User connected: ${socket.user.id} (Socket: ${socket.id})`);
+    logger.info(`User connected: ${socket.user ? socket.user.id : 'guest'} (Socket: ${socket.id})`);
     
-    // Join user's personal room
-    socket.join(`user_${socket.user.id}`);
+    // Join user's personal room if authenticated
+    if (socket.user) {
+      socket.join(`user_${socket.user.id}`);
+    }
 
-    // Field validation handler
+    // Enhanced validation handler
     socket.on('validate-field', async ({ field, value, requestId }, callback) => {
+      if (!socket.isGuest && !socket.user) {
+        return callback({ error: 'Unauthorized' });
+      }
+
       try {
         if (!['email', 'phone'].includes(field)) {
           throw new Error(`Invalid validation field: ${field}`);
         }
 
-        let validationResult;
+        let exists = false;
         if (field === 'email') {
-          const { exists } = await checkUserExist({ email: value });
-          validationResult = { 
-            valid: !exists, 
-            message: exists ? 'Email is already in use' : '',
-            field,
-            requestId
-          };
+          exists = await User.findOne({ where: { email: value } });
         } else if (field === 'phone') {
           const phoneNumber = parsePhoneNumber(value);
-          const { exists } = await checkUserExist({ phone: phoneNumber.number });
-          validationResult = { 
-            valid: !exists, 
-            message: exists ? 'Phone number already in use' : '',
-            field,
-            requestId
-          };
+          exists = await User.findOne({ where: { phone: phoneNumber.number } });
         }
 
-        callback(validationResult);
+        // Response structure
+        const response = {
+          valid: !exists,
+          message: exists ? `${field} is already in use` : '',
+          field,
+          requestId
+        };
+
+        // Send back to requester
+        callback(response);
+        
+        // Broadcast to all clients (for real-time sync)
+        socket.broadcast.emit('field-validation', response);
+
       } catch (error) {
         callback({
           valid: false,
@@ -156,127 +170,130 @@ const initializeSocketIO = async (httpServer, redisConfig) => {
       }
     });
 
-    // Chat message handler
-    socket.on('sendMessage', async (data, callback) => {
-      try {
-        const { chatId, content } = data;
-        
-        if (!content || content.trim().length === 0) {
-          throw new Error('Message content cannot be empty');
-        }
-
-        // Save message to database
-        const message = await Message.create({
-          chatId,
-          senderId: socket.user.id,
-          content: content.trim()
-        });
-
-        // Update chat last message
-        await Chat.update({
-          lastMessage: content.trim(),
-          lastMessageAt: new Date(),
-          lastMessageId: message.id
-        }, { where: { id: chatId } });
-
-        // Get chat with participants
-        const chat = await Chat.findByPk(chatId, {
-          include: [{
-            model: User,
-            as: 'participants',
-            attributes: ['id'],
-            through: { attributes: [] }
-          }]
-        });
-
-        // Prepare response data
-        const response = {
-          ...message.get({ plain: true }),
-          sender: {
-            id: socket.user.id,
-            firstName: socket.user.firstName,
-            lastName: socket.user.lastName,
-            profileImage: socket.user.profileImage
+    // Only authenticated users can access these handlers
+    if (socket.user) {
+      // Chat message handler
+      socket.on('sendMessage', async (data, callback) => {
+        try {
+          const { chatId, content } = data;
+          
+          if (!content || content.trim().length === 0) {
+            throw new Error('Message content cannot be empty');
           }
-        };
 
-        // Emit to all participants
-        chat.participants.forEach(participant => {
-          io.to(`user_${participant.id}`).emit('newMessage', response);
-        });
-
-        // Send success response
-        if (typeof callback === 'function') {
-          callback({ 
-            status: 'success',
-            message: response
+          // Save message to database
+          const message = await Message.create({
+            chatId,
+            senderId: socket.user.id,
+            content: content.trim()
           });
-        }
 
-        logger.info(`Message sent in chat ${chatId} by user ${socket.user.id}`);
-      } catch (error) {
-        logger.error(`Error sending message by user ${socket.user.id}:`, error.message);
-        
-        if (typeof callback === 'function') {
-          callback({ 
-            status: 'error',
-            error: error.message 
+          // Update chat last message
+          await Chat.update({
+            lastMessage: content.trim(),
+            lastMessageAt: new Date(),
+            lastMessageId: message.id
+          }, { where: { id: chatId } });
+
+          // Get chat with participants
+          const chat = await Chat.findByPk(chatId, {
+            include: [{
+              model: User,
+              as: 'participants',
+              attributes: ['id'],
+              through: { attributes: [] }
+            }]
           });
-        }
-      }
-    });
 
-    // Message read receipt handler
-    socket.on('markMessagesRead', async ({ chatId, messageIds }, callback) => {
-      try {
-        await Message.update(
-          { isRead: true },
-          { 
-            where: { 
-              id: messageIds,
-              chatId,
-              senderId: { [Op.ne]: socket.user.id } // Only mark others' messages as read
+          // Prepare response data
+          const response = {
+            ...message.get({ plain: true }),
+            sender: {
+              id: socket.user.id,
+              firstName: socket.user.firstName,
+              lastName: socket.user.lastName,
+              profileImage: socket.user.profileImage
             }
+          };
+
+          // Emit to all participants
+          chat.participants.forEach(participant => {
+            io.to(`user_${participant.id}`).emit('newMessage', response);
+          });
+
+          // Send success response
+          if (typeof callback === 'function') {
+            callback({ 
+              status: 'success',
+              message: response
+            });
           }
-        );
 
-        if (typeof callback === 'function') {
-          callback({ status: 'success' });
+          logger.info(`Message sent in chat ${chatId} by user ${socket.user.id}`);
+        } catch (error) {
+          logger.error(`Error sending message by user ${socket.user.id}:`, error.message);
+          
+          if (typeof callback === 'function') {
+            callback({ 
+              status: 'error',
+              error: error.message 
+            });
+          }
         }
+      });
 
-        logger.info(`User ${socket.user.id} marked messages as read in chat ${chatId}`);
-      } catch (error) {
-        logger.error(`Error marking messages read by user ${socket.user.id}:`, error.message);
-        
-        if (typeof callback === 'function') {
-          callback({ 
-            status: 'error',
-            error: error.message 
+      // Message read receipt handler
+      socket.on('markMessagesRead', async ({ chatId, messageIds }, callback) => {
+        try {
+          await Message.update(
+            { isRead: true },
+            { 
+              where: { 
+                id: messageIds,
+                chatId,
+                senderId: { [Op.ne]: socket.user.id } // Only mark others' messages as read
+              }
+            }
+          );
+
+          if (typeof callback === 'function') {
+            callback({ status: 'success' });
+          }
+
+          logger.info(`User ${socket.user.id} marked messages as read in chat ${chatId}`);
+        } catch (error) {
+          logger.error(`Error marking messages read by user ${socket.user.id}:`, error.message);
+          
+          if (typeof callback === 'function') {
+            callback({ 
+              status: 'error',
+              error: error.message 
+            });
+          }
+        }
+      });
+
+      // Health check endpoint
+      socket.on('ping', (cb) => {
+        if (typeof cb === 'function') {
+          cb({
+            status: 'pong',
+            timestamp: new Date().toISOString(),
+            socketId: socket.id,
+            serverTime: Date.now(),
+            userId: socket.user.id
           });
         }
-      }
-    });
-
-    // Health check endpoint
-    socket.on('ping', (cb) => {
-      if (typeof cb === 'function') {
-        cb({
-          status: 'pong',
-          timestamp: new Date().toISOString(),
-          socketId: socket.id,
-          serverTime: Date.now(),
-          userId: socket.user.id
-        });
-      }
-    });
+      });
+    }
 
     // Cleanup on disconnect
     socket.on('disconnect', (reason) => {
-      logger.info(`User disconnected: ${socket.user.id} (Reason: ${reason})`);
+      logger.info(`User disconnected: ${socket.user ? socket.user.id : 'guest'} (Reason: ${reason})`);
     });
 
     socket.on('error', (error) => {
-      logger.error(`Socket error for user ${socket.user.id}:`, error.message);
+      logger.error(`Socket error for user ${socket.user ? socket.user.id : 'guest'}:`, error.message);
     });
   });
 
@@ -289,6 +306,8 @@ const initializeSocketIO = async (httpServer, redisConfig) => {
 };
 
 module.exports = initializeSocketIO;
+
+
 
 
 
