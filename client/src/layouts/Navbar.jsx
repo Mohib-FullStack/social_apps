@@ -7,7 +7,7 @@ import {
   Login as LoginIcon,
   Menu as MenuIcon,
   VpnKey as PasswordIcon,
-  ShoppingCart as ShoppingCartIcon,
+  // ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import ChatIcon from '@mui/icons-material/Chat';
 import {
@@ -97,10 +97,10 @@ const Navbar = () => {
 const userLastName = profile?.user?.lastName || 'Unknown';
  const userImage = profile?.user?.image || '/assets/images/default-avatar.png';
 
-  const { items: cartItems } = useSelector((state) => state.cart);
-  const cartCount = Array.isArray(cartItems)
-    ? cartItems.reduce((total, item) => total + (item.quantity || 0), 0)
-    : 0;
+  // const { items: cartItems } = useSelector((state) => state.cart);
+  // const cartCount = Array.isArray(cartItems)
+  //   ? cartItems.reduce((total, item) => total + (item.quantity || 0), 0)
+  //   : 0;
 
   return (
     <>
@@ -138,17 +138,17 @@ const userLastName = profile?.user?.lastName || 'Unknown';
   Messages
 </Button>
 
-      <Button color="inherit" component={Link} to="/cart-page">
+      {/* <Button color="inherit" component={Link} to="/cart-page">
         <Badge badgeContent={cartCount} color="secondary">
           <ShoppingCartIcon />
         </Badge>
         Cart
-      </Button>
+      </Button> */}
 
-      <Button color="inherit" component={Link} to="/product-display">
+      {/* <Button color="inherit" component={Link} to="/product-display">
         <ShoppingCartIcon />
         Product
-      </Button>
+      </Button> */}
     </Box>
 
     {/* Admin Dashboard Button (conditionally displayed for admin) */}
@@ -223,19 +223,19 @@ const userLastName = profile?.user?.lastName || 'Unknown';
               <ListItemText primary="Home" />
             </ListItem>
 
-            <ListItem component={Link} to="/product-display">
+            {/* <ListItem component={Link} to="/product-display">
               <ListItemIcon>
                 <HomeIcon color="primary" />
               </ListItemIcon>
               <ListItemText primary="Product" />
-            </ListItem>
+            </ListItem> */}
 
-            <ListItem component={Link} to="/cart-page">
+            {/* <ListItem component={Link} to="/cart-page">
               <ListItemIcon>
                 <ShoppingCartIcon color="secondary" />
               </ListItemIcon>
               <ListItemText primary={`Cart (${cartCount})`} />
-            </ListItem>
+            </ListItem> */}
 
             <ListItem component={Link} to="/contact-us">
               <ListItemIcon>
