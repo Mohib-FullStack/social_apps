@@ -1,15 +1,16 @@
+// migrations/XXXXXXXXXXXXXX-create-group-member.js
 'use strict';
+
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('group_members', {
       id: {
         type: Sequelize.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
+        primaryKey: true,
+        autoIncrement: true
       },
       groupId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
           model: 'groups',
           key: 'id'
@@ -18,7 +19,6 @@ module.exports = {
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
           model: 'users',
           key: 'id'
@@ -26,36 +26,30 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       role: {
-        type: Sequelize.ENUM('admin', 'member'),
+        type: Sequelize.ENUM('member', 'admin', 'moderator'),
         defaultValue: 'member'
       },
-      joinedAt: {
-        type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW
+      status: {
+        type: Sequelize.ENUM('active', 'pending', 'banned'),
+        defaultValue: 'active'
       },
       createdAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
+        allowNull: false
       },
       updatedAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
-      },
-      deletedAt: {
-        type: Sequelize.DATE,
-        allowNull: true
+        allowNull: false
       }
     });
 
     await queryInterface.addIndex('group_members', ['groupId', 'userId'], {
-      unique: true
+      unique: true,
+      name: 'group_member_unique_pair'
     });
-    await queryInterface.addIndex('group_members', ['userId']);
   },
 
-  async down(queryInterface, Sequelize) {
+  down: async (queryInterface) => {
     await queryInterface.dropTable('group_members');
   }
 };

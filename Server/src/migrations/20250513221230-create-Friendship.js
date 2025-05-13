@@ -1,3 +1,4 @@
+// migrations/XXXXXXXXXXXXXX-create-friendship.js
 'use strict';
 
 module.exports = {
@@ -10,14 +11,18 @@ module.exports = {
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
-        references: { model: 'users', key: 'id' },
+        references: {
+          model: 'users',
+          key: 'id'
+        },
         onDelete: 'CASCADE'
       },
       friendId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
-        references: { model: 'users', key: 'id' },
+        references: {
+          model: 'users',
+          key: 'id'
+        },
         onDelete: 'CASCADE'
       },
       status: {
@@ -26,21 +31,29 @@ module.exports = {
       },
       actionUserId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
-        references: { model: 'users', key: 'id' }
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onDelete: 'SET NULL'
       },
-      acceptedAt: { type: Sequelize.DATE, allowNull: true },
-      createdAt: { type: Sequelize.DATE, allowNull: false },
-      updatedAt: { type: Sequelize.DATE, allowNull: false }
+      acceptedAt: {
+        type: Sequelize.DATE
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        allowNull: false
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        allowNull: false
+      }
     });
 
-    // Add composite indexes
     await queryInterface.addIndex('friendships', ['userId', 'friendId'], {
       unique: true,
       name: 'friendship_unique_pair'
     });
-    await queryInterface.addIndex('friendships', ['userId', 'status']);
-    await queryInterface.addIndex('friendships', ['friendId', 'status']);
   },
 
   down: async (queryInterface) => {

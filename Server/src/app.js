@@ -14,7 +14,7 @@ const logger = require("./config/logger"); // Make sure logger is imported
 // Routers
 const userRouter = require("./router/userRouter");
 const chatRouter = require("./router/chatRouter");
-// const friendShipsRouter = require("./router/friendShipRouter");
+//  const friendShipsRouter = require("./router/friendShipRouter");
 const phoneRouter = require("./router/phoneRouter");
 const authRouter = require("./router/authRouter");
 const coverImageRouter = require("./router/coverImageRoutes");
@@ -123,6 +123,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api", chatRouter);
 // app.use("/api/friendships", friendShipsRouter);
+// app.use("/api/", friendShipsRouter);
 app.use("/api", phoneRouter);
 app.use("/api", genderRouter);
 app.use("/api", birthDateRouter);

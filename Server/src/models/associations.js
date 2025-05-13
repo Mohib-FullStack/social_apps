@@ -4,7 +4,7 @@ const Post = require('./postModel');
 const Comment = require('./commentModel');
 const Media = require('./mediaModel');
 const Like = require('./likeModel');
-
+const Notification = require('./notificationModel');
 const UserFollows = require('./userFollowsModel');
 const Group = require('./groupModel');
 const GroupMember = require('./groupMemberModel');
@@ -357,6 +357,60 @@ Chat.belongsTo(Message, {
   ...SET_NULL
 });
 
+// ==================== 8. NOTIFICATION SYSTEM RELATIONSHIPS ====================
+
+// User-Notification relationships (recipient)
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+  as: 'receivedNotifications',
+  ...CASCADE
+});
+
+// User-Notification relationships (sender)
+User.hasMany(Notification, {
+  foreignKey: 'senderId',
+  as: 'sentNotifications',
+  ...CASCADE
+});
+
+// Notification relationships
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'recipient',
+  ...CASCADE
+});
+
+Notification.belongsTo(User, {
+  foreignKey: 'senderId',
+  as: 'sender',
+  ...CASCADE
+});
+
+// Add notification-specific relationships based on types
+Notification.belongsTo(Friendship, {
+  foreignKey: 'metadata.friendshipId',
+  constraints: false,
+  as: 'friendshipNotification'
+});
+
+Notification.belongsTo(Post, {
+  foreignKey: 'metadata.postId',
+  constraints: false,
+  as: 'postNotification'
+});
+
+Notification.belongsTo(Comment, {
+  foreignKey: 'metadata.commentId',
+  constraints: false,
+  as: 'commentNotification'
+});
+
+Notification.belongsTo(Message, {
+  foreignKey: 'metadata.messageId',
+  constraints: false,
+  as: 'messageNotification'
+});
+
 // ==================== EXPORT MODELS IN DEPENDENCY ORDER ====================
 module.exports = {
   // 1. Core independent models
@@ -366,6 +420,7 @@ module.exports = {
   Media,
   Like,
   Group,
+  Notification,
   
   // 2. Social graph models
   Friendship,

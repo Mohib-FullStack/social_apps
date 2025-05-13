@@ -1,19 +1,16 @@
+// migrations/XXXXXXXXXXXXXX-create-comment.js
 'use strict';
+
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('comments', {
       id: {
         type: Sequelize.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-      },
-      content: {
-        type: Sequelize.TEXT,
-        allowNull: false
+        primaryKey: true,
+        autoIncrement: true
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
           model: 'users',
           key: 'id'
@@ -22,7 +19,6 @@ module.exports = {
       },
       postId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
           model: 'posts',
           key: 'id'
@@ -31,41 +27,28 @@ module.exports = {
       },
       parentId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
         references: {
           model: 'comments',
           key: 'id'
         },
         onDelete: 'CASCADE'
       },
+      content: {
+        type: Sequelize.TEXT,
+        allowNull: false
+      },
       createdAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
+        allowNull: false
       },
       updatedAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
-      },
-      deletedAt: {
-        type: Sequelize.DATE,
-        allowNull: true
+        allowNull: false
       }
-    });
-
-    await queryInterface.addIndex('comments', ['userId'], {
-      name: 'comments_userId_index'
-    });
-    await queryInterface.addIndex('comments', ['postId'], {
-      name: 'comments_postId_index'
-    });
-    await queryInterface.addIndex('comments', ['parentId'], {
-      name: 'comments_parentId_index'
     });
   },
 
-  async down(queryInterface, Sequelize) {
+  down: async (queryInterface) => {
     await queryInterface.dropTable('comments');
   }
 };

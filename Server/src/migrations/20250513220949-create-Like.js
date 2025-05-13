@@ -1,15 +1,16 @@
+// migrations/XXXXXXXXXXXXXX-create-like.js
 'use strict';
+
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('likes', {
       id: {
         type: Sequelize.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
+        primaryKey: true,
+        autoIncrement: true
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         references: {
           model: 'users',
           key: 'id'
@@ -18,7 +19,6 @@ module.exports = {
       },
       postId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
         references: {
           model: 'posts',
           key: 'id'
@@ -27,40 +27,34 @@ module.exports = {
       },
       commentId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
         references: {
           model: 'comments',
           key: 'id'
         },
         onDelete: 'CASCADE'
       },
-      reactionType: {
-        type: Sequelize.ENUM('like', 'love', 'laugh', 'wow', 'sad', 'angry'),
-        allowNull: false,
-        defaultValue: 'like'
-      },
       createdAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
+        allowNull: false
       },
       updatedAt: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
-      },
-      deletedAt: {
-        type: Sequelize.DATE,
-        allowNull: true
+        allowNull: false
       }
     });
 
-    await queryInterface.addIndex('likes', ['userId']);
-    await queryInterface.addIndex('likes', ['postId']);
-    await queryInterface.addIndex('likes', ['commentId']);
+    await queryInterface.addIndex('likes', ['userId', 'postId'], {
+      unique: true,
+      where: { commentId: null }
+    });
+
+    await queryInterface.addIndex('likes', ['userId', 'commentId'], {
+      unique: true,
+      where: { postId: null }
+    });
   },
 
-  async down(queryInterface, Sequelize) {
+  down: async (queryInterface) => {
     await queryInterface.dropTable('likes');
   }
 };
