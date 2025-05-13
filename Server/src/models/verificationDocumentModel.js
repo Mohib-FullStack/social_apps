@@ -5,7 +5,7 @@ const VerificationDocument = sequelize.define('VerificationDocument', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
-    primaryKey: true,
+        primaryKey: true,
   },
   userId: {
     type: DataTypes.INTEGER,

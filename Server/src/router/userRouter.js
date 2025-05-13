@@ -118,11 +118,6 @@ userRouter.delete('/:id', isLoggedIn, isAdmin, handleDeleteUserById);
 
 
 
-
-
-
-
-
 // Admin routes
 userRouter.put(
   '/alerts/:id',
@@ -132,6 +127,29 @@ userRouter.put(
 );
 
 module.exports = userRouter;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
