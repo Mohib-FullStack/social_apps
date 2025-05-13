@@ -7,35 +7,13 @@ const Friendship = sequelize.define('Friendship', {
     autoIncrement: true,
     primaryKey: true
   },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
-  },
-  friendId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
-  },
   status: {
     type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'),
     defaultValue: 'pending'
   },
   actionUserId: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true
   },
   acceptedAt: {
     type: DataTypes.DATE,
@@ -65,5 +43,20 @@ const Friendship = sequelize.define('Friendship', {
     }
   }
 });
+
+// Then in your associations file (where you set up model relationships), you would add:
+// User.belongsToMany(User, {
+//   through: Friendship,
+//   as: 'Friends',
+//   foreignKey: 'userId',
+//   otherKey: 'friendId'
+// });
+// 
+// User.belongsToMany(User, {
+//   through: Friendship,
+//   as: 'FriendOf',
+//   foreignKey: 'friendId',
+//   otherKey: 'userId'
+// });
 
 module.exports = Friendship;
