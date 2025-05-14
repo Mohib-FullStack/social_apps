@@ -52,7 +52,7 @@ Comment.belongsTo(Post, {
 Comment.belongsTo(Comment, {
   foreignKey: 'parentId',
   as: 'parentComment',
-  ...CASCADE
+  ...SET_NULL
 });
 Comment.hasMany(Comment, {
   foreignKey: 'parentId',
@@ -101,13 +101,16 @@ Like.belongsTo(User, {
 
 // ==================== 2. SOCIAL GRAPH RELATIONSHIPS ====================
 
-// Friendship system - Updated implementation
+// 🌟 ENHANCED FRIENDSHIP ASSOCIATIONS ==============================
+
+// Two-way friendship association
 User.belongsToMany(User, {
   through: Friendship,
   as: 'friends',
   foreignKey: 'userId',
   otherKey: 'friendId',
-  ...CASCADE
+  ...CASCADE,
+  comment: 'Friends initiated by this user'
 });
 
 User.belongsToMany(User, {
@@ -115,25 +118,52 @@ User.belongsToMany(User, {
   as: 'friendOf',
   foreignKey: 'friendId',
   otherKey: 'userId',
-  ...CASCADE
+  ...CASCADE,
+  comment: 'Friends who initiated with this user'
 });
 
+// Direct friendship access
+User.hasMany(Friendship, {
+  foreignKey: 'userId',
+  as: 'sentFriendRequests',
+  ...CASCADE,
+  comment: 'Friend requests sent by this user'
+});
+
+User.hasMany(Friendship, {
+  foreignKey: 'friendId',
+  as: 'receivedFriendRequests',
+  ...CASCADE,
+  comment: 'Friend requests received by this user'
+});
+
+User.hasMany(Friendship, {
+  foreignKey: 'actionUserId',
+  as: 'friendshipActions',
+  ...SET_NULL,
+  comment: 'Friendship status changes performed by this user'
+});
+
+// Detailed friendship relationships
 Friendship.belongsTo(User, {
   as: 'requester',
   foreignKey: 'userId',
-  ...CASCADE
+  ...CASCADE,
+  comment: 'The user who sent the friend request'
 });
 
 Friendship.belongsTo(User, {
   as: 'requested',
   foreignKey: 'friendId',
-  ...CASCADE
+  ...CASCADE,
+  comment: 'The user who received the friend request'
 });
 
 Friendship.belongsTo(User, {
   as: 'actionUser',
   foreignKey: 'actionUserId',
-  ...SET_NULL
+  ...SET_NULL,
+  comment: 'User who performed the last status change'
 });
 
 // Follow system
@@ -144,6 +174,7 @@ User.belongsToMany(User, {
   otherKey: 'followingId',
   ...CASCADE
 });
+
 User.belongsToMany(User, {
   as: 'followers',
   through: UserFollows,
@@ -232,7 +263,7 @@ TempPhoneUpdate.belongsTo(User, {
 
 // ==================== 5. GENDER VERIFICATION SYSTEM ====================
 
-// Gender change requests (Updated with clear aliases)
+// Gender change requests
 User.hasMany(PendingGenderChange, {
   foreignKey: 'userId',
   as: 'genderChangeRequests',
@@ -251,7 +282,7 @@ PendingGenderChange.belongsTo(User, {
   ...SET_NULL
 });
 
-// Gender verification OTPs (Updated with clearer naming)
+// Gender verification OTPs
 PendingGenderChange.hasOne(TempGenderVerification, {
   foreignKey: 'pendingChangeId',
   as: 'otpVerification',
@@ -285,7 +316,6 @@ User.hasMany(AdminAlert, {
   ...CASCADE
 });
 
-// Admin alerts (Updated to match gender change aliases)
 AdminAlert.belongsTo(User, {
   foreignKey: 'userId',
   as: 'affectedUser',
@@ -352,8 +382,8 @@ Chat.belongsToMany(User, {
 
 // Chat last message relationship
 Chat.belongsTo(Message, {
-  foreignKey: 'lastMessageId',
-  as: 'lastMessageRef',
+    foreignKey: 'lastMessageId',
+   as: 'latestMessage',
   ...SET_NULL
 });
 
@@ -386,29 +416,29 @@ Notification.belongsTo(User, {
   ...CASCADE
 });
 
-// Add notification-specific relationships based on types
+// Notification metadata relationships
 Notification.belongsTo(Friendship, {
-  foreignKey: 'metadata.friendshipId',
-  constraints: false,
-  as: 'friendshipNotification'
+  foreignKey: 'friendshipId',
+  as: 'friendshipNotification',
+  ...SET_NULL
 });
 
 Notification.belongsTo(Post, {
-  foreignKey: 'metadata.postId',
-  constraints: false,
-  as: 'postNotification'
+  foreignKey: 'postId',
+  as: 'postNotification',
+  ...SET_NULL
 });
 
 Notification.belongsTo(Comment, {
-  foreignKey: 'metadata.commentId',
-  constraints: false,
-  as: 'commentNotification'
+  foreignKey: 'commentId',
+  as: 'commentNotification',
+  ...SET_NULL
 });
 
 Notification.belongsTo(Message, {
-  foreignKey: 'metadata.messageId',
-  constraints: false,
-  as: 'messageNotification'
+  foreignKey: 'messageId',
+  as: 'messageNotification',
+  ...SET_NULL
 });
 
 // ==================== EXPORT MODELS IN DEPENDENCY ORDER ====================
@@ -450,14 +480,14 @@ module.exports = {
 
 
 
-//! running
+
 // // src/models/associations.js
 // const User = require('./userModel');
 // const Post = require('./postModel');
 // const Comment = require('./commentModel');
 // const Media = require('./mediaModel');
 // const Like = require('./likeModel');
-
+// const Notification = require('./notificationModel');
 // const UserFollows = require('./userFollowsModel');
 // const Group = require('./groupModel');
 // const GroupMember = require('./groupMemberModel');
@@ -470,8 +500,6 @@ module.exports = {
 // const Message = require('./messageModel');
 // const ChatParticipant = require('./chatParticipantModel');
 // const Friendship = require('./friendshipModel');
-
-
 
 // // Association configuration constants
 // const CASCADE = { onDelete: 'CASCADE', onUpdate: 'CASCADE' };
@@ -507,7 +535,7 @@ module.exports = {
 // Comment.belongsTo(Comment, {
 //   foreignKey: 'parentId',
 //   as: 'parentComment',
-//   ...CASCADE
+//   ...SET_NULL
 // });
 // Comment.hasMany(Comment, {
 //   foreignKey: 'parentId',
@@ -556,19 +584,59 @@ module.exports = {
 
 // // ==================== 2. SOCIAL GRAPH RELATIONSHIPS ====================
 
-// // Friendship system
+// // Enhanced Friendship System
 // User.belongsToMany(User, {
+//   through: Friendship,
 //   as: 'friends',
-//   through: {
-//     model: Friendship,
-//     unique: true,
-//     scope: {
-//       status: 'active'
-//     }
-//   },
 //   foreignKey: 'userId',
 //   otherKey: 'friendId',
 //   ...CASCADE
+// });
+
+// User.belongsToMany(User, {
+//   through: Friendship,
+//   as: 'friendOf',
+//   foreignKey: 'friendId',
+//   otherKey: 'userId',
+//   ...CASCADE
+// });
+
+// // Friend Request Management
+// User.hasMany(Friendship, {
+//   foreignKey: 'userId',
+//   as: 'sentFriendRequests',
+//   ...CASCADE
+// });
+
+// User.hasMany(Friendship, {
+//   foreignKey: 'friendId',
+//   as: 'receivedFriendRequests',
+//   ...CASCADE
+// });
+
+// User.hasMany(Friendship, {
+//   foreignKey: 'actionUserId',
+//   as: 'friendshipActions',
+//   ...SET_NULL
+// });
+
+// // Friendship relationships
+// Friendship.belongsTo(User, {
+//   as: 'requester',
+//   foreignKey: 'userId',
+//   ...CASCADE
+// });
+
+// Friendship.belongsTo(User, {
+//   as: 'requested',
+//   foreignKey: 'friendId',
+//   ...CASCADE
+// });
+
+// Friendship.belongsTo(User, {
+//   as: 'actionUser',
+//   foreignKey: 'actionUserId',
+//   ...SET_NULL
 // });
 
 // // Follow system
@@ -579,6 +647,7 @@ module.exports = {
 //   otherKey: 'followingId',
 //   ...CASCADE
 // });
+
 // User.belongsToMany(User, {
 //   as: 'followers',
 //   through: UserFollows,
@@ -667,7 +736,7 @@ module.exports = {
 
 // // ==================== 5. GENDER VERIFICATION SYSTEM ====================
 
-// // Gender change requests (Updated with clear aliases)
+// // Gender change requests
 // User.hasMany(PendingGenderChange, {
 //   foreignKey: 'userId',
 //   as: 'genderChangeRequests',
@@ -686,7 +755,7 @@ module.exports = {
 //   ...SET_NULL
 // });
 
-// // Gender verification OTPs (Updated with clearer naming)
+// // Gender verification OTPs
 // PendingGenderChange.hasOne(TempGenderVerification, {
 //   foreignKey: 'pendingChangeId',
 //   as: 'otpVerification',
@@ -720,7 +789,6 @@ module.exports = {
 //   ...CASCADE
 // });
 
-// // Admin alerts (Updated to match gender change aliases)
 // AdminAlert.belongsTo(User, {
 //   foreignKey: 'userId',
 //   as: 'affectedUser',
@@ -787,8 +855,62 @@ module.exports = {
 
 // // Chat last message relationship
 // Chat.belongsTo(Message, {
-//   foreignKey: 'lastMessageId',
-//   as: 'lastMessageRef',
+//     foreignKey: 'lastMessageId',
+//    as: 'latestMessage',
+//   ...SET_NULL
+// });
+
+// // ==================== 8. NOTIFICATION SYSTEM RELATIONSHIPS ====================
+
+// // User-Notification relationships (recipient)
+// User.hasMany(Notification, {
+//   foreignKey: 'userId',
+//   as: 'receivedNotifications',
+//   ...CASCADE
+// });
+
+// // User-Notification relationships (sender)
+// User.hasMany(Notification, {
+//   foreignKey: 'senderId',
+//   as: 'sentNotifications',
+//   ...CASCADE
+// });
+
+// // Notification relationships
+// Notification.belongsTo(User, {
+//   foreignKey: 'userId',
+//   as: 'recipient',
+//   ...CASCADE
+// });
+
+// Notification.belongsTo(User, {
+//   foreignKey: 'senderId',
+//   as: 'sender',
+//   ...CASCADE
+// });
+
+// // Notification metadata relationships
+// Notification.belongsTo(Friendship, {
+//   foreignKey: 'friendshipId',
+//   as: 'friendshipNotification',
+//   ...SET_NULL
+// });
+
+// Notification.belongsTo(Post, {
+//   foreignKey: 'postId',
+//   as: 'postNotification',
+//   ...SET_NULL
+// });
+
+// Notification.belongsTo(Comment, {
+//   foreignKey: 'commentId',
+//   as: 'commentNotification',
+//   ...SET_NULL
+// });
+
+// Notification.belongsTo(Message, {
+//   foreignKey: 'messageId',
+//   as: 'messageNotification',
 //   ...SET_NULL
 // });
 
@@ -801,6 +923,7 @@ module.exports = {
 //   Media,
 //   Like,
 //   Group,
+//   Notification,
   
 //   // 2. Social graph models
 //   Friendship,
@@ -821,6 +944,23 @@ module.exports = {
 //   Message,
 //   ChatParticipant
 // };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
