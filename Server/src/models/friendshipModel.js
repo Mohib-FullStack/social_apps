@@ -1,3 +1,4 @@
+//! src/models/friendshipModel
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -9,57 +10,47 @@ const Friendship = sequelize.define('Friendship', {
   },
   userId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   friendId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'),
+    type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'), // ✅ Added more status options for flexibility
     defaultValue: 'pending'
   },
   actionUserId: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+    allowNull: true // ✅ Optional - Who acted last (used for UI/UX insights)
   },
   acceptedAt: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true // ✅ Timestamp for when the friendship was accepted
   }
 }, {
   tableName: 'friendships',
+  timestamps: true,
   indexes: [
     {
       unique: true,
-      fields: ['userId', 'friendId']
+      fields: ['userId', 'friendId'] // ✅ Ensures no duplicate friendships
     },
-    { fields: ['userId', 'status'] },
-    { fields: ['friendId', 'status'] }
+    {
+      fields: ['userId', 'status']
+    },
+    {
+      fields: ['friendId', 'status']
+    }
   ],
   hooks: {
     beforeUpdate: async (friendship) => {
+      // ✅ Automatically set acceptedAt when friendship is accepted
       if (friendship.changed('status') && friendship.status === 'accepted') {
         friendship.acceptedAt = new Date();
       }
     }
   }
 });
-
-// Add associations in your model initialization file
-// Friendship.belongsTo(User, { as: 'requester', foreignKey: 'userId' });
-// Friendship.belongsTo(User, { as: 'requested', foreignKey: 'friendId' });
 
 module.exports = Friendship;

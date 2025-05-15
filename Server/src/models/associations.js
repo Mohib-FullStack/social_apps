@@ -101,16 +101,13 @@ Like.belongsTo(User, {
 
 // ==================== 2. SOCIAL GRAPH RELATIONSHIPS ====================
 
-// 🌟 ENHANCED FRIENDSHIP ASSOCIATIONS ==============================
-
-// Two-way friendship association
+// Friendship associations
 User.belongsToMany(User, {
   through: Friendship,
   as: 'friends',
   foreignKey: 'userId',
   otherKey: 'friendId',
-  ...CASCADE,
-  comment: 'Friends initiated by this user'
+  ...CASCADE
 });
 
 User.belongsToMany(User, {
@@ -118,52 +115,45 @@ User.belongsToMany(User, {
   as: 'friendOf',
   foreignKey: 'friendId',
   otherKey: 'userId',
-  ...CASCADE,
-  comment: 'Friends who initiated with this user'
+  ...CASCADE
 });
 
 // Direct friendship access
 User.hasMany(Friendship, {
   foreignKey: 'userId',
   as: 'sentFriendRequests',
-  ...CASCADE,
-  comment: 'Friend requests sent by this user'
+  ...CASCADE
 });
 
 User.hasMany(Friendship, {
   foreignKey: 'friendId',
   as: 'receivedFriendRequests',
-  ...CASCADE,
-  comment: 'Friend requests received by this user'
+  ...CASCADE
 });
 
 User.hasMany(Friendship, {
   foreignKey: 'actionUserId',
   as: 'friendshipActions',
-  ...SET_NULL,
-  comment: 'Friendship status changes performed by this user'
+  ...SET_NULL
 });
 
 // Detailed friendship relationships
 Friendship.belongsTo(User, {
   as: 'requester',
   foreignKey: 'userId',
-  ...CASCADE,
-  comment: 'The user who sent the friend request'
+  ...CASCADE
 });
 
 Friendship.belongsTo(User, {
   as: 'requested',
   foreignKey: 'friendId',
-  ...CASCADE,
-  comment: 'The user who received the friend request'
+  ...CASCADE
 });
 
 Friendship.belongsTo(User, {
   as: 'actionUser',
   foreignKey: 'actionUserId',
-  ...SET_NULL,
-  comment: 'User who performed the last status change'
+  ...SET_NULL
 });
 
 // Follow system
@@ -354,10 +344,15 @@ Message.belongsTo(Chat, {
   ...CASCADE
 });
 
-// User-Message relationships (sender)
+// User-Message associations
 User.hasMany(Message, {
   foreignKey: 'senderId',
   as: 'sentMessages',
+  ...CASCADE
+});
+User.hasMany(Message, {
+  foreignKey: 'receiverId',
+  as: 'receivedMessages',
   ...CASCADE
 });
 Message.belongsTo(User, {
@@ -365,38 +360,37 @@ Message.belongsTo(User, {
   as: 'sender',
   ...CASCADE
 });
-
-// Chat-User relationships (participants)
-User.belongsToMany(Chat, {
-  through: ChatParticipant,
-  foreignKey: 'userId',
-  as: 'chats',
+Message.belongsTo(User, {
+  foreignKey: 'receiverId',
+  as: 'receiver',
   ...CASCADE
 });
+
+// Chat Participants
 Chat.belongsToMany(User, {
   through: ChatParticipant,
   foreignKey: 'chatId',
+  otherKey: 'userId',
   as: 'participants',
   ...CASCADE
 });
-
-// Chat last message relationship
-Chat.belongsTo(Message, {
-    foreignKey: 'lastMessageId',
-   as: 'latestMessage',
-  ...SET_NULL
+User.belongsToMany(Chat, {
+  through: ChatParticipant,
+  foreignKey: 'userId',
+  otherKey: 'chatId',
+  as: 'chats',
+  ...CASCADE
 });
 
 // ==================== 8. NOTIFICATION SYSTEM RELATIONSHIPS ====================
 
-// User-Notification relationships (recipient)
+// User-Notification relationships
 User.hasMany(Notification, {
   foreignKey: 'userId',
   as: 'receivedNotifications',
   ...CASCADE
 });
 
-// User-Notification relationships (sender)
 User.hasMany(Notification, {
   foreignKey: 'senderId',
   as: 'sentNotifications',
@@ -432,6 +426,18 @@ Notification.belongsTo(Post, {
 Notification.belongsTo(Comment, {
   foreignKey: 'commentId',
   as: 'commentNotification',
+  ...SET_NULL
+});
+
+Notification.belongsTo(Group, {
+  foreignKey: 'groupId',
+  as: 'groupNotification',
+  ...SET_NULL
+});
+
+Notification.belongsTo(Chat, {
+  foreignKey: 'chatId',
+  as: 'chatNotification',
   ...SET_NULL
 });
 
@@ -471,8 +477,6 @@ module.exports = {
   Message,
   ChatParticipant
 };
-
-
 
 
 
@@ -584,13 +588,16 @@ module.exports = {
 
 // // ==================== 2. SOCIAL GRAPH RELATIONSHIPS ====================
 
-// // Enhanced Friendship System
+// // 🌟 ENHANCED FRIENDSHIP ASSOCIATIONS ==============================
+
+// // Two-way friendship association
 // User.belongsToMany(User, {
 //   through: Friendship,
 //   as: 'friends',
 //   foreignKey: 'userId',
 //   otherKey: 'friendId',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'Friends initiated by this user'
 // });
 
 // User.belongsToMany(User, {
@@ -598,45 +605,52 @@ module.exports = {
 //   as: 'friendOf',
 //   foreignKey: 'friendId',
 //   otherKey: 'userId',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'Friends who initiated with this user'
 // });
 
-// // Friend Request Management
+// // Direct friendship access
 // User.hasMany(Friendship, {
 //   foreignKey: 'userId',
 //   as: 'sentFriendRequests',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'Friend requests sent by this user'
 // });
 
 // User.hasMany(Friendship, {
 //   foreignKey: 'friendId',
 //   as: 'receivedFriendRequests',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'Friend requests received by this user'
 // });
 
 // User.hasMany(Friendship, {
 //   foreignKey: 'actionUserId',
 //   as: 'friendshipActions',
-//   ...SET_NULL
+//   ...SET_NULL,
+//   comment: 'Friendship status changes performed by this user'
 // });
 
-// // Friendship relationships
+// // Detailed friendship relationships
 // Friendship.belongsTo(User, {
 //   as: 'requester',
 //   foreignKey: 'userId',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'The user who sent the friend request'
 // });
 
 // Friendship.belongsTo(User, {
 //   as: 'requested',
 //   foreignKey: 'friendId',
-//   ...CASCADE
+//   ...CASCADE,
+//   comment: 'The user who received the friend request'
 // });
 
 // Friendship.belongsTo(User, {
 //   as: 'actionUser',
 //   foreignKey: 'actionUserId',
-//   ...SET_NULL
+//   ...SET_NULL,
+//   comment: 'User who performed the last status change'
 // });
 
 // // Follow system
@@ -813,9 +827,10 @@ module.exports = {
 //   ...SET_NULL
 // });
 
+
 // // ==================== 7. MESSAGING SYSTEM RELATIONSHIPS ====================
 
-// // Chat-Message relationships
+// // Chat-Message relationships (already included above)
 // Chat.hasMany(Message, {
 //   foreignKey: 'chatId',
 //   as: 'messages',
@@ -827,10 +842,15 @@ module.exports = {
 //   ...CASCADE
 // });
 
-// // User-Message relationships (sender)
+// // ✅ Complete User-Message associations (sender and receiver)
 // User.hasMany(Message, {
 //   foreignKey: 'senderId',
 //   as: 'sentMessages',
+//   ...CASCADE
+// });
+// User.hasMany(Message, {
+//   foreignKey: 'receiverId',
+//   as: 'receivedMessages',
 //   ...CASCADE
 // });
 // Message.belongsTo(User, {
@@ -838,27 +858,28 @@ module.exports = {
 //   as: 'sender',
 //   ...CASCADE
 // });
-
-// // Chat-User relationships (participants)
-// User.belongsToMany(Chat, {
-//   through: ChatParticipant,
-//   foreignKey: 'userId',
-//   as: 'chats',
+// Message.belongsTo(User, {
+//   foreignKey: 'receiverId',
+//   as: 'receiver',
 //   ...CASCADE
 // });
+
+// // Chat Participants
 // Chat.belongsToMany(User, {
 //   through: ChatParticipant,
 //   foreignKey: 'chatId',
+//   otherKey: 'userId',
 //   as: 'participants',
 //   ...CASCADE
 // });
-
-// // Chat last message relationship
-// Chat.belongsTo(Message, {
-//     foreignKey: 'lastMessageId',
-//    as: 'latestMessage',
-//   ...SET_NULL
+// User.belongsToMany(Chat, {
+//   through: ChatParticipant,
+//   foreignKey: 'userId',
+//   otherKey: 'chatId',
+//   as: 'chats',
+//   ...CASCADE
 // });
+
 
 // // ==================== 8. NOTIFICATION SYSTEM RELATIONSHIPS ====================
 
@@ -944,6 +965,17 @@ module.exports = {
 //   Message,
 //   ChatParticipant
 // };
+
+
+
+
+
+
+
+
+
+
+
 
 
 

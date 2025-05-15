@@ -20,6 +20,7 @@ const authRouter = require("./router/authRouter");
 const coverImageRouter = require("./router/coverImageRoutes");
 const genderRouter = require("./router/genderRouter");
 const birthDateRouter = require("./router/birthDateRouter");
+const messageRouter = require("./router/messageRouter");
 
 
 
@@ -127,7 +128,7 @@ app.use("/api", phoneRouter);
 app.use("/api", genderRouter);
 app.use("/api", birthDateRouter);
 app.use("/api/coverImage", coverImageRouter);
-
+app.use("/api/message", messageRouter)
 
 // =======================
 // Basic Routes

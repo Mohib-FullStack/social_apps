@@ -7,13 +7,11 @@ import {
   Login as LoginIcon,
   Menu as MenuIcon,
   VpnKey as PasswordIcon,
-  // ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import ChatIcon from '@mui/icons-material/Chat';
 import {
   AppBar,
   Avatar,
-  Badge,
   Box,
   Button,
   Drawer,
@@ -25,7 +23,7 @@ import {
   Menu,
   MenuItem,
   Toolbar,
-  Typography,
+  Typography
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -135,7 +133,7 @@ const userLastName = profile?.user?.lastName || 'Unknown';
        {/* Add to your navigation buttons */}
 <Button color="inherit" component={Link} to="/chat">
   <ChatIcon />
-  Messages
+  chatRoom
 </Button>
 
       {/* <Button color="inherit" component={Link} to="/cart-page">
