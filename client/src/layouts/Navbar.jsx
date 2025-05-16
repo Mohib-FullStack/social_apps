@@ -136,6 +136,11 @@ const userLastName = profile?.user?.lastName || 'Unknown';
   chatRoom
 </Button>
 
+<Button color="inherit" component={Link} to="/user-table">
+  <ChatIcon />
+  UserTable
+</Button>
+
       {/* <Button color="inherit" component={Link} to="/cart-page">
         <Badge badgeContent={cartCount} color="secondary">
           <ShoppingCartIcon />
@@ -221,12 +226,12 @@ const userLastName = profile?.user?.lastName || 'Unknown';
               <ListItemText primary="Home" />
             </ListItem>
 
-            {/* <ListItem component={Link} to="/product-display">
+            <ListItem component={Link} to="/user-table">
               <ListItemIcon>
                 <HomeIcon color="primary" />
               </ListItemIcon>
-              <ListItemText primary="Product" />
-            </ListItem> */}
+              <ListItemText primary="UserTable" />
+            </ListItem>
 
             {/* <ListItem component={Link} to="/cart-page">
               <ListItemIcon>
@@ -280,4 +285,4 @@ const userLastName = profile?.user?.lastName || 'Unknown';
 
 export default Navbar;
 
-//! Ecommerce
+

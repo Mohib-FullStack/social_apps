@@ -1,9 +1,10 @@
 // app/store.js
 import { configureStore } from '@reduxjs/toolkit'
-import userReducer from '../features/user/userSlice'
+import friendshipReducer from '../features/friendship/friendshipSlice'
 import snackbarReducer from '../features/snackbar/snackbarSlice'
+import userReducer from '../features/user/userSlice'
 
-import { persistStore, persistReducer } from 'redux-persist'
+import { persistReducer, persistStore } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 
 const persistConfig = {
@@ -18,7 +19,7 @@ export const store = configureStore({
   reducer: {
     user: persistedUserReducer,
     snackbar: snackbarReducer,
-
+    friendship: friendshipReducer,
   
   },
   middleware: (getDefaultMiddleware) =>

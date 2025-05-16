@@ -101,7 +101,8 @@ userRouter.get('/followers/:id', isLoggedIn, handleGetFollowers);
 userRouter.get('/following/:id', isLoggedIn, handleGetFollowing);
 
 // Admin Routes
-userRouter.get('/', isLoggedIn, isAdmin, handleGetUsers);
+// userRouter.get('/', isLoggedIn, isAdmin, handleGetUsers);
+userRouter.get('/', isLoggedIn, handleGetUsers);
 userRouter.put('/ban-user/:id', isLoggedIn, isAdmin, handleBanUserById);
 userRouter.put('/unban-user/:id', isLoggedIn, isAdmin, handleUnbanUserById);
 userRouter.get('/:id', isLoggedIn,isAdmin, handleGetUserById); // Changed - now accessible to logged in users

@@ -528,7 +528,7 @@ const handleGetFollowing = async (req, res, next) => {
 // 🟠 ADMIN USER MANAGEMENT
 const handleGetUsers = async (req, res, next) => {
   try {
-    const { search = '', page = 1, limit = 10 } = req.query;
+    const { search = '', page = 1, limit = 5 } = req.query;
     const offset = (page - 1) * limit;
 
     const { rows: users, count } = await User.findAndCountAll({
@@ -540,7 +540,7 @@ const handleGetUsers = async (req, res, next) => {
               { firstName: { [Op.iLike]: `%${search}%` } },
               { lastName: { [Op.iLike]: `%${search}%` } },
               { email: { [Op.iLike]: `%${search}%` } },
-              // { username: { [Op.iLike]: `%${search}%` } }
+                     
             ]
           }
         ]
@@ -566,6 +566,8 @@ const handleGetUsers = async (req, res, next) => {
     next(error);
   }
 };
+
+
 
 const handleGetUserById = async (req, res) => {
   try {

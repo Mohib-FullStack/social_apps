@@ -19,7 +19,7 @@ import { SocketProvider } from './context/SocketContext'; // Import the SocketPr
 import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar';
-import ChatPage from './components/Chat/ChatPage';
+import Chat from './components/Chat/Chat';
 
 
 const App = () => {
@@ -51,8 +51,8 @@ const App = () => {
           <Route path="/update-user/:id" element={<UpdateUserById />} />
           <Route path="/user-table" element={<UserTable />} />
             
-<Route path="/chat" element={<ChatPage />} />
-<Route path="/chat/:chatId" element={<ChatPage />} />
+<Route path="/chat" element={<Chat />} />
+<Route path="/chat/:chatId" element={<Chat />} />
 
           {/* 404 - Not Found Route */}
           <Route path="*" element={<NotFound />} />
@@ -70,101 +70,78 @@ export default App;
 
 
 
-
-
-
-
-
-
-
+//! test with wraper
+// import { LocalizationProvider } from '@mui/x-date-pickers';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 // import { Route, Routes } from 'react-router-dom';
 // import ActivatePage from './components/ACTIVATE/ActivatePage';
-// import CartPage from './components/CART/CartPage';
-// import CategoryTable from './components/CATEGORY-TABLE/CategoryTable';
-// import CheckoutPage from './components/CheckoutPage/CheckoutPage ';
 // import ContactUs from './components/CONTACT-US/ContactUs';
-// import CreateCategory from './components/CATEGORY/CreateCategory';
-// import CreateProduct from './components/PRODUCT/CreateProduct';
 // import Dashboard from './components/DASHBOARD/Dashboard';
-// import Footer from './layouts/Footer';
 // import ForgotPassword from './components/FORGOT-PASSWORD/ForgotPassword';
-// import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 // import HomePage from './components/HOME/Home';
 // import Login from './components/LOGIN/Login';
-// import Navbar from './layouts/Navbar';
 // import NotFound from './components/NOTFOUND/NotFound';
-// import PaymentPage from './components/PAYMENT/Payment';
-// import ProductDetails from './components/PRODUCT/ProductDetails';
-// import ProductDisplay from './components/PRODUCT/ProductDisplay';
-// import ProductTable from './components/PRODUCT/ProductTable';
 // import Profile from './components/PROFILE/Profile';
+// import UpdateUserProfile from './components/PROFILE/UpdateUserProfile';
 // import Register from './components/REGISTER/Register';
 // import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
-// import ThankYouPage from './components/Thank-You/Thank-You-Page';
-// import OrderTrackPage from './components/OrderTrack/OrderTrackPage';
-// import UpdateCategory from './components/CATEGORY/UpdateCategory';
 // import UpdatePassword from './components/UPDATE-PASSWORD/UpdatePassword';
-// import UpdateProduct from './components/PRODUCT/UpdateProduct';
 // import UpdateUserById from './components/UPDATE-USER-BY-ID/UpdateUserById';
-// import UpdateUserProfile from './components/PROFILE/UpdateUserProfile';
 // import UserTable from './components/USER-TABLE/UserTable';
-// import OrderTable from './components/OrderTrack/OrderTable';
-
-// // import OrderPage from './components/ORDER/Order'
-// // import OrderDetailsPage from './components/ORDER/OrderDetails'
+// import { SocketProvider } from './context/SocketContext';
+// import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
+// import Footer from './layouts/Footer';
+// import Navbar from './layouts/Navbar';
+// import Chat from './components/Chat/Chat';
+// import LayoutWrapper from './layouts/LayoutWrapper'; // <-- NEW
 
 // const App = () => {
 //   return (
-//     <>
-//       {/* Navbar at the top */}
-//       <Navbar />
+//     <LocalizationProvider dateAdapter={AdapterDateFns}>
+//       <SocketProvider>
+//         <>
+//           <Navbar />
+//           <GlobalSnackbar />
 
-//       {/* Snackbar for global notifications */}
-//       <GlobalSnackbar />
+//           <Routes>
+//             {/* Public Routes */}
+//             <Route path="/" element={<HomePage />} />
+//             <Route path="/login" element={<Login />} />
+//             <Route path="/register" element={<Register />} />
+//             <Route path="/activate" element={<ActivatePage />} />
+//             <Route path="/contact-us" element={<ContactUs />} />
+//             <Route path="/forgot-password" element={<ForgotPassword />} />
+//             <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-//       {/* Route definitions */}
-//       <Routes>
-//         {/* Public Routes */}
-//         <Route path="/" element={<HomePage />} />
-//         <Route path="/login" element={<Login />} />
-//         <Route path="/register" element={<Register />} />
-//         <Route path="/activate" element={<ActivatePage />} />
-//         <Route path="/contact-us" element={<ContactUs />} />
-//         <Route path="/forgot-password" element={<ForgotPassword />} />
-//         <Route path="/reset-password/:token" element={<ResetPassword />} />
+//             {/* Protected/User-Specific Routes */}
+//             <Route path="/profile" element={<LayoutWrapper><Profile /></LayoutWrapper>} />
+//             <Route path="/dashboard" element={<LayoutWrapper><Dashboard /></LayoutWrapper>} />
+//             <Route path="/update-password" element={<LayoutWrapper><UpdatePassword /></LayoutWrapper>} />
+//             <Route path="/update-user-profile" element={<LayoutWrapper><UpdateUserProfile /></LayoutWrapper>} />
+//             <Route path="/update-user/:id" element={<LayoutWrapper><UpdateUserById /></LayoutWrapper>} />
+//             <Route path="/user-table" element={<LayoutWrapper><UserTable /></LayoutWrapper>} />
 
-//         {/* Protected/User-Specific Routes */}
-//         <Route path="/profile" element={<Profile />} />
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="/update-password" element={<UpdatePassword />} />
-//         <Route path="/update-user-profile" element={<UpdateUserProfile />} />
-//         <Route path="/update-user/:id" element={<UpdateUserById />} />
-//         <Route path="/user-table" element={<UserTable />} />
-//         <Route path="/category" element={<CreateCategory />} />
-//         <Route path="/update-category/:slug" element={<UpdateCategory />} />
-//         <Route path="/category-table" element={<CategoryTable />} />
-//         <Route path="/product" element={<CreateProduct />} />
-//         <Route path="/update-product/:slug" element={<UpdateProduct />} />
-//         <Route path="/product-table" element={<ProductTable />} />
-//         <Route path="/product-display" element={<ProductDisplay />} />
-//         <Route path="/product-details/:slug" element={<ProductDetails />} />
-//         <Route path="/cart-page" element={<CartPage />} />
-//         <Route path="/checkout" element={<CheckoutPage />} />
-//         {/* <Route path="/create" element={<OrderPage />} />
-//         <Route path="/:orderId" element={<OrderDetailsPage />} /> */}
-//         <Route path="/payment" element={<PaymentPage />} />
-//         <Route path="/thank-you" element={<ThankYouPage />} />
-//         <Route path="/track/:orderId" element={<OrderTrackPage />} />
-//         <Route path="/order-table" element={<OrderTable />} />
+//             {/* Chat Routes with Layout */}
+//             <Route path="/chat" element={<LayoutWrapper><Chat /></LayoutWrapper>} />
+//             <Route path="/chat/:chatId" element={<LayoutWrapper><Chat /></LayoutWrapper>} />
 
-//         {/* 404 - Not Found Route */}
-//         <Route path="*" element={<NotFound />} />
-//       </Routes>
+//             {/* 404 - Not Found */}
+//             <Route path="*" element={<NotFound />} />
+//           </Routes>
 
-//       {/* Footer at the bottom */}
-//       <Footer />
-//     </>
+//           <Footer />
+//         </>
+//       </SocketProvider>
+//     </LocalizationProvider>
 //   );
 // };
 
 // export default App;
+
+
+
+
+
+
+
+
