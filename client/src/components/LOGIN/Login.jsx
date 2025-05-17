@@ -1,4 +1,3 @@
-//! new
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
@@ -28,12 +27,17 @@ const Login = () => {
   const navigate = useNavigate()
   const { status } = useSelector((state) => state.user || { status: 'idle' })
 
-  // State variables
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  })
+
+  const [formErrors, setFormErrors] = useState({
+    email: '',
+    password: '',
+  })
+
   const [showPassword, setShowPassword] = useState(false)
-  const [emailError, setEmailError] = useState('')
-  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     if (status === 'failed') {
@@ -47,52 +51,60 @@ const Login = () => {
   }, [status, dispatch])
 
   const handleTogglePasswordVisibility = () => {
-    setShowPassword((prevShowPassword) => !prevShowPassword)
+    setShowPassword((prev) => !prev)
   }
 
-  const validateEmail = (value) => {
+  const validate = () => {
+    const errors = {}
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!value.trim()) {
-      setEmailError('Email is required. Enter your email address')
-    } else if (!emailRegex.test(value)) {
-      setEmailError('Invalid email address')
-    } else {
-      setEmailError('')
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required.'
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = 'Invalid email address.'
     }
-  }
 
-  const validatePassword = (value) => {
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
-    if (!value.trim()) {
-      setPasswordError('Password is required')
-    } else if (value.length < 6) {
-      setPasswordError('Password should be at least 6 characters long')
-    } else if (!passwordRegex.test(value)) {
-      setPasswordError(
-        'Password should contain at least one uppercase letter, one lowercase letter, one number, and one special character'
-      )
-    } else {
-      setPasswordError('')
+    if (!formData.password.trim()) {
+      errors.password = 'Password is required.'
+    } else if (!passwordRegex.test(formData.password)) {
+      errors.password =
+        'Must contain uppercase, lowercase, number, and special character.'
     }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
-  const handleLogin = async (e) => {
+  const handleChange = (field) => (e) => {
+    setFormData({ ...formData, [field]: e.target.value })
+
+    // Live validation on input change
+    setFormErrors((prevErrors) => ({
+      ...prevErrors,
+      [field]: '',
+    }))
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    validateEmail(email)
-    validatePassword(password)
-    if (emailError || passwordError) return
+    const isValid = validate()
+
+    if (!isValid) return
 
     try {
-      const resultAction = await dispatch(loginUser({ email, password }))
-      if (loginUser.fulfilled.match(resultAction)) {
+      const result = await dispatch(loginUser(formData))
+      if (loginUser.fulfilled.match(result)) {
         dispatch(
-          showSnackbar({ message: 'Login successful!', severity: 'success' })
+          showSnackbar({
+            message: 'Login successful!',
+            severity: 'success',
+          })
         )
         navigate('/chat')
       }
-    } catch (err) {
-      console.error('Failed to log in:', err)
+    } catch (error) {
       dispatch(
         showSnackbar({
           message: 'Login failed. Please try again.',
@@ -119,18 +131,11 @@ const Login = () => {
               background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                mb: 3,
-              }}
-            >
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
               <LockOutlinedIcon
                 sx={{
                   fontSize: 40,
-                  color: '#0055A4', // French blue
+                  color: '#0055A4',
                   backgroundColor: '#F8F9FA',
                   borderRadius: '50%',
                   padding: 2,
@@ -138,131 +143,91 @@ const Login = () => {
                 }}
               />
             </Box>
-
             <Typography
               component="h1"
               variant="h5"
-              sx={{ 
-                color: '#0055A4', // French blue
-                fontWeight: 600,
-                mb: 1,
-                fontSize: '1.8rem'
-              }}
+              sx={{ color: '#0055A4', fontWeight: 600, mb: 1, fontSize: '1.8rem' }}
             >
               Login
             </Typography>
             <Typography
-              component="h3"
               variant="subtitle1"
-              sx={{ 
-                color: '#006A4E', // Bangladesh green
-                mb: 3,
-                fontSize: '1rem'
-              }}
+              sx={{ color: '#006A4E', mb: 3, fontSize: '1rem' }}
             >
               Welcome to our social app
             </Typography>
-            <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
+
+            <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
-                variant="outlined"
-                margin="normal"
-                required
-                fullWidth
                 label="Enter mobile or email"
+                fullWidth
+                margin="normal"
+                variant="outlined"
+                value={formData.email}
+                onChange={handleChange('email')}
+                error={!!formErrors.email}
+                helperText={formErrors.email}
                 autoComplete="email"
                 autoFocus
-                value={email}
-                error={!!emailError}
-                helperText={emailError}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  validateEmail(e.target.value)
-                }}
                 sx={{
-                  '& .MuiInputBase-root': { 
+                  '& .MuiInputBase-root': {
                     borderRadius: '8px',
                     backgroundColor: '#FFFFFF',
                   },
                   '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#0055A4', // French blue
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#EF3340', // French red
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#006A4E', // Bangladesh green
-                    },
+                    '& fieldset': { borderColor: '#0055A4' },
+                    '&:hover fieldset': { borderColor: '#EF3340' },
+                    '&.Mui-focused fieldset': { borderColor: '#006A4E' },
                   },
-                  mb: 2
                 }}
               />
               <TextField
-                variant="outlined"
-                margin="normal"
-                required
-                fullWidth
                 label="Enter password"
+                fullWidth
+                margin="normal"
+                variant="outlined"
                 type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange('password')}
+                error={!!formErrors.password}
+                helperText={formErrors.password}
                 autoComplete="current-password"
-                value={password}
-                error={!!passwordError}
-                helperText={passwordError}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                  validatePassword(e.target.value)
-                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleTogglePasswordVisibility}
-                        edge="end"
-                        sx={{ color: '#0055A4' }} // French blue
-                      >
+                      <IconButton onClick={handleTogglePasswordVisibility} edge="end" sx={{ color: '#0055A4' }}>
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   ),
                 }}
                 sx={{
-                  '& .MuiInputBase-root': { 
+                  '& .MuiInputBase-root': {
                     borderRadius: '8px',
                     backgroundColor: '#FFFFFF',
                   },
                   '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#0055A4', // French blue
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#EF3340', // French red
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#006A4E', // Bangladesh green
-                    },
+                    '& fieldset': { borderColor: '#0055A4' },
+                    '&:hover fieldset': { borderColor: '#EF3340' },
+                    '&.Mui-focused fieldset': { borderColor: '#006A4E' },
                   },
-                  mb: 2
                 }}
               />
+
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ 
+                disabled={status === 'loading'}
+                sx={{
                   mt: 3,
                   mb: 2,
-                  backgroundColor: '#0055A4', // French blue
-                  '&:hover': {
-                    backgroundColor: '#EF3340', // French red
-                  },
+                  backgroundColor: '#0055A4',
+                  '&:hover': { backgroundColor: '#EF3340' },
                   height: '48px',
                   borderRadius: '8px',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
                 }}
-                disabled={
-                  status === 'loading' || !!emailError || !!passwordError
-                }
               >
                 {status === 'loading' ? (
                   <CircularProgress size={24} sx={{ color: '#FFFFFF' }} />
@@ -271,23 +236,16 @@ const Login = () => {
                 )}
               </Button>
             </Box>
-            <Box sx={{ 
-              mt: 3,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 2
-            }}>
+
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
               <Link
                 href="/register"
                 variant="body2"
-                sx={{ 
-                  color: '#0055A4', // French blue
+                sx={{
+                  color: '#0055A4',
                   fontWeight: 500,
                   textDecoration: 'none',
-                  '&:hover': {
-                    color: '#EF3340', // French red
-                    textDecoration: 'underline'
-                  }
+                  '&:hover': { color: '#EF3340', textDecoration: 'underline' },
                 }}
               >
                 Create account
@@ -295,14 +253,11 @@ const Login = () => {
               <Link
                 href="/forgot-password"
                 variant="body2"
-                sx={{ 
-                  color: '#006A4E', // Bangladesh green
+                sx={{
+                  color: '#006A4E',
                   fontWeight: 500,
                   textDecoration: 'none',
-                  '&:hover': {
-                    color: '#EF3340', // French red
-                    textDecoration: 'underline'
-                  }
+                  '&:hover': { color: '#EF3340', textDecoration: 'underline' },
                 }}
               >
                 Forgot Password?
@@ -316,6 +271,9 @@ const Login = () => {
 }
 
 export default Login
+
+
+//! old
 
 // import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 // import Visibility from '@mui/icons-material/Visibility';
