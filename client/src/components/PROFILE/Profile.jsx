@@ -1,26 +1,26 @@
 import {
-  Grid,
-  Typography,
+  ArrowBack as ArrowBackIcon,
+  Favorite as FavoriteIcon,
+  Lock as LockIcon,
+  Payment as PaymentIcon,
+  Person as PersonIcon,
+  ShoppingCart as ShoppingCartIcon,
+} from '@mui/icons-material';
+import {
   Avatar,
-  Button,
   Box,
+  Button,
   Card,
   CardContent,
-  Paper,
   Fade,
+  Grid,
+  Paper,
+  Typography,
 } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
 import theme from '../../theme'; // import your custom theme
-import {
-  Person as PersonIcon,
-  Lock as LockIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Payment as PaymentIcon,
-  Favorite as FavoriteIcon,
-  ArrowBack as ArrowBackIcon, // Import arrow icon for back button
-} from '@mui/icons-material';
 
 const Profile = () => {
   const { profile } = useSelector((state) => state.user);
@@ -42,13 +42,13 @@ const Profile = () => {
           minHeight: '100vh',
         }}
       >
-        {/* Back to Home Button */}
+        {/* Back to Chat Button */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
           <Button
             variant="contained" // Changed to contained for more impact
             color="primary" // Set the button color to primary
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/chat')}
             sx={{
               marginTop: 6,
               borderRadius: '8px',
@@ -59,7 +59,7 @@ const Profile = () => {
               },
             }}
           >
-            Back to Home
+            Back to Chat
           </Button>
         </Box>
 

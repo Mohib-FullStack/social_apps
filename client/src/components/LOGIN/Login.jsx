@@ -89,7 +89,7 @@ const Login = () => {
         dispatch(
           showSnackbar({ message: 'Login successful!', severity: 'success' })
         )
-        navigate('/')
+        navigate('/chat')
       }
     } catch (err) {
       console.error('Failed to log in:', err)
