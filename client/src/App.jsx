@@ -20,6 +20,7 @@ import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar';
 import Chat from './components/Chat/Chat';
+import ProfileHomePage from './components/PROFILE/ProfileHomePage';
 
 
 const App = () => {
@@ -45,6 +46,7 @@ const App = () => {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           {/* Protected/User-Specific Routes */}
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile-home" element={<ProfileHomePage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/update-user-profile" element={<UpdateUserProfile />} />

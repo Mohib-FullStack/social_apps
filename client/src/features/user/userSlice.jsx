@@ -73,14 +73,15 @@ export const fetchUserProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get('/users/profile', {
-        withCredentials: true,
-      });
+         withCredentials: true,
+            });
       return response.data.payload;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Fetching profile failed');
     }
   }
 );
+
 
 //! Update User Profile
 export const updateUserProfile = createAsyncThunk(

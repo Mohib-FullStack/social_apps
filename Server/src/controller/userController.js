@@ -224,6 +224,9 @@ const handleFetchUserProfile = async (req, res, next) => {
   }
 }
 
+
+
+
 //! Update logged-in user's profile
 const handleUpdateUserProfile = async (req, res, next) => {
   try {

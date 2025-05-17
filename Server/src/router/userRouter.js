@@ -71,6 +71,7 @@ userRouter.put(
 userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
 
 
+
 userRouter.put(
   '/profile',
   isLoggedIn,

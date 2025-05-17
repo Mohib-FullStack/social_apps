@@ -211,15 +211,15 @@ const Profile = () => {
                         <ShoppingCartIcon />
                       </Avatar>
                       <Typography variant="h6" gutterBottom>
-                        Orders & History
+                        Demo
                       </Typography>
                       <Button
                         variant="contained"
                         color="warning"
                         fullWidth
-                        onClick={() => navigate('/order-history')}
+                        onClick={() => navigate('/demo')}
                       >
-                        View Order History
+                        View Demo History
                       </Button>
                     </CardContent>
                   </Paper>
@@ -281,15 +281,15 @@ const Profile = () => {
                         <FavoriteIcon />
                       </Avatar>
                       <Typography variant="h6" gutterBottom>
-                        Wishlist
+                        Demo
                       </Typography>
                       <Button
                         variant="contained"
                         color="error"
                         fullWidth
-                        onClick={() => navigate('/wishlist')}
+                        onClick={() => navigate('/demo-1')}
                       >
-                        View Wishlist
+                        View Demo
                       </Button>
                     </CardContent>
                   </Paper>
