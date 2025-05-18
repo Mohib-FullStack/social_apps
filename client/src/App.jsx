@@ -2,13 +2,16 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Route, Routes } from 'react-router-dom';
 import ActivatePage from './components/ACTIVATE/ActivatePage';
+import Chat from './components/Chat/Chat';
 import ContactUs from './components/CONTACT-US/ContactUs';
 import Dashboard from './components/DASHBOARD/Dashboard';
 import ForgotPassword from './components/FORGOT-PASSWORD/ForgotPassword';
 import HomePage from './components/HOME/Home';
 import Login from './components/LOGIN/Login';
 import NotFound from './components/NOTFOUND/NotFound';
-import Profile from './components/PROFILE/Profile';
+import PrivateProfilePage from './components/PROFILE/PrivateProfilePage';
+import ProfileHomePage from './components/PROFILE/ProfileHomePage';
+import PublicProfilePage from './components/PROFILE/PublicProfilePage';
 import UpdateUserProfile from './components/PROFILE/UpdateUserProfile';
 import Register from './components/REGISTER/Register';
 import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
@@ -19,8 +22,7 @@ import { SocketProvider } from './context/SocketContext'; // Import the SocketPr
 import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar';
-import Chat from './components/Chat/Chat';
-import ProfileHomePage from './components/PROFILE/ProfileHomePage';
+
 
 
 const App = () => {
@@ -45,7 +47,8 @@ const App = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           {/* Protected/User-Specific Routes */}
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/private" element={<PrivateProfilePage />} />
+          <Route path="/profile/public/:id" element={<PublicProfilePage />} />
           <Route path="/profile-home" element={<ProfileHomePage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/update-password" element={<UpdatePassword />} />

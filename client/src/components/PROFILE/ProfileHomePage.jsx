@@ -1,52 +1,53 @@
 import {
-    PersonAdd as AddFriendIcon,
-    Check as CheckIcon,
-    Close as CloseIcon,
-    ChatBubbleOutline as CommentIcon,
-    Event as EventIcon,
-    SportsEsports as GamesIcon,
-    Group as GroupIcon,
-    Home as HomeIcon,
-    Message as MessageIcon,
-    Mood as MoodIcon,
-    MoreVert as MoreIcon,
-    Notifications as NotificationsIcon,
-    Person as PersonIcon,
-    PhotoLibrary as PhotoLibraryIcon,
-    Search as SearchIcon,
-    Share as ShareIcon,
-    Store as StoreIcon,
-    ThumbUp,
-    
-    Videocam as VideocamIcon
+  PersonAdd as AddFriendIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  ChatBubbleOutline as CommentIcon,
+  Event as EventIcon,
+  SportsEsports as GamesIcon,
+  Group as GroupIcon,
+  Home as HomeIcon,
+  Message as MessageIcon,
+  Mood as MoodIcon,
+  MoreVert as MoreIcon,
+  Notifications as NotificationsIcon,
+  Person as PersonIcon,
+  PhotoLibrary as PhotoLibraryIcon,
+  Search as SearchIcon,
+  Share as ShareIcon,
+  Store as StoreIcon,
+  ThumbUp,
+
+  Videocam as VideocamIcon
 } from '@mui/icons-material';
 import {
-    AppBar,
-    Avatar,
-    Badge,
-    Box,
-    Button,
-    Card,
-    CardActions,
-    CardContent,
-    CardHeader,
-    Container,
-    Divider,
-    Grid,
-    IconButton,
-    InputBase,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    Paper,
-    styled,
-    Toolbar,
-    Typography
+  AppBar,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  Container,
+  Divider,
+  Grid,
+  IconButton,
+  InputBase,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
+  styled,
+  Toolbar,
+  Typography
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Profile from './Profile';
+import PrivateProfilePage from './PrivateProfilePage';
+// import Profile from './Profile';
 
 
 // Styled components
@@ -612,7 +613,7 @@ const ProfileHomePage = () => {
           </Grid>
         </Grid>
       </Container>
-      <Profile/>
+      <PrivateProfilePage/>
     </Box>
     
   );

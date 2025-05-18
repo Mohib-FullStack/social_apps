@@ -18,6 +18,7 @@ const {
   handleGetFollowers,
   handleGetFollowing,
   handleUpdatePrivacySettings,
+  handleGetPublicProfile,
 
 
 } = require('../controller/userController');
@@ -68,9 +69,11 @@ userRouter.put(
 );
 
 //! Profile Routes
-userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
+// userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
 
-
+// Add these new routes:
+userRouter.get('/profile/public/:id', isLoggedIn,handleGetPublicProfile);
+userRouter.get('/profile/private', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 
 userRouter.put(
   '/profile',

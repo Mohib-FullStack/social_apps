@@ -72,9 +72,9 @@ export const fetchUserProfile = createAsyncThunk(
   'user/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get('/users/profile', {
-         withCredentials: true,
-            });
+      const response = await axiosInstance.get('/users/profile/private', {
+        withCredentials: true,
+      });
       return response.data.payload;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Fetching profile failed');
@@ -82,6 +82,21 @@ export const fetchUserProfile = createAsyncThunk(
   }
 );
 
+//! fetchPublicProfile
+// Add this async thunk
+export const fetchPublicProfile = createAsyncThunk(
+  'user/fetchPublicProfile',
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `/users/profile/public/${userId}`
+      );
+      return response.data.payload;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 
 //! Update User Profile
 export const updateUserProfile = createAsyncThunk(
@@ -369,6 +384,19 @@ const userSlice = createSlice({
           1;
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+
+      // fetchPublicProfile
+      .addCase(fetchPublicProfile.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchPublicProfile.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.publicProfile = action.payload;
+      })
+      .addCase(fetchPublicProfile.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })

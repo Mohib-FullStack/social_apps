@@ -225,6 +225,67 @@ const handleFetchUserProfile = async (req, res, next) => {
 }
 
 
+//! 🛡️ Get Public Profile (for other users)
+const handleGetPublicProfile = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const requestingUserId = req.user?.id; // The user making the request
+
+    const user = await User.findByPk(userId, {
+      attributes: { 
+        exclude: ['password', 'isAdmin', 'emailVerifyToken'] 
+      }
+    });
+
+    if (!user) {
+      return errorResponse(res, {
+        statusCode: 404,
+        message: 'User not found'
+      });
+    }
+
+    // Check friendship status if not self
+    let isFriend = false;
+    if (requestingUserId && requestingUserId !== userId) {
+      isFriend = await checkFriendshipStatus(requestingUserId, userId);
+    }
+
+    // Filter data based on privacy settings and relationship
+    const publicData = {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImage: user.profileImage,
+      coverImage: user.getCoverImageUrl(),
+      bio: user.bio,
+      website: user.website,
+      // Conditional fields based on privacy
+      email: shouldShowField(user, 'email', isFriend),
+      phone: shouldShowField(user, 'phone', isFriend),
+      birthDate: shouldShowField(user, 'birthDate', isFriend),
+      gender: user.gender, // Gender is typically public
+      isFriend,
+      createdAt: user.createdAt
+    };
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Public profile retrieved',
+      payload: publicData
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper function to check field visibility
+function shouldShowField(user, field, isFriend) {
+  const visibility = user.privacySettings[`${field}Visibility`];
+  
+  if (visibility === 'public') return user[field];
+  if (visibility === 'friends' && isFriend) return user[field];
+  return undefined; // Don't show private fields
+}
 
 
 //! Update logged-in user's profile
@@ -289,6 +350,7 @@ const handleUpdateUserProfile = async (req, res, next) => {
 
 
 // Update Privacy Settings
+//! 🔐 Update Privacy Settings
 const handleUpdatePrivacySettings = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -297,11 +359,18 @@ const handleUpdatePrivacySettings = async (req, res, next) => {
     const user = await User.findByPk(userId);
     if (!user) throw createError(404, 'User not found');
 
-    user.privacySettings = {
-      ...user.privacySettings,
-      ...privacySettings
-    };
+    // Validate and update only allowed fields
+    const validSettings = ['profileVisibility', 'emailVisibility', 
+                         'phoneVisibility', 'birthDateVisibility'];
+    
+    const newSettings = { ...user.privacySettings };
+    for (const key in privacySettings) {
+      if (validSettings.includes(key)) {
+        newSettings[key] = privacySettings[key];
+      }
+    }
 
+    user.privacySettings = newSettings;
     await user.save();
 
     return successResponse(res, {
@@ -1113,6 +1182,7 @@ module.exports = {
   handleProcessRegister,
   handleActivateUser,
   handleFetchUserProfile,
+  handleGetPublicProfile,
   handleUpdateUserProfile,
   handleUpdatePrivacySettings,
   handleUpdatePassword,
