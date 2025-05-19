@@ -88,12 +88,22 @@ export const fetchPublicProfile = createAsyncThunk(
   'user/fetchPublicProfile',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get(
-        `/users/profile/public/${userId}`
-      );
+      const response = await axiosInstance.get(`/users/profile/public/${userId}`);
+      
+      // Validate response structure
+      if (!response.data || !response.data.payload || !response.data.payload.id) {
+        throw new Error('Invalid profile data structure');
+      }
+      
       return response.data.payload;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      // Enhanced error handling
+      const errorData = {
+        message: error.response?.data?.message || error.message,
+        status: error.response?.status || 500,
+        userId: userId
+      };
+      return rejectWithValue(errorData);
     }
   }
 );
@@ -104,6 +114,27 @@ export const updateUserProfile = createAsyncThunk(
   async (formData, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.put('/users/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+//! updateCoverPhoto
+// In your userSlice.jsx
+export const updateCoverPhoto = createAsyncThunk(
+  'user/updateCoverPhoto',
+  async (imageFile, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('coverImage', imageFile);
+      
+      const response = await axiosInstance.put('/users/cover-photo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -349,6 +380,22 @@ const userSlice = createSlice({
       })
       .addCase(updateUserProfile.rejected, handleRejected)
 
+      //! updateCoverPhoto
+       .addCase(updateCoverPhoto.pending, (state) => {
+      state.updatePhotoStatus = 'loading';
+    })
+    .addCase(updateCoverPhoto.fulfilled, (state, action) => {
+      state.updatePhotoStatus = 'succeeded';
+      state.user.coverImage = action.payload.coverImage;
+      if (state.publicProfile) {
+        state.publicProfile.coverImage = action.payload.coverImage;
+      }
+    })
+    .addCase(updateCoverPhoto.rejected, (state, action) => {
+      state.updatePhotoStatus = 'failed';
+      state.error = action.payload;
+    })
+
       // Fetch All Users
       // .addCase(fetchAllUsers.pending, (state) => {
       //   state.status = 'loading'
@@ -388,18 +435,21 @@ const userSlice = createSlice({
         state.error = action.payload;
       })
 
-      // fetchPublicProfile
-      .addCase(fetchPublicProfile.pending, (state) => {
-        state.status = 'loading';
-      })
-      .addCase(fetchPublicProfile.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.publicProfile = action.payload;
-      })
-      .addCase(fetchPublicProfile.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload;
-      })
+      //! fetchPublicProfile
+ .addCase(fetchPublicProfile.pending, (state) => {
+      state.publicProfileStatus = 'loading';
+      state.publicProfileError = null;
+    })
+    .addCase(fetchPublicProfile.fulfilled, (state, action) => {
+      state.publicProfileStatus = 'succeeded';
+      state.publicProfile = action.payload;
+      state.publicProfileError = null;
+    })
+    .addCase(fetchPublicProfile.rejected, (state, action) => {
+      state.publicProfileStatus = 'failed';
+      state.publicProfileError = action.payload;
+      state.publicProfile = null;
+    })
 
       // Fetch User By ID
       .addCase(fetchUserById.pending, (state) => {

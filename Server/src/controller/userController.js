@@ -229,12 +229,20 @@ const handleFetchUserProfile = async (req, res, next) => {
 const handleGetPublicProfile = async (req, res, next) => {
   try {
     const userId = req.params.id;
-    const requestingUserId = req.user?.id; // The user making the request
+    
+    if (!userId || userId === 'undefined') {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: 'User ID is required'
+      });
+    }
 
+    // Get raw user data without Sequelize instance
     const user = await User.findByPk(userId, {
       attributes: { 
         exclude: ['password', 'isAdmin', 'emailVerifyToken'] 
-      }
+      },
+      raw: true // This ensures we get a plain JavaScript object
     });
 
     if (!user) {
@@ -244,48 +252,34 @@ const handleGetPublicProfile = async (req, res, next) => {
       });
     }
 
-    // Check friendship status if not self
-    let isFriend = false;
-    if (requestingUserId && requestingUserId !== userId) {
-      isFriend = await checkFriendshipStatus(requestingUserId, userId);
-    }
-
-    // Filter data based on privacy settings and relationship
+    // Manually construct the response object
     const publicData = {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
       profileImage: user.profileImage,
-      coverImage: user.getCoverImageUrl(),
+      coverImage: user.coverImage || '/default-cover.jpg',
       bio: user.bio,
       website: user.website,
-      // Conditional fields based on privacy
-      email: shouldShowField(user, 'email', isFriend),
-      phone: shouldShowField(user, 'phone', isFriend),
-      birthDate: shouldShowField(user, 'birthDate', isFriend),
-      gender: user.gender, // Gender is typically public
-      isFriend,
-      createdAt: user.createdAt
+      email: user.email,
+      phone: user.phone,
+      birthDate: user.birthDate,
+      gender: user.gender,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
     return successResponse(res, {
       statusCode: 200,
-      message: 'Public profile retrieved',
+      message: 'Public profile retrieved successfully',
       payload: publicData
     });
   } catch (error) {
+    console.error('Error in handleGetPublicProfile:', error);
     next(error);
   }
 };
 
-// Helper function to check field visibility
-function shouldShowField(user, field, isFriend) {
-  const visibility = user.privacySettings[`${field}Visibility`];
-  
-  if (visibility === 'public') return user[field];
-  if (visibility === 'friends' && isFriend) return user[field];
-  return undefined; // Don't show private fields
-}
 
 
 //! Update logged-in user's profile

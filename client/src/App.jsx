@@ -23,57 +23,59 @@ import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar';
 
-
-
 const App = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-    <SocketProvider> {/* Wrap everything with SocketProvider */}
-      <>
-        {/* Navbar at the top */}
-        <Navbar />
+      <SocketProvider>
+        {' '}
+        {/* Wrap everything with SocketProvider */}
+        <>
+          {/* Navbar at the top */}
+          <Navbar />
 
-        {/* Snackbar for global notifications */}
-        <GlobalSnackbar />
+          {/* Snackbar for global notifications */}
+          <GlobalSnackbar />
 
-        {/* Route definitions */}
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-             <Route path="/activate" element={<ActivatePage />} />
-          <Route path="/contact-us" element={<ContactUs />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          {/* Protected/User-Specific Routes */}
-          <Route path="/profile/private" element={<PrivateProfilePage />} />
-          <Route path="/profile/public/:id" element={<PublicProfilePage />} />
-          <Route path="/profile-home" element={<ProfileHomePage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/update-user-profile" element={<UpdateUserProfile />} />
-          <Route path="/update-user/:id" element={<UpdateUserById />} />
-          <Route path="/user-table" element={<UserTable />} />
-            
-<Route path="/chat" element={<Chat />} />
-<Route path="/chat/:chatId" element={<Chat />} />
+          {/* Route definitions */}
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/activate" element={<ActivatePage />} />
+            <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            {/* Protected/User-Specific Routes */}
+            <Route path="/profile/private" element={<PrivateProfilePage />} />
+            <Route path="/profile/public/:id" element={<PublicProfilePage />} />
+            <Route path="/profile/public/me" element={<PublicProfilePage />} />
+            <Route path="/profile-home" element={<ProfileHomePage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
+            <Route
+              path="/update-user-profile"
+              element={<UpdateUserProfile />}
+            />
+            <Route path="/update-user/:id" element={<UpdateUserById />} />
+            <Route path="/user-table" element={<UserTable />} />
 
-          {/* 404 - Not Found Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/:chatId" element={<Chat />} />
 
-        {/* Footer at the bottom */}
-        <Footer />
-      </>
-    </SocketProvider>
+            {/* 404 - Not Found Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+
+          {/* Footer at the bottom */}
+          <Footer />
+        </>
+      </SocketProvider>
     </LocalizationProvider>
   );
 };
 
 export default App;
-
-
 
 //! test with wraper
 // import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -142,11 +144,3 @@ export default App;
 // };
 
 // export default App;
-
-
-
-
-
-
-
-
