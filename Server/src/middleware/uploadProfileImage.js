@@ -35,6 +35,10 @@ const uploadProfileImage = multer({
 
 
 
-module.exports = { uploadProfileImage };
+// module.exports = { uploadProfileImage };
 
 
+module.exports = { 
+  uploadProfileImage, // the instance
+  singleProfileImage: uploadProfileImage.single('profileImage') // pre-configured
+};

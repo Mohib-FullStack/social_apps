@@ -10,9 +10,10 @@ import HomePage from './components/HOME/Home';
 import Login from './components/LOGIN/Login';
 import NotFound from './components/NOTFOUND/NotFound';
 import PrivateProfilePage from './components/PROFILE/PrivateProfilePage';
-import ProfileHomePage from './components/PROFILE/ProfileHomePage';
 import PublicProfilePage from './components/PROFILE/PublicProfilePage';
-import UpdateUserProfile from './components/PROFILE/UpdateUserProfile';
+// import UpdateUserProfile from './components/PROFILE/UpdateUserProfile';
+import PrivateProfileUpdate from './components/PROFILE/PrivateProfileUpdate';
+import PublicProfileUpdate from './components/PROFILE/PublicProfileUpdate';
 import Register from './components/REGISTER/Register';
 import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
 import UpdatePassword from './components/UPDATE-PASSWORD/UpdatePassword';
@@ -50,12 +51,16 @@ const App = () => {
             <Route path="/profile/private" element={<PrivateProfilePage />} />
             <Route path="/profile/public/:id" element={<PublicProfilePage />} />
             <Route path="/profile/public/me" element={<PublicProfilePage />} />
-            <Route path="/profile-home" element={<ProfileHomePage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route
-              path="/update-user-profile"
-              element={<UpdateUserProfile />}
+              path="/private-profile-update"
+              element={<PrivateProfileUpdate />}
+            />
+
+              <Route
+              path="/public-profile-update"
+              element={<PublicProfileUpdate />}
             />
             <Route path="/update-user/:id" element={<UpdateUserById />} />
             <Route path="/user-table" element={<UserTable />} />

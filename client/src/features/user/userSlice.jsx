@@ -109,11 +109,47 @@ export const fetchPublicProfile = createAsyncThunk(
 );
 
 //! Update User Profile
-export const updateUserProfile = createAsyncThunk(
-  'user/updateUserProfile',
+// export const updateUserProfile = createAsyncThunk(
+//   'user/updateUserProfile',
+//   async (formData, { rejectWithValue }) => {
+//     try {
+//       const response = await axiosInstance.put('/users/profile', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
+// userSlice.js
+
+//! Update Private Profile
+export const updatePrivateProfile = createAsyncThunk(
+  'user/updatePrivateProfile',
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put('/users/profile', formData, {
+      const response = await axiosInstance.put('/users/profile/private', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+//! Update Public Profile
+export const updatePublicProfile = createAsyncThunk(
+  'user/updatePublicProfile',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put('/users/profile/public', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -374,11 +410,24 @@ const userSlice = createSlice({
       .addCase(fetchUserProfile.rejected, handleRejected)
 
       // Update User Profile
-      .addCase(updateUserProfile.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.profile = action.payload;
-      })
-      .addCase(updateUserProfile.rejected, handleRejected)
+      // .addCase(updateUserProfile.fulfilled, (state, action) => {
+      //   state.status = 'succeeded';
+      //   state.profile = action.payload;
+      // })
+      // .addCase(updateUserProfile.rejected, handleRejected)
+//! updatePrivateProfile
+      .addCase(updatePrivateProfile.fulfilled, (state, action) => {
+  state.status = 'succeeded';
+  state.profile = action.payload;
+})
+.addCase(updatePrivateProfile.rejected, handleRejected)
+
+//! updatePublicProfile
+.addCase(updatePublicProfile.fulfilled, (state, action) => {
+  state.status = 'succeeded';
+  state.profile = action.payload;
+})
+.addCase(updatePublicProfile.rejected, handleRejected)
 
       //! updateCoverPhoto
        .addCase(updateCoverPhoto.pending, (state) => {
@@ -412,7 +461,7 @@ const userSlice = createSlice({
       //   state.error = action.payload
       // })
 
-      // In extraReducers
+  //! Fetch All Users
       .addCase(fetchAllUsers.pending, (state) => {
         state.status = 'loading';
       })

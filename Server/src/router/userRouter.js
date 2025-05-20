@@ -6,7 +6,6 @@ const {
   handleUpdateUserById,
   handleDeleteUserById,
   handleFetchUserProfile,
-  handleUpdateUserProfile,
   handleProcessRegister,
   handleBanUserById,
   handleUnbanUserById,
@@ -19,38 +18,35 @@ const {
   handleGetFollowing,
   handleUpdatePrivacySettings,
   handleGetPublicProfile,
-
-
+  handleUpdatePrivateProfile,
+  handleUpdatePublicProfile,
 } = require('../controller/userController');
 
 const { isLoggedIn, isAdmin } = require('../middleware/authMiddleware');
- const { uploadProfileImage} = require('../middleware/uploadProfileImage');
+const { singleProfileImage } = require('../middleware/uploadProfileImage');
+const  { uploadCoverImage }  = require('../middleware/uploadCoverImage');
 
 const {
   validateRegistration,
   validateForgotPassword,
   validateResetPassword,
   validatePasswordUpdate,
-  validatePrivacySettings
+  validatePrivacySettings,
 } = require('../validators/user');
 const runValidation = require('../validators');
 const handleProcessAlert = require('../controller/adminController');
 
-
-
-
 const userRouter = express.Router();
-
 
 // Registration and Activation
 userRouter.post(
   '/process-register',
-   uploadProfileImage.single('profileImage'),
+  // uploadProfileImage.single('profileImage'),
+  singleProfileImage,
   validateRegistration,
   runValidation,
   handleProcessRegister
 );
-
 
 userRouter.post('/activate', handleActivateUser);
 
@@ -72,16 +68,46 @@ userRouter.put(
 // userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
 
 // Add these new routes:
-userRouter.get('/profile/public/:id', isLoggedIn,handleGetPublicProfile);
+userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
 userRouter.get('/profile/private', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 
+// userRouter.put(
+//   '/profile/private',
+//   isLoggedIn,
+//   uploadProfileImage.single('profileImage'),
+//   handleUpdatePrivateProfile
+// );
+
+// For routes that only need profile image
 userRouter.put(
-  '/profile',
+  '/profile/private',
   isLoggedIn,
-   uploadProfileImage.single('profileImage'),
-   handleUpdateUserProfile,
+  singleProfileImage,
+  handleUpdatePrivateProfile
 );
 
+// For routes that need both
+userRouter.put(
+  '/profile/public',
+  isLoggedIn,
+  (req, res, next) => {
+    // Handle profile image first
+    singleProfileImage(req, res, (err) => {
+      if (err) return next(err);
+      // Then handle cover image
+      uploadCoverImage.singleCoverImage(req, res, next);
+    });
+  },
+  handleUpdatePublicProfile
+);
+
+// userRouter.put(
+//   '/profile/public',
+//   isLoggedIn,
+//   uploadProfileImage.single('profileImage'),
+//   uploadCoverImage.single('coverImage'),
+//   handleUpdatePublicProfile
+// );
 
 userRouter.put(
   '/privacy-settings',
@@ -109,61 +135,19 @@ userRouter.get('/following/:id', isLoggedIn, handleGetFollowing);
 userRouter.get('/', isLoggedIn, handleGetUsers);
 userRouter.put('/ban-user/:id', isLoggedIn, isAdmin, handleBanUserById);
 userRouter.put('/unban-user/:id', isLoggedIn, isAdmin, handleUnbanUserById);
-userRouter.get('/:id', isLoggedIn,isAdmin, handleGetUserById); // Changed - now accessible to logged in users
+userRouter.get('/:id', isLoggedIn, isAdmin, handleGetUserById); // Changed - now accessible to logged in users
 userRouter.put(
   '/:id',
   isLoggedIn,
   isAdmin,
-   uploadProfileImage.single('profileImage'),
-   handleUpdateUserById
+  // uploadProfileImage.single('profileImage'),
+  singleProfileImage,
+  handleUpdateUserById
 );
-
 
 userRouter.delete('/:id', isLoggedIn, isAdmin, handleDeleteUserById);
 
-
-
 // Admin routes
-userRouter.put(
-  '/alerts/:id',
-  isLoggedIn,
-  isAdmin,
-  handleProcessAlert
-);
+userRouter.put('/alerts/:id', isLoggedIn, isAdmin, handleProcessAlert);
 
 module.exports = userRouter;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
