@@ -69,6 +69,7 @@ const PrivateProfilePage = () => {
     dispatch(fetchUserProfile());
   }, [dispatch]);
 
+  
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -142,7 +143,7 @@ const PrivateProfilePage = () => {
 
   // Grouped action cards
   const profileActions = [
-    { icon: <PersonIcon />, title: 'Update Profile', path: '/private-profile-update', color: 'primary' },
+    { icon: <PersonIcon />, title: 'Update Profile', path: '/my-profile-update', color: 'primary' },
     { icon: <LockIcon />, title: 'Update Password', path: '/update-password', color: 'secondary' }
   ];
 
@@ -195,7 +196,7 @@ const PrivateProfilePage = () => {
             <Fade in timeout={800}>
               <Link
                 component={RouterLink}
-                to={`/profile/public/${userId}`}
+                           to={`/profile/public/${userId}`}
                 underline="none"
                 color="inherit"
               >
@@ -217,7 +218,7 @@ const PrivateProfilePage = () => {
                       badgeContent={
                         <IconButton 
                           component={RouterLink}
-                          to="/private-profile-update"
+                          to="/my-profile-update"
                           sx={{ 
                             bgcolor: 'secondary.main',
                             '&:hover': { bgcolor: 'secondary.dark' }

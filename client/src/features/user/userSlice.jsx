@@ -72,7 +72,7 @@ export const fetchUserProfile = createAsyncThunk(
   'user/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get('/users/profile/private', {
+      const response = await axiosInstance.get('/users/profile/me', {
         withCredentials: true,
       });
       return response.data.payload;
@@ -113,7 +113,7 @@ export const updatePrivateProfile = createAsyncThunk(
   'user/updatePrivateProfile',
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put('/users/profile/private', formData, {
+      const response = await axiosInstance.put('/users/profile/me', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

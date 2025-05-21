@@ -48,13 +48,16 @@ const App = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             {/* Protected/User-Specific Routes */}
-            <Route path="/profile/private" element={<PrivateProfilePage />} />
+            <Route path="/profile/me" element={<PrivateProfilePage />} />
             <Route path="/profile/public/:id" element={<PublicProfilePage />} />
-            <Route path="/profile/public/me" element={<PublicProfilePage />} />
+         
+
+
+
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route
-              path="/private-profile-update"
+              path="/my-profile-update"
               element={<PrivateProfileUpdate />}
             />
 
@@ -81,6 +84,24 @@ const App = () => {
 };
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //! test with wraper
 // import { LocalizationProvider } from '@mui/x-date-pickers';

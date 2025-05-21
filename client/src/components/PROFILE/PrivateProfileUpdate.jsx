@@ -117,7 +117,7 @@ const PrivateProfileUpdate = () => {
       
       // Refresh the profile data
       await dispatch(fetchUserProfile());
-      navigate('/profile/private');
+      navigate('/profile/me');
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || 'Failed to update private profile',
@@ -239,7 +239,7 @@ const PrivateProfileUpdate = () => {
               <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
                 <Button 
                   variant="outlined" 
-                  onClick={() => navigate('/profile/private')}
+                  onClick={() => navigate('/profile/me')}
                   sx={{ width: '48%' }}
                   disabled={isUploading}
                 >

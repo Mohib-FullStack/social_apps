@@ -868,6 +868,843 @@ export default PublicProfilePage;
 
 
 
+
+
+
+
+
+//! test
+// import {
+//   Add,
+//   Cake,
+//   CameraAlt,
+//   ChatBubbleOutline,
+//   Edit,
+//   Event,
+//   Link as LinkIcon,
+//   LocationOn,
+//   MoreHoriz,
+//   PhotoLibrary,
+//   Share,
+//   ThumbUpOutlined,
+//   Videocam,
+//   PeopleAlt,
+//   WorkOutline,
+//   School,
+//   FavoriteBorder,
+//   Public,
+//   Lock,
+//   GroupAdd,
+//   MailOutline,
+//   Settings
+// } from '@mui/icons-material';
+// import {
+//   Avatar,
+//   Box,
+//   Button,
+//   Card,
+//   CardContent,
+//   Chip,
+//   Container,
+//   Divider,
+//   Grid,
+//   IconButton,
+//   Link,
+//   Typography,
+//   useTheme,
+//   useMediaQuery,
+//   Tabs,
+//   Tab,
+//   Hidden,
+//   Badge,
+//   CircularProgress
+// } from '@mui/material';
+// import { useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigate, useParams } from 'react-router-dom';
+// import { fetchPublicProfile } from '../../features/user/userSlice';
+// import { Helmet } from 'react-helmet';
+
+// // Custom components
+// const ProfileBadge = ({ icon, count }) => (
+//   <Chip
+//     icon={icon}
+//     label={count}
+//     variant="outlined"
+//     size="small"
+//     sx={{ 
+//       mr: 1, 
+//       '& .MuiChip-icon': { color: 'primary.main' },
+//       bgcolor: 'background.paper'
+//     }}
+//   />
+// );
+
+// const SocialStats = ({ icon, count, label }) => (
+//   <Box sx={{ textAlign: 'center', px: 1 }}>
+//     <Typography variant="h6" fontWeight="bold" color="text.primary">
+//       {count}
+//     </Typography>
+//     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+//       {icon} {label}
+//     </Typography>
+//   </Box>
+// );
+
+// // Mock data with more realistic content for SEO
+// const stories = [
+//   { id: 1, name: 'Your Story', image: '/story1.jpg', alt: 'Add your story' },
+//   { id: 2, name: 'Alex Johnson', image: '/story2.jpg', alt: 'Alex Johnson\'s story' },
+//   { id: 3, name: 'Sarah Miller', image: '/story3.jpg', alt: 'Sarah Miller\'s travel story' },
+//   { id: 4, name: 'Mike Chen', image: '/story4.jpg', alt: 'Mike Chen\'s work story' },
+//   { id: 5, name: 'Emma Wilson', image: '/story5.jpg', alt: 'Emma Wilson\'s birthday story' }
+// ];
+
+// const friends = Array(8).fill(0).map((_, i) => ({
+//   id: i + 1,
+//   name: `Friend ${i + 1}`,
+//   avatar: `/avatar${(i % 3) + 1}.jpg`,
+//   alt: `Profile picture of Friend ${i + 1}`,
+//   mutualFriends: Math.floor(Math.random() * 10) + 1,
+//   mutualInterests: ['Travel', 'Photography', 'Music', 'Sports'][Math.floor(Math.random() * 4)]
+// }));
+
+// const suggestedConnections = Array(5).fill(0).map((_, i) => ({
+//   id: i + 20,
+//   name: `Suggested ${i + 1}`,
+//   avatar: `/avatar${(i % 4) + 1}.jpg`,
+//   alt: `Profile picture of Suggested Connection ${i + 1}`,
+//   mutualFriends: Math.floor(Math.random() * 10) + 1,
+//   commonInterests: Math.floor(Math.random() * 5) + 1
+// }));
+
+// const PublicProfilePage = () => {
+//   const theme = useTheme();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+//   const { username } = useParams();
+//   const navigate = useNavigate();
+//   const dispatch = useDispatch();
+//   const [tabValue, setTabValue] = useState(0);
+  
+//   const { publicProfile, publicProfileStatus: status } = useSelector((state) => state.user);
+//   const { user } = useSelector((state) => state.user);
+
+//   useEffect(() => {
+//     if (!username || username === 'undefined') {
+//       navigate('/profile/me');
+//       return;
+//     }
+
+//     if (username === 'me' && user?.id) {
+//       navigate(`/profile/${user.username}`, { replace: true });
+//       return;
+//     }
+
+//     dispatch(fetchPublicProfile(username));
+//   }, [username, dispatch, navigate, user?.id, user?.username]);
+
+//   if (status === 'loading') {
+//     return (
+//       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+//         <CircularProgress />
+//       </Box>
+//     );
+//   }
+
+//   if (!publicProfile) return null;
+
+//   const isOwnProfile = user?.id === publicProfile.id;
+//   const profileImage = publicProfile.profileImage || '/default-avatar.png';
+//   const coverImage = publicProfile.coverImage || '/default-cover.jpg';
+//   const fullName = `${publicProfile.firstName} ${publicProfile.lastName}`;
+
+//   const handleTabChange = (event, newValue) => {
+//     setTabValue(newValue);
+//     // Add analytics tracking for tab changes
+//   };
+
+//   const renderProfileTabs = () => {
+//     switch(tabValue) {
+//       case 0: return <PostsTab profile={publicProfile} />;
+//       case 1: return <AboutTab profile={publicProfile} />;
+//       case 2: return <ConnectionsTab connections={friends} />;
+//       case 3: return <MediaTab />;
+//       default: return <PostsTab profile={publicProfile} />;
+//     }
+//   };
+
+//   return (
+//     <>
+//       <Helmet>
+//         <title>{fullName} | ConnectSocial Profile</title>
+//         <meta name="description" content={`View ${fullName}'s profile on ConnectSocial. ${publicProfile.bio || 'Join to connect with them.'}`} />
+//         <meta property="og:title" content={`${fullName} | ConnectSocial Profile`} />
+//         <meta property="og:description" content={`${fullName}'s profile on ConnectSocial`} />
+//         <meta property="og:image" content={profileImage} />
+//       </Helmet>
+
+//       <Container maxWidth="lg" disableGutters={isMobile} sx={{ 
+//         mt: 0, 
+//         mb: 4,
+//         bgcolor: 'background.default',
+//         p: isMobile ? 0 : 2
+//       }}>
+//         {/* Cover Photo Section with improved semantics */}
+//         <Box component="header" sx={{ 
+//           position: 'relative', 
+//           height: isMobile ? 200 : 350,
+//           mb: isMobile ? 10 : 6,
+//           borderRadius: isMobile ? 0 : '12px 12px 0 0',
+//           overflow: 'hidden',
+//           boxShadow: 1
+//         }}>
+//           <img
+//             src={coverImage}
+//             alt={`Cover photo for ${fullName}`}
+//             style={{
+//               width: '100%',
+//               height: '100%',
+//               objectFit: 'cover',
+//               backgroundColor: theme.palette.grey[200],
+//             }}
+//             loading="lazy"
+//           />
+          
+//           {/* Profile Picture Floating Overlay */}
+//           <Box sx={{
+//             position: 'absolute',
+//             bottom: isMobile ? -60 : -80,
+//             left: isMobile ? '50%' : 32,
+//             transform: isMobile ? 'translateX(-50%)' : 'none',
+//             zIndex: 2
+//           }}>
+//             <Badge
+//               overlap="circular"
+//               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+//               badgeContent={
+//                 isOwnProfile ? (
+//                   <IconButton sx={{ 
+//                     bgcolor: 'primary.main', 
+//                     color: 'white',
+//                     '&:hover': { bgcolor: 'primary.dark' }
+//                   }}>
+//                     <CameraAlt fontSize="small" />
+//                   </IconButton>
+//                 ) : null
+//               }
+//             >
+//               <Avatar
+//                 src={profileImage}
+//                 alt={`Profile picture of ${fullName}`}
+//                 sx={{
+//                   width: isMobile ? 120 : 168,
+//                   height: isMobile ? 120 : 168,
+//                   border: '4px solid white',
+//                   boxShadow: 3,
+//                 }}
+//               />
+//             </Badge>
+//           </Box>
+//         </Box>
+
+//         {/* Profile Header Section */}
+//         <Box component="section" sx={{ 
+//           display: 'flex', 
+//           flexDirection: isMobile ? 'column' : 'row',
+//           justifyContent: 'space-between',
+//           alignItems: isMobile ? 'center' : 'flex-end',
+//           mt: isMobile ? 6 : 0,
+//           mb: 3,
+//           px: isMobile ? 2 : 0
+//         }}>
+//           <Box sx={{ 
+//             textAlign: isMobile ? 'center' : 'left', 
+//             mb: isMobile ? 2 : 0,
+//             alignSelf: isMobile ? 'center' : 'flex-start'
+//           }}>
+//             <Typography variant="h1" sx={{ 
+//               fontSize: isMobile ? '1.8rem' : '2.4rem',
+//               fontWeight: 'bold',
+//               color: 'text.primary',
+//               mb: 0.5
+//             }}>
+//               {fullName}
+//             </Typography>
+            
+//             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-start' }}>
+//               <ProfileBadge icon={<PeopleAlt fontSize="small" />} count={publicProfile.friendsCount || 243} />
+//               <ProfileBadge icon={<FavoriteBorder fontSize="small" />} count={publicProfile.interestsCount || 15} />
+//               <ProfileBadge icon={<Public fontSize="small" />} count={publicProfile.followersCount || 320} />
+//             </Box>
+//           </Box>
+          
+//           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
+//             {isOwnProfile ? (
+//               <>
+//                 <Button 
+//                   variant="contained" 
+//                   startIcon={<Add />}
+//                   sx={{ 
+//                     textTransform: 'none',
+//                     fontWeight: '600',
+//                     borderRadius: 2
+//                   }}
+//                 >
+//                   Create Story
+//                 </Button>
+//                 <Button 
+//                   variant="outlined"
+//                   startIcon={<Edit />}
+//                   sx={{ 
+//                     textTransform: 'none',
+//                     fontWeight: '600',
+//                     borderRadius: 2
+//                   }}
+//                 >
+//                   Edit Profile
+//                 </Button>
+//               </>
+//             ) : (
+//               <>
+//                 <Button 
+//                   variant="contained" 
+//                   startIcon={<GroupAdd />}
+//                   sx={{ 
+//                     textTransform: 'none',
+//                     fontWeight: '600',
+//                     borderRadius: 2
+//                   }}
+//                 >
+//                   Connect
+//                 </Button>
+//                 <Button 
+//                   variant="outlined"
+//                   startIcon={<MailOutline />}
+//                   sx={{ 
+//                     textTransform: 'none',
+//                     fontWeight: '600',
+//                     borderRadius: 2
+//                   }}
+//                 >
+//                   Message
+//                 </Button>
+//               </>
+//             )}
+//             <IconButton sx={{ 
+//               bgcolor: 'action.hover',
+//               borderRadius: 2,
+//               '&:hover': { bgcolor: 'action.selected' }
+//             }}>
+//               <MoreHoriz sx={{ color: 'text.primary' }} />
+//             </IconButton>
+//           </Box>
+//         </Box>
+
+//         {/* Navigation Tabs with semantic ARIA attributes */}
+//         <Box component="nav" sx={{ 
+//           borderBottom: 1, 
+//           borderColor: 'divider',
+//           mb: 3,
+//           '& .MuiTabs-indicator': {
+//             height: 3,
+//             bgcolor: 'primary.main'
+//           }
+//         }}>
+//           <Tabs 
+//             value={tabValue} 
+//             onChange={handleTabChange}
+//             variant="scrollable"
+//             scrollButtons="auto"
+//             aria-label="Profile sections"
+//           >
+//             <Tab 
+//               label="Posts" 
+//               id="profile-tab-0"
+//               aria-controls="profile-tabpanel-0"
+//               sx={{ 
+//                 fontWeight: 600,
+//                 textTransform: 'none',
+//                 fontSize: '0.9375rem',
+//                 minWidth: 'unset',
+//                 px: 2,
+//               }} 
+//             />
+//             <Tab 
+//               label="About" 
+//               id="profile-tab-1"
+//               aria-controls="profile-tabpanel-1"
+//               sx={{ 
+//                 fontWeight: 600,
+//                 textTransform: 'none',
+//                 fontSize: '0.9375rem',
+//                 minWidth: 'unset',
+//                 px: 2,
+//               }} 
+//             />
+//             <Tab 
+//               label="Connections" 
+//               id="profile-tab-2"
+//               aria-controls="profile-tabpanel-2"
+//               sx={{ 
+//                 fontWeight: 600,
+//                 textTransform: 'none',
+//                 fontSize: '0.9375rem',
+//                 minWidth: 'unset',
+//                 px: 2,
+//               }} 
+//             />
+//             <Tab 
+//               label="Media" 
+//               id="profile-tab-3"
+//               aria-controls="profile-tabpanel-3"
+//               sx={{ 
+//                 fontWeight: 600,
+//                 textTransform: 'none',
+//                 fontSize: '0.9375rem',
+//                 minWidth: 'unset',
+//                 px: 2,
+//               }} 
+//             />
+//           </Tabs>
+//         </Box>
+
+//         {/* Main Content Area */}
+//         <Grid container spacing={3}>
+//           {/* Left Sidebar - Only on desktop */}
+//           <Hidden smDown>
+//             <Grid item md={4}>
+//               {/* About Card */}
+//               <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+//                 <CardContent>
+//                   <Typography variant="h6" fontWeight="bold" gutterBottom>
+//                     About
+//                   </Typography>
+//                   {publicProfile.bio && (
+//                     <Typography variant="body1" paragraph>
+//                       {publicProfile.bio}
+//                     </Typography>
+//                   )}
+                  
+//                   <Divider sx={{ my: 2 }} />
+                  
+//                   <Box sx={{ '& > *:not(:last-child)': { mb: 1.5 } }}>
+//                     {publicProfile.work && (
+//                       <Box sx={{ display: 'flex' }}>
+//                         <WorkOutline sx={{ mr: 1.5, color: 'text.secondary' }} />
+//                         <Typography>{publicProfile.work}</Typography>
+//                       </Box>
+//                     )}
+                    
+//                     {publicProfile.education && (
+//                       <Box sx={{ display: 'flex' }}>
+//                         <School sx={{ mr: 1.5, color: 'text.secondary' }} />
+//                         <Typography>{publicProfile.education}</Typography>
+//                       </Box>
+//                     )}
+                    
+//                     {publicProfile.location && (
+//                       <Box sx={{ display: 'flex' }}>
+//                         <LocationOn sx={{ mr: 1.5, color: 'text.secondary' }} />
+//                         <Typography>{publicProfile.location}</Typography>
+//                       </Box>
+//                     )}
+//                   </Box>
+//                 </CardContent>
+//               </Card>
+
+//               {/* Social Stats Card */}
+//               <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+//                 <CardContent>
+//                   <Typography variant="h6" fontWeight="bold" gutterBottom>
+//                     Social Stats
+//                   </Typography>
+//                   <Box sx={{ display: 'flex', justifyContent: 'space-around', py: 1 }}>
+//                     <SocialStats 
+//                       icon={<PeopleAlt fontSize="small" sx={{ mr: 0.5 }} />} 
+//                       count={publicProfile.friendsCount || 243} 
+//                       label="Connections" 
+//                     />
+//                     <SocialStats 
+//                       icon={<Public fontSize="small" sx={{ mr: 0.5 }} />} 
+//                       count={publicProfile.followersCount || 320} 
+//                       label="Followers" 
+//                     />
+//                     <SocialStats 
+//                       icon={<FavoriteBorder fontSize="small" sx={{ mr: 0.5 }} />} 
+//                       count={publicProfile.likesCount || 1.2 + 'K'} 
+//                       label="Likes" 
+//                     />
+//                   </Box>
+//                 </CardContent>
+//               </Card>
+
+//               {/* Photo Highlights */}
+//               <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+//                 <CardContent>
+//                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+//                     <Typography variant="h6" fontWeight="bold">
+//                       Photos
+//                     </Typography>
+//                     <Button 
+//                       color="primary" 
+//                       sx={{ 
+//                         textTransform: 'none',
+//                         fontSize: '0.9375rem',
+//                         fontWeight: '600'
+//                       }}
+//                     >
+//                       See all
+//                     </Button>
+//                   </Box>
+                  
+//                   <Grid container spacing={1}>
+//                     {[1, 2, 3, 4, 5, 6].map((item) => (
+//                       <Grid item xs={4} key={item}>
+//                         <img 
+//                           src={`/photo${item}.jpg`} 
+//                           alt={`Photo ${item} from ${fullName}'s gallery`}
+//                           style={{ 
+//                             width: '100%', 
+//                             aspectRatio: '1', 
+//                             objectFit: 'cover',
+//                             borderRadius: 8,
+//                             cursor: 'pointer'
+//                           }}
+//                           loading="lazy"
+//                         />
+//                       </Grid>
+//                     ))}
+//                   </Grid>
+//                 </CardContent>
+//               </Card>
+//             </Grid>
+//           </Hidden>
+
+//           {/* Main Content */}
+//           <Grid item xs={12} md={8}>
+//             {/* Stories Section - Mobile Only */}
+//             {isMobile && (
+//               <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+//                 <CardContent sx={{ p: 1 }}>
+//                   <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', py: 1 }}>
+//                     {stories.map((story) => (
+//                       <Box 
+//                         key={story.id} 
+//                         component="article"
+//                         sx={{ 
+//                           minWidth: 100, 
+//                           height: 160, 
+//                           position: 'relative',
+//                           borderRadius: 1,
+//                           overflow: 'hidden',
+//                           cursor: 'pointer'
+//                         }}
+//                       >
+//                         <img 
+//                           src={story.image} 
+//                           alt={story.alt}
+//                           style={{ 
+//                             width: '100%', 
+//                             height: '100%', 
+//                             objectFit: 'cover',
+//                           }}
+//                           loading="lazy"
+//                         />
+//                         <Box sx={{
+//                           position: 'absolute',
+//                           bottom: 0,
+//                           left: 0,
+//                           right: 0,
+//                           p: 1,
+//                           color: 'white',
+//                           background: 'linear-gradient(transparent, rgba(0,0,0,0.6))'
+//                         }}>
+//                           <Typography variant="body2" fontWeight="500">
+//                             {story.name}
+//                           </Typography>
+//                         </Box>
+//                       </Box>
+//                     ))}
+//                   </Box>
+//                 </CardContent>
+//               </Card>
+//             )}
+
+//             {/* Tab Content */}
+//             <Box component="main" role="tabpanel" id={`profile-tabpanel-${tabValue}`} aria-labelledby={`profile-tab-${tabValue}`}>
+//               {renderProfileTabs()}
+//             </Box>
+//           </Grid>
+//         </Grid>
+//       </Container>
+//     </>
+//   );
+// };
+
+// // Tab Components
+// const PostsTab = ({ profile }) => (
+//   <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+//     <CardContent>
+//       <Typography variant="h6" gutterBottom>
+//         {profile.firstName}'s Posts
+//       </Typography>
+//       <Box sx={{ textAlign: 'center', py: 4 }}>
+//         <Typography color="text.secondary">
+//           No posts to show yet
+//         </Typography>
+//         <Button variant="text" color="primary" sx={{ mt: 1 }}>
+//           Create your first post
+//         </Button>
+//       </Box>
+//     </CardContent>
+//   </Card>
+// );
+
+// const AboutTab = ({ profile }) => (
+//   <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+//     <CardContent>
+//       <Typography variant="h6" gutterBottom>
+//         About {profile.firstName}
+//       </Typography>
+//       <Box sx={{ mb: 3 }}>
+//         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+//           Bio
+//         </Typography>
+//         <Typography paragraph>
+//           {profile.bio || 'No bio added yet.'}
+//         </Typography>
+//       </Box>
+      
+//       <Divider sx={{ my: 2 }} />
+      
+//       <Box sx={{ mb: 3 }}>
+//         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+//           Work and Education
+//         </Typography>
+//         <Box sx={{ '& > *:not(:last-child)': { mb: 1.5 } }}>
+//           {profile.work ? (
+//             <Box sx={{ display: 'flex' }}>
+//               <WorkOutline sx={{ mr: 1.5, color: 'text.secondary' }} />
+//               <Typography>{profile.work}</Typography>
+//             </Box>
+//           ) : (
+//             <Typography color="text.secondary">No work information</Typography>
+//           )}
+          
+//           {profile.education ? (
+//             <Box sx={{ display: 'flex' }}>
+//               <School sx={{ mr: 1.5, color: 'text.secondary' }} />
+//               <Typography>{profile.education}</Typography>
+//             </Box>
+//           ) : (
+//             <Typography color="text.secondary">No education information</Typography>
+//           )}
+//         </Box>
+//       </Box>
+      
+//       <Divider sx={{ my: 2 }} />
+      
+//       <Box>
+//         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+//           Places Lived
+//         </Typography>
+//         {profile.location ? (
+//           <Box sx={{ display: 'flex' }}>
+//             <LocationOn sx={{ mr: 1.5, color: 'text.secondary' }} />
+//             <Typography>{profile.location}</Typography>
+//           </Box>
+//         ) : (
+//           <Typography color="text.secondary">No location information</Typography>
+//         )}
+//       </Box>
+//     </CardContent>
+//   </Card>
+// );
+
+// const ConnectionsTab = ({ connections }) => (
+//   <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+//     <CardContent>
+//       <Box sx={{ 
+//         display: 'flex', 
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//         mb: 2
+//       }}>
+//         <Typography variant="h6" fontWeight="bold">
+//           Connections
+//         </Typography>
+//         <Button 
+//           color="primary" 
+//           sx={{ 
+//             textTransform: 'none',
+//             fontSize: '0.9375rem',
+//             fontWeight: '600'
+//           }}
+//         >
+//           See all
+//         </Button>
+//       </Box>
+      
+//       <Grid container spacing={2}>
+//         {connections.slice(0, 6).map((friend) => (
+//           <Grid item xs={6} sm={4} key={friend.id}>
+//             <Card sx={{ 
+//               border: '1px solid',
+//               borderColor: 'divider',
+//               boxShadow: 'none',
+//               '&:hover': { 
+//                 boxShadow: 1,
+//                 transition: 'box-shadow 0.3s ease'
+//               }
+//             }}>
+//               <img 
+//                 src={friend.avatar} 
+//                 alt={friend.alt}
+//                 style={{ 
+//                   width: '100%', 
+//                   height: 140, 
+//                   objectFit: 'cover',
+//                   borderTopLeftRadius: 'inherit',
+//                   borderTopRightRadius: 'inherit'
+//                 }}
+//                 loading="lazy"
+//               />
+//               <CardContent>
+//                 <Link 
+//                   href="#" 
+//                   underline="none" 
+//                   color="text.primary" 
+//                   fontWeight="500"
+//                   sx={{ '&:hover': { textDecoration: 'underline' } }}
+//                 >
+//                   {friend.name}
+//                 </Link>
+//                 <Typography 
+//                   variant="body2" 
+//                   sx={{ 
+//                     fontSize: '0.8125rem',
+//                     color: 'text.secondary',
+//                     mt: 0.5
+//                   }}
+//                 >
+//                   {friend.mutualFriends} mutual connections
+//                 </Typography>
+//                 {friend.mutualInterests && (
+//                   <Typography 
+//                     variant="body2" 
+//                     sx={{ 
+//                       fontSize: '0.8125rem',
+//                       color: 'text.secondary',
+//                       mt: 0.5
+//                     }}
+//                   >
+//                     Common interest: {friend.mutualInterests}
+//                   </Typography>
+//                 )}
+//                 <Button 
+//                   variant="outlined" 
+//                   fullWidth
+//                   size="small"
+//                   sx={{ 
+//                     mt: 1.5,
+//                     textTransform: 'none',
+//                     fontWeight: '600'
+//                   }}
+//                 >
+//                   Connect
+//                 </Button>
+//               </CardContent>
+//             </Card>
+//           </Grid>
+//         ))}
+//       </Grid>
+//     </CardContent>
+//   </Card>
+// );
+
+// const MediaTab = () => (
+//   <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+//     <CardContent>
+//       <Box sx={{ 
+//         display: 'flex', 
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//         mb: 2
+//       }}>
+//         <Typography variant="h6" fontWeight="bold">
+//           Photos & Videos
+//         </Typography>
+//         <Button 
+//           color="primary" 
+//           sx={{ 
+//             textTransform: 'none',
+//             fontSize: '0.9375rem',
+//             fontWeight: '600'
+//           }}
+//         >
+//           See all
+//         </Button>
+//       </Box>
+      
+//       <Grid container spacing={1}>
+//         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
+//           <Grid item xs={6} sm={4} key={item}>
+//             <Box sx={{ 
+//               position: 'relative',
+//               borderRadius: 1,
+//               overflow: 'hidden',
+//               cursor: 'pointer',
+//               '&:hover .media-overlay': {
+//                 opacity: 1
+//               }
+//             }}>
+//               <img 
+//                 src={`/media${item}.jpg`} 
+//                 alt={`Media item ${item}`}
+//                 style={{ 
+//                   width: '100%', 
+//                   aspectRatio: item % 3 === 0 ? '16/9' : '1', // Mix of square and wide images
+//                   objectFit: 'cover',
+//                 }}
+//                 loading="lazy"
+//               />
+//               <Box className="media-overlay" sx={{
+//                 position: 'absolute',
+//                 top: 0,
+//                 left: 0,
+//                 right: 0,
+//                 bottom: 0,
+//                 bgcolor: 'rgba(0,0,0,0.3)',
+//                 display: 'flex',
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 opacity: 0,
+//                 transition: 'opacity 0.3s ease'
+//               }}>
+//                 {item % 3 === 0 ? (
+//                   <Videocam sx={{ color: 'white', fontSize: 40 }} />
+//                 ) : (
+//                   <PhotoLibrary sx={{ color: 'white', fontSize: 40 }} />
+//                 )}
+//               </Box>
+//             </Box>
+//           </Grid>
+//         ))}
+//       </Grid>
+//     </CardContent>
+//   </Card>
+// );
+
+// export default PublicProfilePage;
+
+//! running this is selected
+
+
+
+
+
+
+
 //! curent
 // import {
 //   Add,

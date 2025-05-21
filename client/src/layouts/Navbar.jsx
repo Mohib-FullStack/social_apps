@@ -215,7 +215,8 @@ const Navbar = () => {
                     </Box>
                   </MenuItem>
                   <Divider />
-                  <MenuItem component={Link} to="/profile/private" onClick={handleMenuClose}>
+                  {/* <MenuItem component={Link} to="/profile/private" onClick={handleMenuClose}> */}
+                   <MenuItem component={Link} to="/profile/me" onClick={handleMenuClose}>
                     <AccountCircleIcon sx={{ mr: 1, color: 'primary.main' }} />
                     My Profile
                   </MenuItem>

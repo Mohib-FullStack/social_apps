@@ -106,7 +106,7 @@ const Login = () => {
               severity: 'success',
             })
           )
-          navigate('/profile/private')
+          navigate('/profile/me')
         } else {
           dispatch(
             showSnackbar({
