@@ -286,67 +286,6 @@ const handleGetPublicProfile = async (req, res, next) => {
   }
 };
 
-//! Update logged-in user's profile
-// const handleUpdateUserProfile = async (req, res, next) => {
-//   try {
-//     const userId = req.user.id;
-//     const user = await User.findByPk(userId);
-
-//     if (!user) {
-//       return errorResponse(res, { statusCode: 404, message: 'User not found' })
-//     }
-
-//      // Prevent sensitive updates (like email)
-//      if (req.body.email && req.body.email !== user.email) {
-//       return errorResponse(res, {
-//         statusCode: 403,
-//         message: 'Email updates are not allowed for security reasons',
-//       })
-//     }
-
-//        // Update user fields
-//       const { firstName, lastName, bio,
-//         website } = req.body
-
-//       let cloudinaryImageUrl = user.profileImage
-
-//  // Handle image upload
-//  if (req.file) {
-//   if (user.profileImage) {
-//     await deleteFileFromCloudinary(user.profileImage) // Delete old image if exists
-//   }
-
-//   const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-//     folder: 'social-network/users/profile-images',
-
-//   })
-//   cloudinaryImageUrl = uploadResponse.secure_url // Update new image URL
-// }
-
-//   // Update fields
-//   user.firstName = firstName || user.firstName
-//   user.lastName = lastName || user.lastName
-//   user.bio = bio || user.bio
-//   user.website = website || user.website
-//   user.profileImage = cloudinaryImageUrl
-
-//   await user.save() // Save updated user
-
-//    // Respond with updated user profile
-//    return successResponse(res, {
-//     statusCode: 200,
-//     message: 'Profile updated successfully',
-//     payload: { user },
-//   })
-// } catch (error) {
-//   return errorResponse(res, {
-//     statusCode: 500,
-//     message: 'Failed to update profile',
-//   })
-// }
-// };
-
-// userController.js
 
 //! Update Private Profile (sensitive info)
 const handleUpdatePrivateProfile = async (req, res, next) => {
@@ -421,6 +360,25 @@ const handleUpdatePublicProfile = async (req, res, next) => {
       return errorResponse(res, { statusCode: 404, message: 'User not found' });
     }
 
+    // Validate file sizes
+    if (req.files?.profileImage) {
+      if (req.files.profileImage[0].size > 5 * 1024 * 1024) { // 5MB
+        return errorResponse(res, {
+          statusCode: 400,
+          message: 'Profile image must be less than 5MB'
+        });
+      }
+    }
+
+    if (req.files?.coverImage) {
+      if (req.files.coverImage[0].size > 10 * 1024 * 1024) { // 10MB
+        return errorResponse(res, {
+          statusCode: 400,
+          message: 'Cover image must be less than 10MB'
+        });
+      }
+    }
+
     // Only allow updates to public fields
     const { firstName, lastName, bio, website, location } = req.body;
 
@@ -471,8 +429,69 @@ const handleUpdatePublicProfile = async (req, res, next) => {
     next(error);
   }
 };
+// const handleUpdatePublicProfile = async (req, res, next) => {
+//   try {
+//     const userId = req.user.id;
+//     const user = await User.findByPk(userId);
 
-// Update Privacy Settings
+//     if (!user) {
+//       return errorResponse(res, { statusCode: 404, message: 'User not found' });
+//     }
+
+//     // Only allow updates to public fields
+//     const { firstName, lastName, bio, website, location } = req.body;
+
+//     // Update basic info
+//     user.firstName = firstName || user.firstName;
+//     user.lastName = lastName || user.lastName;
+//     user.bio = bio || user.bio;
+//     user.website = website || user.website;
+//     user.location = location || user.location;
+
+//     // Handle profile image upload
+//     if (req.files?.profileImage) {
+//       if (user.profileImage) {
+//         await deleteFileFromCloudinary(user.profileImage);
+//       }
+//       const uploadResponse = await cloudinary.uploader.upload(
+//         req.files.profileImage[0].path,
+//         {
+//           folder: 'social-network/users/profile-images',
+//         }
+//       );
+//       user.profileImage = uploadResponse.secure_url;
+//     }
+
+//     // Handle cover image upload
+//     if (req.files?.coverImage) {
+//       if (user.coverImage) {
+//         await deleteFileFromCloudinary(user.coverImage);
+//       }
+//       const uploadResponse = await cloudinary.uploader.upload(
+//         req.files.coverImage[0].path,
+//         {
+//           folder: 'social-network/users/cover-images',
+//         }
+//       );
+//       user.coverImage = uploadResponse.secure_url;
+//     }
+
+//     await user.save();
+
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'Public profile updated successfully',
+//       payload: { user },
+//     });
+//   } catch (error) {
+//     console.error('Error updating public profile:', error);
+//     next(error);
+//   }
+// };
+
+
+
+
 //! 🔐 Update Privacy Settings
 const handleUpdatePrivacySettings = async (req, res, next) => {
   try {

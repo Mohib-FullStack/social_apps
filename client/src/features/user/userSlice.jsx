@@ -108,25 +108,6 @@ export const fetchPublicProfile = createAsyncThunk(
   }
 );
 
-//! Update User Profile
-// export const updateUserProfile = createAsyncThunk(
-//   'user/updateUserProfile',
-//   async (formData, { rejectWithValue }) => {
-//     try {
-//       const response = await axiosInstance.put('/users/profile', formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//       });
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response.data);
-//     }
-//   }
-// );
-
-// userSlice.js
-
 //! Update Private Profile
 export const updatePrivateProfile = createAsyncThunk(
   'user/updatePrivateProfile',
@@ -145,42 +126,43 @@ export const updatePrivateProfile = createAsyncThunk(
 );
 
 //! Update Public Profile
+// export const updatePublicProfile = createAsyncThunk(
+//   'user/updatePublicProfile',
+//   async (formData, { rejectWithValue }) => {
+//     try {
+//       const response = await axiosInstance.put('/users/profile/public', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
+// In userSlice.jsx
 export const updatePublicProfile = createAsyncThunk(
   'user/updatePublicProfile',
-  async (formData, { rejectWithValue }) => {
+  async ({ userId, formData }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put('/users/profile/public', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axiosInstance.put(
+        `/users/profile/public/${userId}`, 
+        formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
 
-//! updateCoverPhoto
-// In your userSlice.jsx
-export const updateCoverPhoto = createAsyncThunk(
-  'user/updateCoverPhoto',
-  async (imageFile, { rejectWithValue }) => {
-    try {
-      const formData = new FormData();
-      formData.append('coverImage', imageFile);
-      
-      const response = await axiosInstance.put('/users/cover-photo', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response.data);
-    }
-  }
-);
 
 //! Fetch All Users
 export const fetchAllUsers = createAsyncThunk(
@@ -429,23 +411,7 @@ const userSlice = createSlice({
 })
 .addCase(updatePublicProfile.rejected, handleRejected)
 
-      //! updateCoverPhoto
-       .addCase(updateCoverPhoto.pending, (state) => {
-      state.updatePhotoStatus = 'loading';
-    })
-    .addCase(updateCoverPhoto.fulfilled, (state, action) => {
-      state.updatePhotoStatus = 'succeeded';
-      state.user.coverImage = action.payload.coverImage;
-      if (state.publicProfile) {
-        state.publicProfile.coverImage = action.payload.coverImage;
-      }
-    })
-    .addCase(updateCoverPhoto.rejected, (state, action) => {
-      state.updatePhotoStatus = 'failed';
-      state.error = action.payload;
-    })
-
-      // Fetch All Users
+          // Fetch All Users
       // .addCase(fetchAllUsers.pending, (state) => {
       //   state.status = 'loading'
       // })

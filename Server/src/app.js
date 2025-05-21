@@ -17,7 +17,6 @@ const chatRouter = require("./router/chatRouter");
 const friendShipsRouter = require("./router/friendShipRouter");
 const phoneRouter = require("./router/phoneRouter");
 const authRouter = require("./router/authRouter");
-// const coverImageRouter = require("./router/coverImageRoutes");
 const genderRouter = require("./router/genderRouter");
 const birthDateRouter = require("./router/birthDateRouter");
 const messageRouter = require("./router/messageRouter");
@@ -127,7 +126,6 @@ app.use("/api/friendships", friendShipsRouter);
 app.use("/api", phoneRouter);
 app.use("/api", genderRouter);
 app.use("/api", birthDateRouter);
-// app.use("/api/coverImage", coverImageRouter);
 app.use("/api/message", messageRouter)
 
 // =======================
