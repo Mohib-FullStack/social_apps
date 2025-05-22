@@ -140,33 +140,32 @@ const handleActivateUser = async (req, res, next) => {
       }
     }
 
-    // Create user in database - password is already hashed from registration
+    // Manually generate slug before creation
+    const baseSlug = `${decoded.firstName.toLowerCase()}.${decoded.lastName.toLowerCase()}`;
+    let profileSlug = baseSlug;
+    let counter = 1;
+
+    while (await User.findOne({ where: { profileSlug } })) {
+      profileSlug = `${baseSlug}.${counter++}`;
+    }
+
+    // Create user with explicit slug
     const user = await User.create({
       firstName: decoded.firstName,
       lastName: decoded.lastName,
       email: decoded.email,
-      password: decoded.password, // This is already hashed
+      password: decoded.password,
       phone: decoded.phone,
       gender: decoded.gender,
       birthDate: decoded.birthDate,
       profileImage: profileImageUrl,
+      profileSlug // Explicitly set the slug
     });
 
     return successResponse(res, {
       statusCode: 201,
       message: 'Account activated successfully. Please log in.',
-      payload: {
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          gender: user.gender,
-          birthDate: user.birthDate,
-          profileImage: user.profileImage,
-        },
-      },
+      payload: { user }
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -175,6 +174,85 @@ const handleActivateUser = async (req, res, next) => {
     next(error);
   }
 };
+
+
+//! old
+// const handleActivateUser = async (req, res, next) => {
+//   try {
+//     const { token } = req.body;
+//     if (!token) throw createError(400, 'Activation token required');
+
+//     const decoded = jwt.verify(token, jwtActivationkey);
+
+//     // Check if user already exists
+//     const { exists } = await checkUserExist({ email: decoded.email });
+//     if (exists) {
+//       if (decoded.profileImagePath) {
+//         await fs.unlink(decoded.profileImagePath).catch(console.error);
+//       }
+//       return successResponse(res, {
+//         statusCode: 409,
+//         message: 'User already exists. Please log in.',
+//       });
+//     }
+
+//     let profileImageUrl = null;
+//     if (decoded.profileImagePath) {
+//       try {
+//         const response = await cloudinary.uploader.upload(
+//           decoded.profileImagePath,
+//           {
+//             folder: 'social-network/users/profile-images',
+//             transformation: [{ width: 500, height: 500, crop: 'limit' }],
+//           }
+//         );
+//         profileImageUrl = response.secure_url;
+//       } catch (uploadError) {
+//         console.error('Cloudinary upload failed:', uploadError);
+//         throw createError(500, 'Failed to upload profile image');
+//       } finally {
+//         await fs.unlink(decoded.profileImagePath).catch(console.error);
+//       }
+//     }
+
+//     // Create user in database - password is already hashed from registration
+//     const user = await User.create({
+//       firstName: decoded.firstName,
+//       lastName: decoded.lastName,
+//       email: decoded.email,
+//       password: decoded.password, // This is already hashed
+//       phone: decoded.phone,
+//       gender: decoded.gender,
+//       birthDate: decoded.birthDate,
+//       profileImage: profileImageUrl,
+//     });
+
+//     return successResponse(res, {
+//       statusCode: 201,
+//       message: 'Account activated successfully. Please log in.',
+//       payload: {
+//         user: {
+//           id: user.id,
+//           firstName: user.firstName,
+//           lastName: user.lastName,
+//           email: user.email,
+//           phone: user.phone,
+//           gender: user.gender,
+//           birthDate: user.birthDate,
+//           profileImage: user.profileImage,
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     if (error.name === 'TokenExpiredError') {
+//       throw createError(401, 'Token has expired');
+//     }
+//     next(error);
+//   }
+// };
+
+
+
 
 // 🔵 USER PROFILE MANAGEMENT
 // Fetch User Profile

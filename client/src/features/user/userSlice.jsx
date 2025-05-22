@@ -83,13 +83,12 @@ export const fetchUserProfile = createAsyncThunk(
 );
 
 //! fetchPublicProfile
-// Add this async thunk
 export const fetchPublicProfile = createAsyncThunk(
   'user/fetchPublicProfile',
   async (userId, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(`/users/profile/public/${userId}`);
-      
+           
       // Validate response structure
       if (!response.data || !response.data.payload || !response.data.payload.id) {
         throw new Error('Invalid profile data structure');
@@ -126,42 +125,22 @@ export const updatePrivateProfile = createAsyncThunk(
 );
 
 //! Update Public Profile
-// export const updatePublicProfile = createAsyncThunk(
-//   'user/updatePublicProfile',
-//   async (formData, { rejectWithValue }) => {
-//     try {
-//       const response = await axiosInstance.put('/users/profile/public', formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//       });
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response.data);
-//     }
-//   }
-// );
-
-// In userSlice.jsx
 export const updatePublicProfile = createAsyncThunk(
   'user/updatePublicProfile',
-  async ({ userId, formData }, { rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put(
-        `/users/profile/public/${userId}`, 
-        formData, 
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      const response = await axiosInstance.put('/users/profile/public', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      return rejectWithValue(error.response.data);
     }
   }
 );
+
 
 
 //! Fetch All Users

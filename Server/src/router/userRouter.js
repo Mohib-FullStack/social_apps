@@ -68,7 +68,10 @@ userRouter.put(
 // userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
 
 // Add these new routes:
+
+
 userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
+// userRouter.get('/profile/:slug', isLoggedIn, handleGetPublicProfile);
 userRouter.get('/profile/me', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 
 
@@ -98,13 +101,6 @@ userRouter.put(
   handleUpdatePublicProfile
 );
 
-// userRouter.put(
-//   '/profile/public',
-//   isLoggedIn,
-//   uploadProfileImage.single('profileImage'),
-//   uploadCoverImage.single('coverImage'),
-//   handleUpdatePublicProfile
-// );
 
 userRouter.put(
   '/privacy-settings',

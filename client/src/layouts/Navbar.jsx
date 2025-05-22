@@ -268,7 +268,7 @@ const Navbar = () => {
               </ListItem>
             )}
             {loggedIn && (
-              <ListItem component={Link} to="/profile/private" sx={{ '&:hover': { backgroundColor: hoverColor } }}>
+              <ListItem component={Link} to="/profile/me" sx={{ '&:hover': { backgroundColor: hoverColor } }}>
                 <Avatar 
                   src={userImage} 
                   sx={{ width: 40, height: 40, mr: 2 }}
