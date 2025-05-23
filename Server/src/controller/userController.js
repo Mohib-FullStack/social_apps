@@ -366,6 +366,82 @@ const handleGetPublicProfile = async (req, res, next) => {
 
 
 //! Update Private Profile (sensitive info)
+// const handleUpdatePrivateProfile = async (req, res, next) => {
+//   try {
+//     const userId = req.user.id;
+//     const user = await User.findByPk(userId);
+
+//     if (!user) {
+//       return errorResponse(res, { statusCode: 404, message: 'User not found' });
+//     }
+
+
+
+//     // Only allow updates to private fields
+//     const { phone, birthDate, gender } = req.body;
+
+//     // Validate gender changes
+//     if (gender && gender !== user.gender) {
+//       if (!user.canChangeGender()) {
+//         return errorResponse(res, {
+//           statusCode: 400,
+//           message: 'Maximum gender changes reached (2 changes allowed)',
+//         });
+//       }
+//     }
+
+//     // Update phone if provided
+//     if (phone && phone !== user.phone) {
+//       user.phone = phone;
+//       user.phoneVerified = false; // Reset verification status
+//     }
+
+//     // Update birth date if provided
+//     if (birthDate) {
+//       user.birthDate = new Date(birthDate);
+//     }
+
+//     // Update gender if provided
+//     if (gender) {
+//       user.gender = gender;
+//     }
+
+//     // Handle profile image upload
+//     if (req.file) {
+//       if (user.profileImage) {
+//         await deleteFileFromCloudinary(user.profileImage);
+//       }
+//       const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+//         folder: 'social-network/users/profile-images',
+//       });
+//       user.profileImage = uploadResponse.secure_url;
+//     }
+
+//  //! Handle cover image upload
+//     if (req.file) {
+//       if (user.coverImage) {
+//         await deleteFileFromCloudinary(user.coverImage);
+//       }
+//       const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+//         folder: 'social-network/users/cover-images',
+//       });
+//       user.coverImage = uploadResponse.secure_url;
+//     }
+   
+//         await user.save();
+
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'Private profile updated successfully',
+//       payload: { user },
+//     });
+//   } catch (error) {
+//     console.error('Error updating private profile:', error);
+//     next(error);
+//   }
+// };
+
+//! test
 const handleUpdatePrivateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -404,17 +480,28 @@ const handleUpdatePrivateProfile = async (req, res, next) => {
       user.gender = gender;
     }
 
-    // Handle profile image upload
-    if (req.file) {
+    // Handle profile image upload (if provided)
+    if (req.files?.profileImage) {
       if (user.profileImage) {
         await deleteFileFromCloudinary(user.profileImage);
       }
-      const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+      const uploadResponse = await cloudinary.uploader.upload(req.files.profileImage[0].path, {
         folder: 'social-network/users/profile-images',
       });
       user.profileImage = uploadResponse.secure_url;
     }
 
+    // Handle cover image upload (if provided)
+    if (req.files?.coverImage) {
+      if (user.coverImage) {
+        await deleteFileFromCloudinary(user.coverImage);
+      }
+      const uploadResponse = await cloudinary.uploader.upload(req.files.coverImage[0].path, {
+        folder: 'social-network/users/cover-images',
+      });
+      user.coverImage = uploadResponse.secure_url;
+    }
+   
     await user.save();
 
     return successResponse(res, {
@@ -424,6 +511,41 @@ const handleUpdatePrivateProfile = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error updating private profile:', error);
+    next(error);
+  }
+};
+
+
+
+//! updateCoverImage
+const handleUpdateCoverImage = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return errorResponse(res, { statusCode: 404, message: 'User not found' });
+    }
+
+    if (req.file) {
+      if (user.coverImage) {
+        await deleteFileFromCloudinary(user.coverImage);
+      }
+      const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'social-network/users/cover-images',
+      });
+      user.coverImage = uploadResponse.secure_url;
+    }
+
+    await user.save();
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Cover image updated successfully',
+      payload: { user },
+    });
+  } catch (error) {
+    console.error('Error updating cover image:', error);
     next(error);
   }
 };
@@ -507,6 +629,8 @@ const handleUpdatePublicProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+
 // const handleUpdatePublicProfile = async (req, res, next) => {
 //   try {
 //     const userId = req.user.id;
@@ -1470,6 +1594,7 @@ module.exports = {
   handleFetchUserProfile,
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
+  handleUpdateCoverImage,
   handleUpdatePublicProfile,
   handleUpdatePrivacySettings,
   handleUpdatePassword,

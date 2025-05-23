@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   handleActivateUser,
+
   handleGetUsers,
   handleGetUserById,
   handleUpdateUserById,
@@ -20,11 +21,13 @@ const {
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
   handleUpdatePublicProfile,
+  handleUpdateCoverImage,
 } = require('../controller/userController');
 
 const { isLoggedIn, isAdmin } = require('../middleware/authMiddleware');
 const { singleProfileImage } = require('../middleware/uploadProfileImage');
-const  { uploadCoverImage }  = require('../middleware/uploadCoverImage');
+const uploadCoverImage = require('../middleware/uploadCoverImage');
+const uploadUserImages = require('../middleware/uploadUserImages');
 
 const {
   validateRegistration,
@@ -35,6 +38,8 @@ const {
 } = require('../validators/user');
 const runValidation = require('../validators');
 const handleProcessAlert = require('../controller/adminController');
+
+
 
 const userRouter = express.Router();
 
@@ -65,23 +70,23 @@ userRouter.put(
 );
 
 //! Profile Routes
-// userRouter.get('/profile', isLoggedIn, handleFetchUserProfile);
-
-// Add these new routes:
-
-
 userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
 // userRouter.get('/profile/:slug', isLoggedIn, handleGetPublicProfile);
 userRouter.get('/profile/me', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 
-
-
-// For routes that only need profile image
 userRouter.put(
   '/profile/me',
   isLoggedIn,
-  singleProfileImage,
+  uploadUserImages,
   handleUpdatePrivateProfile
+);
+
+
+userRouter.put(
+  '/profile/cover',
+  isLoggedIn,
+   uploadCoverImage.singleCoverImage,
+  handleUpdateCoverImage
 );
 
 
@@ -90,14 +95,14 @@ userRouter.put(
 userRouter.put(
   '/profile/public',
   isLoggedIn,
-  (req, res, next) => {
-    // Handle profile image first
-    singleProfileImage(req, res, (err) => {
-      if (err) return next(err);
-      // Then handle cover image
-      uploadCoverImage.singleCoverImage(req, res, next);
-    });
-  },
+  // (req, res, next) => {
+  //   // Handle profile image first
+  //   singleProfileImage(req, res, (err) => {
+  //     if (err) return next(err);
+  //     // Then handle cover image
+  //     uploadCoverImage.singleCoverImage(req, res, next);
+  //   });
+  // },
   handleUpdatePublicProfile
 );
 

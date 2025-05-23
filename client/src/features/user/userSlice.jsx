@@ -124,6 +124,23 @@ export const updatePrivateProfile = createAsyncThunk(
   }
 );
 
+//! updateCoverImage
+export const updateCoverImage = createAsyncThunk(
+  'user/updateCoverImage',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put('/users/profile/cover', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 //! Update Public Profile
 export const updatePublicProfile = createAsyncThunk(
   'user/updatePublicProfile',
@@ -382,6 +399,23 @@ const userSlice = createSlice({
   state.profile = action.payload;
 })
 .addCase(updatePrivateProfile.rejected, handleRejected)
+
+
+// updateCoverImage
+ .addCase(updateCoverImage.pending, (state) => {
+        state.loading = true;
+        state.status = 'loading';
+      })
+      .addCase(updateCoverImage.fulfilled, (state, action) => {
+        state.loading = false;
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+      })
+      .addCase(updateCoverImage.rejected, (state, action) => {
+        state.loading = false;
+        state.status = 'failed';
+        state.error = action.payload?.message || action.error.message;
+      })
 
 //! updatePublicProfile
 .addCase(updatePublicProfile.fulfilled, (state, action) => {

@@ -208,7 +208,7 @@ const UpdatePassword = () => {
 
           <DialogActions sx={{ justifyContent: 'center', gap: 2 }}>
             <Button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate('/profile/me')}
               color="error"
               sx={{ borderRadius: '10px', textTransform: 'capitalize' }}
             >
