@@ -133,7 +133,8 @@ userRouter.get('/following/:id', isLoggedIn, handleGetFollowing);
 userRouter.get('/', isLoggedIn, handleGetUsers);
 userRouter.put('/ban-user/:id', isLoggedIn, isAdmin, handleBanUserById);
 userRouter.put('/unban-user/:id', isLoggedIn, isAdmin, handleUnbanUserById);
-userRouter.get('/:id', isLoggedIn, isAdmin, handleGetUserById); // Changed - now accessible to logged in users
+// userRouter.get('/:id', isLoggedIn, isAdmin, handleGetUserById); // Changed - now accessible to logged in users
+userRouter.get('/:id', isLoggedIn, handleGetUserById); // Changed - now accessible to logged in users
 userRouter.put(
   '/:id',
   isLoggedIn,

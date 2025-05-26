@@ -28,12 +28,12 @@ import { ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
 import {
   fetchUserProfile,
   updatePrivateProfile,
-} from '../../features/user/userSlice';
-import theme from '../../theme';
+} from '../../../features/user/userSlice';
+import theme from '../../../theme';
 
 const PrivateProfileUpdate = () => {
   const dispatch = useDispatch();

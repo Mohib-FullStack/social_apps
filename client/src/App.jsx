@@ -9,10 +9,10 @@ import ForgotPassword from './components/FORGOT-PASSWORD/ForgotPassword';
 import HomePage from './components/HOME/Home';
 import Login from './components/LOGIN/Login';
 import NotFound from './components/NOTFOUND/NotFound';
-import PrivateProfilePage from './components/PROFILE/PrivateProfilePage';
-import PrivateProfileUpdate from './components/PROFILE/PrivateProfileUpdate';
-import PublicProfilePage from './components/PROFILE/PublicProfilePage';
-import PublicProfileUpdate from './components/PROFILE/PublicProfileUpdate';
+import PrivateProfilePage from './components/PROFILE/PrivateProfile/PrivateProfilePage';
+import PrivateProfileUpdate from './components/PROFILE/PrivateProfile/PrivateProfileUpdate';
+import PublicProfilePage from './components/PROFILE/PublicProfile/PublicProfilePage';
+import PublicProfileUpdate from './components/PROFILE/PublicProfile/PublicProfileUpdate';
 import Register from './components/REGISTER/Register';
 import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
 import UpdatePassword from './components/UPDATE-PASSWORD/UpdatePassword';
@@ -21,7 +21,9 @@ import UserTable from './components/USER-TABLE/UserTable';
 import { SocketProvider } from './context/SocketContext';
 import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
-import Navbar from './layouts/Navbar';
+import Navbar from './layouts/Navbar/Navbar';
+
+
 
 const App = () => {
   return (

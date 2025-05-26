@@ -1,7 +1,7 @@
 import {
-  Person,
   Home,
   Link as LinkIcon,
+  Person,
   PhotoCamera,
   Wallpaper
 } from '@mui/icons-material';
@@ -13,17 +13,17 @@ import {
   CardContent,
   CircularProgress,
   Grid,
+  IconButton,
   TextField,
-  Typography,
-  IconButton
+  Typography
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-import { fetchUserProfile, updatePublicProfile } from '../../features/user/userSlice';
-import theme from '../../theme';
+import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
+import { fetchUserProfile, updatePublicProfile } from '../../../features/user/userSlice';
+import theme from '../../../theme';
 
 const PublicProfileUpdate = () => {
   const dispatch = useDispatch();

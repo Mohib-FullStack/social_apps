@@ -2,11 +2,12 @@ import { Box, Card, DialogContent, DialogTitle } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFriendships } from '../../features/friendship/friendshipSlice';
+// import { fetchFriendships } from '../../features/friendship/friendshipSlice';
 import theme from '../../theme';
 import SendFriendRequest from '../FriendRequest/SendFriendRequest';
 import AcceptFriendRequest from '../FriendRequest/AcceptFriendRequests';
 import FriendList from '../FriendRequest/FriendList';
+import { getSentRequests } from '../../features/friendship/friendshipSlice';
 
 
 const Chat = () => {
@@ -15,7 +16,7 @@ const Chat = () => {
 
   useEffect(() => {
     if (user?.id) {
-      dispatch(fetchFriendships(user.id));
+      dispatch(getSentRequests(user.id));
     }
   }, [user, dispatch]);
 

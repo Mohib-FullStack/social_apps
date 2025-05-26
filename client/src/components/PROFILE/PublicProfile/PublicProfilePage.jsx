@@ -1,12 +1,10 @@
 import {
   Add,
-  ArrowBack,
   Cake,
   CameraAlt,
   Comment,
   Edit,
   Email,
-  Event,
   Feed as FeedIcon,
   Groups,
   Info as InfoIcon,
@@ -14,15 +12,13 @@ import {
   LocationOn,
   MoreVert,
   People as PeopleIcon,
-  Person,
   PhotoLibrary as PhotoLibraryIcon,
+  PostAdd as PostIcon,
   Share,
   ThumbUp,
   Verified as VerifiedIcon,
   VideoLibrary as VideoLibraryIcon,
-  Work,
-  Visibility as VisibilityIcon,
-  PostAdd as PostIcon
+  Work
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -32,7 +28,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Chip,
   CircularProgress,
   Container,
   Dialog,
@@ -51,11 +46,10 @@ import {
   useTheme
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { fetchPublicProfile } from '../../features/user/userSlice';
-import theme from '../../theme';
+import { fetchPublicProfile } from '../../../features/user/userSlice';
 
 const PublicProfilePage = () => {
   const theme = useTheme();

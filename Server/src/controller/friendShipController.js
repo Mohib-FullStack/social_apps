@@ -2,7 +2,6 @@ const { Friendship, User, Notification, Chat } = require('../models');
 const { Op } = require('sequelize');
 const { getPagination, getPagingData } = require('../helper/pagination');
 
-// Helper function to validate user IDs
 const validateUserId = (userId, currentUserId) => {
   if (!userId || isNaN(userId)) {
     throw new Error("Invalid user ID");
@@ -12,19 +11,17 @@ const validateUserId = (userId, currentUserId) => {
   }
 };
 
-// Send a friend request
+//! sendFriendRequest
 const sendFriendRequest = async (req, res, next) => {
   try {
     const { friendId } = req.body;
     validateUserId(friendId, req.user.id);
 
-    // Check if friend exists
     const friend = await User.findByPk(friendId);
     if (!friend) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Check for existing friendship/request
     const existing = await Friendship.findOne({
       where: {
         [Op.or]: [
@@ -35,9 +32,12 @@ const sendFriendRequest = async (req, res, next) => {
     });
 
     if (existing) {
-      const errorMsg = existing.status === 'blocked' ? "This friendship is blocked" :
-                      existing.status === 'pending' ? "Friend request already pending" :
-                      "You are already friends";
+      const errorMsg = existing.status === 'blocked'
+        ? "This friendship is blocked"
+        : existing.status === 'pending'
+        ? "Friend request already pending"
+        : "You are already friends";
+
       return res.status(400).json({ error: errorMsg });
     }
 
@@ -48,7 +48,6 @@ const sendFriendRequest = async (req, res, next) => {
       actionUserId: req.user.id
     });
 
-    // Create notification
     await Notification.create({
       userId: friendId,
       type: 'friend_request',
@@ -57,22 +56,35 @@ const sendFriendRequest = async (req, res, next) => {
       metadata: { friendshipId: friendship.id }
     });
 
-    // Real-time notification
     req.io.to(`user_${friendId}`).emit('friend_request', {
       from: req.user.id,
       friendshipId: friendship.id
     });
 
-    res.status(201).json({
-      message: "Friend request sent",
-      friendship
-    });
+// In your controller
+// In your controller
+res.status(201).json({
+  message: "Friend request sent",
+  friendship: {
+    id: friendship.id,
+    from: req.user.id,    // Explicitly add
+    to: friendId,         // This is what your UI expects
+    friendId: friendId,   // Keep original field
+    userId: req.user.id,  // Keep original field
+    status: friendship.status,
+    actionUserId: friendship.actionUserId,
+    createdAt: friendship.createdAt,
+    updatedAt: friendship.updatedAt
+  }
+});
+ 
   } catch (error) {
     next(error);
   }
 };
 
-// Cancel a sent friend request
+
+//! Cancel a sent friend request
 const cancelFriendRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
