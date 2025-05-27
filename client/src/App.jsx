@@ -48,8 +48,8 @@ const App = () => {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             
             {/* Profile Routes */}
+                 {/* <Route path="/profile/:slug" element={<PublicProfilePage />} /> */}
             <Route path="/profile/me" element={<PrivateProfilePage />} />
-            {/* <Route path="/profile/:slug" element={<PublicProfilePage />} /> */}
             <Route path="/profile/public/:id" element={<PublicProfilePage />} />
             
             {/* Protected/User-Specific Routes */}

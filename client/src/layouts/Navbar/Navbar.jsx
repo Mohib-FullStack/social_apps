@@ -1,43 +1,37 @@
 // src/layouts/Navbar/Navbar.jsx
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  Group,
+  Home,
+  Menu as MenuIcon,
+  People,
+  Store
+} from '@mui/icons-material';
 import {
   AppBar,
-    Avatar,
-  Badge,
   Box,
-  Button,
   Drawer,
   IconButton,
   Toolbar,
-  Typography,
   useMediaQuery
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Home,
-  People,
-  Group,
-  Store,
-  Notifications,
-  Search as SearchIcon,
-  Login
-} from '@mui/icons-material';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-import { fetchUserProfile, logoutUser, logoutUserReducer, refreshAccessToken, fetchAllUsers } from '../../features/user/userSlice';
-import Logo from './Logo';
+import { fetchAllUsers, fetchUserProfile, logoutUser, logoutUserReducer } from '../../features/user/userSlice';
+import AuthButtons from './AuthButtons';
 import DesktopSearch from './DesktopSearch';
+import DrawerContent from './DrawerContent';
+import Logo from './Logo';
 import MobileSearch from './MobileSearch';
 import NavItems from './NavItems';
-import UserMenu from './UserMenu';
-import DrawerContent from './DrawerContent';
-import AuthButtons from './AuthButtons';
 import UserAvatarSection from './UserAvatarSection';
+import UserMenu from './UserMenu';
 
 // Constants
 const NAV_ITEMS = [
   { name: 'Home', icon: Home, path: '/', color: '#1877F2' },
+    { name: 'UserTable', icon: Home, path: '/user-table', color: '#1877F2' },
   { name: 'Friends', icon: People, path: '/friends', color: '#1B74E4' },
   { name: 'Groups', icon: Group, path: '/groups', color: '#E44D2E' },
   { name: 'Marketplace', icon: Store, path: '/marketplace', color: '#42B72A' },
@@ -580,7 +574,6 @@ export default Navbar;
 // };
 
 // export default Navbar;
-
 
 
 

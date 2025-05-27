@@ -310,25 +310,104 @@ const handleFetchUserProfile = async (req, res, next) => {
 };
 
 //! 🛡️ Get Public Profile (for other users)
+// const handleGetPublicProfile = async (req, res, next) => {
+//   try {
+//     const userId = req.params.id;
+
+//     if (!userId || userId === 'undefined') {
+//       return errorResponse(res, {
+//         statusCode: 400,
+//         message: 'User ID is required',
+//       });
+//     }
+
+//     // Get raw user data without Sequelize instance
+//     const user = await User.findByPk(userId, {
+//       attributes: {
+//         exclude: ['password', 'isAdmin', 'emailVerifyToken'],
+//       },
+//       raw: true, // This ensures we get a plain JavaScript object
+//     });
+
+//     if (!user) {
+//       return errorResponse(res, {
+//         statusCode: 404,
+//         message: 'User not found',
+//       });
+//     }
+
+//     // Manually construct the response object
+//     const publicData = {
+//       id: user.id,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       profileImage: user.profileImage,
+//       coverImage: user.coverImage || '/default-cover.jpg',
+//       bio: user.bio,
+//       website: user.website,
+//       email: user.email,
+//       phone: user.phone,
+//       birthDate: user.birthDate,
+//       gender: user.gender,
+//       createdAt: user.createdAt,
+//       updatedAt: user.updatedAt,
+//     };
+
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'Public profile retrieved successfully',
+//       payload: publicData,
+//     });
+//   } catch (error) {
+//     console.error('Error in handleGetPublicProfile:', error);
+//     next(error);
+//   }
+// };
+
+
+
+//! new
+// In your userController.js
+
+//! 🛡️ Get Public Profile (for other users)
 const handleGetPublicProfile = async (req, res, next) => {
   try {
-    const userId = req.params.id;
+    const rawId = req.params.id;
 
-    if (!userId || userId === 'undefined') {
+    // 1️⃣ Validate presence
+    if (!rawId || rawId === 'undefined') {
       return errorResponse(res, {
         statusCode: 400,
         message: 'User ID is required',
       });
     }
 
-    // Get raw user data without Sequelize instance
+    // 2️⃣ Reject the literal "me" on public route
+    if (rawId === 'me') {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: 'Invalid user ID for public profile',
+      });
+    }
+
+    // 3️⃣ Optionally coerce to integer and validate
+    const userId = parseInt(rawId, 10);
+    if (isNaN(userId)) {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: 'User ID must be a number',
+      });
+    }
+
+    // 4️⃣ Fetch the user
     const user = await User.findByPk(userId, {
       attributes: {
         exclude: ['password', 'isAdmin', 'emailVerifyToken'],
       },
-      raw: true, // This ensures we get a plain JavaScript object
+      raw: true,
     });
 
+    // 5️⃣ Not found?
     if (!user) {
       return errorResponse(res, {
         statusCode: 404,
@@ -336,7 +415,7 @@ const handleGetPublicProfile = async (req, res, next) => {
       });
     }
 
-    // Manually construct the response object
+    // 6️⃣ Build public payload
     const publicData = {
       id: user.id,
       firstName: user.firstName,
@@ -629,69 +708,6 @@ const handleUpdatePublicProfile = async (req, res, next) => {
     next(error);
   }
 };
-
-
-// const handleUpdatePublicProfile = async (req, res, next) => {
-//   try {
-//     const userId = req.user.id;
-//     const user = await User.findByPk(userId);
-
-//     if (!user) {
-//       return errorResponse(res, { statusCode: 404, message: 'User not found' });
-//     }
-
-//     // Only allow updates to public fields
-//     const { firstName, lastName, bio, website, location } = req.body;
-
-//     // Update basic info
-//     user.firstName = firstName || user.firstName;
-//     user.lastName = lastName || user.lastName;
-//     user.bio = bio || user.bio;
-//     user.website = website || user.website;
-//     user.location = location || user.location;
-
-//     // Handle profile image upload
-//     if (req.files?.profileImage) {
-//       if (user.profileImage) {
-//         await deleteFileFromCloudinary(user.profileImage);
-//       }
-//       const uploadResponse = await cloudinary.uploader.upload(
-//         req.files.profileImage[0].path,
-//         {
-//           folder: 'social-network/users/profile-images',
-//         }
-//       );
-//       user.profileImage = uploadResponse.secure_url;
-//     }
-
-//     // Handle cover image upload
-//     if (req.files?.coverImage) {
-//       if (user.coverImage) {
-//         await deleteFileFromCloudinary(user.coverImage);
-//       }
-//       const uploadResponse = await cloudinary.uploader.upload(
-//         req.files.coverImage[0].path,
-//         {
-//           folder: 'social-network/users/cover-images',
-//         }
-//       );
-//       user.coverImage = uploadResponse.secure_url;
-//     }
-
-//     await user.save();
-
-//     return successResponse(res, {
-//       statusCode: 200,
-//       message: 'Public profile updated successfully',
-//       payload: { user },
-//     });
-//   } catch (error) {
-//     console.error('Error updating public profile:', error);
-//     next(error);
-//   }
-// };
-
-
 
 
 //! 🔐 Update Privacy Settings
@@ -1019,6 +1035,8 @@ const handleGetUserById = async (req, res) => {
   }
 };
 
+
+//! handleUpdateUserById
 const handleUpdateUserById = async (req, res, next) => {
   try {
     const { id } = req.params;

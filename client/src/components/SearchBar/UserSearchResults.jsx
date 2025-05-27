@@ -1,157 +1,69 @@
-// src/components/SearchBar/UserSearchResults.jsx
-// import { Avatar, List, ListItem, ListItemAvatar, ListItemText, Paper } from '@mui/material';
-// import { useNavigate } from 'react-router-dom';
-
-// const UserSearchResults = ({ users = [], onSelect }) => {
-//   const navigate = useNavigate();
-
-//   return (
-//     <Paper elevation={3} sx={{ 
-//       position: 'absolute',
-//       width: '100%',
-//       maxWidth: 400,
-//       maxHeight: 400,
-//       overflow: 'auto',
-//       zIndex: 1200,
-//       mt: 1
-//     }}>
-//       <List dense>
-//         {users.map((user) => (
-//           <ListItem 
-//             key={user.id} 
-//             button 
-//             onClick={() => {
-//               navigate(`/profile/public/${user.id}`);
-//               onSelect();
-//             }}
-//           >
-//             <ListItemAvatar>
-//               <Avatar src={user.profileImage} />
-//             </ListItemAvatar>
-//             <ListItemText
-//               primary={`${user.firstName} ${user.lastName}`}
-//               secondary={`@${user.username || `user${user.id}`}`}
-//             />
-//           </ListItem>
-//         ))}
-//       </List>
-//     </Paper>
-//   );
-// };
-
-// export default UserSearchResults;
-
-//! new
-
-/*
-File: components/PROFILE/UserSearchResults.jsx
-*/
-// import { Box, Avatar, Typography } from '@mui/material';
-// import { useNavigate } from 'react-router-dom';
-
-// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
-
-// const UserSearchResults = ({ results, onResultClick }) => {
-//   const navigate = useNavigate();
-
-//   const handleClick = (userId) => {
-//     onResultClick();
-//     navigate(`/profile/public/${userId}`);
-//   };
-
-//   return (
-//     <Box>
-//       {results.map((user) => (
-//         <Box
-//           key={user._id}
-//           sx={{ p: 2, display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-//           onClick={() => handleClick(user._id)}
-//         >
-//           <Avatar src={user.profileImage || DEFAULT_PROFILE_IMAGE} sx={{ width: 40, height: 40, mr: 2 }} />
-//           <Box>
-//             <Typography variant="subtitle1">{user.firstName} {user.lastName}</Typography>
-//             <Typography variant="body2" color="text.secondary">{user.email}</Typography>
-//           </Box>
-//         </Box>
-//       ))}
-//     </Box>
-//   );
-// };
-
-// export default UserSearchResults;
-
-//! last
-// import { Avatar, Box, Typography } from '@mui/material';
-// import { useNavigate } from 'react-router-dom';
-
-// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
-
-// const UserSearchResults = ({ results, onResultClick }) => {
-//   const navigate = useNavigate();
-
-//   const handleClick = (userId) => {
-//     onResultClick();
-//     navigate(`/profile/public/${userId}`);
-//   };
-
-//   return (
-//     <Box>
-//       {results.map((user) => (
-//         <Box
-//           key={user._id}
-//           sx={{ p: 2, display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-//           onClick={() => handleClick(user._id)}
-//         >
-//           <Avatar src={user.profileImage || DEFAULT_PROFILE_IMAGE} sx={{ width: 40, height: 40, mr: 2 }} />
-//           <Box>
-//             <Typography variant="subtitle1">{user.firstName} {user.lastName}</Typography>
-//             <Typography variant="body2" color="text.secondary">{user.email}</Typography>
-//           </Box>
-//         </Box>
-//       ))}
-//     </Box>
-//   );
-// };
-
-// export default UserSearchResults;
-
-//! depseek
 import { Avatar, Box, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
-const UserSearchResults = ({ results, onResultClick }) => {
+const UserSearchResults = ({ results = [], onResultClick = () => {} }) => {
   const navigate = useNavigate();
 
-  const handleClick = (userId) => {
+  const handleClick = (user) => {
     onResultClick();
-    navigate(`/profile/public/${userId}`);
+    
+    if (!user?.id) {
+      console.error('Invalid user object:', user);
+      return;
+    }
+
+    navigate(`/profile/public/${user.id}`);
   };
 
+  if (results.length === 0) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          No users found
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
       {results.map((user) => (
         <Box 
-          key={user._id} 
+          key={user.id}
           sx={{ 
             p: 2, 
             display: 'flex', 
             alignItems: 'center', 
             cursor: 'pointer',
             '&:hover': { 
-              bgcolor: 'action.hover' 
-            }
+              backgroundColor: 'action.hover' 
+            },
+            transition: 'background-color 0.2s ease'
           }}
-          onClick={() => handleClick(user._id)}
+          onClick={() => handleClick(user)}
+          aria-label={`View profile of ${user.firstName} ${user.lastName}`}
         >
           <Avatar 
             src={user.profileImage || '/default-avatar.png'} 
-            sx={{ width: 40, height: 40, mr: 2 }}
+            alt={`${user.firstName}'s profile`}
+            sx={{ 
+              width: 40, 
+              height: 40, 
+              mr: 2,
+              backgroundColor: 'primary.light',
+              color: 'primary.contrastText'
+            }}
           />
-          <Box>
-            <Typography variant="subtitle1">
+          <Box sx={{ overflow: 'hidden' }}>
+            <Typography variant="subtitle1" noWrap>
               {user.firstName} {user.lastName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              noWrap
+            >
               {user.email}
             </Typography>
           </Box>
@@ -159,6 +71,19 @@ const UserSearchResults = ({ results, onResultClick }) => {
       ))}
     </Box>
   );
+};
+
+UserSearchResults.propTypes = {
+  results: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      firstName: PropTypes.string.isRequired,
+      lastName: PropTypes.string.isRequired,
+      email: PropTypes.string.isRequired,
+      profileImage: PropTypes.string,
+    })
+  ),
+  onResultClick: PropTypes.func,
 };
 
 export default UserSearchResults;
