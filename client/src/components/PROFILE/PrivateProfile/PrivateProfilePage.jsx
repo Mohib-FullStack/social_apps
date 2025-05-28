@@ -10,6 +10,8 @@ import { ThemeProvider, useMediaQuery, ClickAwayListener } from '@mui/material';
 import { Box, CircularProgress, Button } from '@mui/material';
 import theme from '../../../theme';
 
+
+ 
 // Redux actions
 import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../../features/snackbar/snackbarSlice';

@@ -159,13 +159,13 @@ const handleActivateUser = async (req, res, next) => {
       gender: decoded.gender,
       birthDate: decoded.birthDate,
       profileImage: profileImageUrl,
-      profileSlug // Explicitly set the slug
+      profileSlug, // Explicitly set the slug
     });
 
     return successResponse(res, {
       statusCode: 201,
       message: 'Account activated successfully. Please log in.',
-      payload: { user }
+      payload: { user },
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -175,87 +175,7 @@ const handleActivateUser = async (req, res, next) => {
   }
 };
 
-
-//! old
-// const handleActivateUser = async (req, res, next) => {
-//   try {
-//     const { token } = req.body;
-//     if (!token) throw createError(400, 'Activation token required');
-
-//     const decoded = jwt.verify(token, jwtActivationkey);
-
-//     // Check if user already exists
-//     const { exists } = await checkUserExist({ email: decoded.email });
-//     if (exists) {
-//       if (decoded.profileImagePath) {
-//         await fs.unlink(decoded.profileImagePath).catch(console.error);
-//       }
-//       return successResponse(res, {
-//         statusCode: 409,
-//         message: 'User already exists. Please log in.',
-//       });
-//     }
-
-//     let profileImageUrl = null;
-//     if (decoded.profileImagePath) {
-//       try {
-//         const response = await cloudinary.uploader.upload(
-//           decoded.profileImagePath,
-//           {
-//             folder: 'social-network/users/profile-images',
-//             transformation: [{ width: 500, height: 500, crop: 'limit' }],
-//           }
-//         );
-//         profileImageUrl = response.secure_url;
-//       } catch (uploadError) {
-//         console.error('Cloudinary upload failed:', uploadError);
-//         throw createError(500, 'Failed to upload profile image');
-//       } finally {
-//         await fs.unlink(decoded.profileImagePath).catch(console.error);
-//       }
-//     }
-
-//     // Create user in database - password is already hashed from registration
-//     const user = await User.create({
-//       firstName: decoded.firstName,
-//       lastName: decoded.lastName,
-//       email: decoded.email,
-//       password: decoded.password, // This is already hashed
-//       phone: decoded.phone,
-//       gender: decoded.gender,
-//       birthDate: decoded.birthDate,
-//       profileImage: profileImageUrl,
-//     });
-
-//     return successResponse(res, {
-//       statusCode: 201,
-//       message: 'Account activated successfully. Please log in.',
-//       payload: {
-//         user: {
-//           id: user.id,
-//           firstName: user.firstName,
-//           lastName: user.lastName,
-//           email: user.email,
-//           phone: user.phone,
-//           gender: user.gender,
-//           birthDate: user.birthDate,
-//           profileImage: user.profileImage,
-//         },
-//       },
-//     });
-//   } catch (error) {
-//     if (error.name === 'TokenExpiredError') {
-//       throw createError(401, 'Token has expired');
-//     }
-//     next(error);
-//   }
-// };
-
-
-
-
 // 🔵 USER PROFILE MANAGEMENT
-// Fetch User Profile
 //! Handle fetch private user profile
 const handleFetchUserProfile = async (req, res, next) => {
   try {
@@ -309,67 +229,7 @@ const handleFetchUserProfile = async (req, res, next) => {
   }
 };
 
-//! 🛡️ Get Public Profile (for other users)
-// const handleGetPublicProfile = async (req, res, next) => {
-//   try {
-//     const userId = req.params.id;
-
-//     if (!userId || userId === 'undefined') {
-//       return errorResponse(res, {
-//         statusCode: 400,
-//         message: 'User ID is required',
-//       });
-//     }
-
-//     // Get raw user data without Sequelize instance
-//     const user = await User.findByPk(userId, {
-//       attributes: {
-//         exclude: ['password', 'isAdmin', 'emailVerifyToken'],
-//       },
-//       raw: true, // This ensures we get a plain JavaScript object
-//     });
-
-//     if (!user) {
-//       return errorResponse(res, {
-//         statusCode: 404,
-//         message: 'User not found',
-//       });
-//     }
-
-//     // Manually construct the response object
-//     const publicData = {
-//       id: user.id,
-//       firstName: user.firstName,
-//       lastName: user.lastName,
-//       profileImage: user.profileImage,
-//       coverImage: user.coverImage || '/default-cover.jpg',
-//       bio: user.bio,
-//       website: user.website,
-//       email: user.email,
-//       phone: user.phone,
-//       birthDate: user.birthDate,
-//       gender: user.gender,
-//       createdAt: user.createdAt,
-//       updatedAt: user.updatedAt,
-//     };
-
-//     return successResponse(res, {
-//       statusCode: 200,
-//       message: 'Public profile retrieved successfully',
-//       payload: publicData,
-//     });
-//   } catch (error) {
-//     console.error('Error in handleGetPublicProfile:', error);
-//     next(error);
-//   }
-// };
-
-
-
-//! new
-// In your userController.js
-
-//! 🛡️ Get Public Profile (for other users)
+//! 🛡️ Get Public Profile (for other users) with ID
 const handleGetPublicProfile = async (req, res, next) => {
   try {
     const rawId = req.params.id;
@@ -443,84 +303,7 @@ const handleGetPublicProfile = async (req, res, next) => {
   }
 };
 
-
 //! Update Private Profile (sensitive info)
-// const handleUpdatePrivateProfile = async (req, res, next) => {
-//   try {
-//     const userId = req.user.id;
-//     const user = await User.findByPk(userId);
-
-//     if (!user) {
-//       return errorResponse(res, { statusCode: 404, message: 'User not found' });
-//     }
-
-
-
-//     // Only allow updates to private fields
-//     const { phone, birthDate, gender } = req.body;
-
-//     // Validate gender changes
-//     if (gender && gender !== user.gender) {
-//       if (!user.canChangeGender()) {
-//         return errorResponse(res, {
-//           statusCode: 400,
-//           message: 'Maximum gender changes reached (2 changes allowed)',
-//         });
-//       }
-//     }
-
-//     // Update phone if provided
-//     if (phone && phone !== user.phone) {
-//       user.phone = phone;
-//       user.phoneVerified = false; // Reset verification status
-//     }
-
-//     // Update birth date if provided
-//     if (birthDate) {
-//       user.birthDate = new Date(birthDate);
-//     }
-
-//     // Update gender if provided
-//     if (gender) {
-//       user.gender = gender;
-//     }
-
-//     // Handle profile image upload
-//     if (req.file) {
-//       if (user.profileImage) {
-//         await deleteFileFromCloudinary(user.profileImage);
-//       }
-//       const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-//         folder: 'social-network/users/profile-images',
-//       });
-//       user.profileImage = uploadResponse.secure_url;
-//     }
-
-//  //! Handle cover image upload
-//     if (req.file) {
-//       if (user.coverImage) {
-//         await deleteFileFromCloudinary(user.coverImage);
-//       }
-//       const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-//         folder: 'social-network/users/cover-images',
-//       });
-//       user.coverImage = uploadResponse.secure_url;
-//     }
-   
-//         await user.save();
-
-//     return successResponse(res, {
-//       statusCode: 200,
-//       message: 'Private profile updated successfully',
-//       payload: { user },
-//     });
-//   } catch (error) {
-//     console.error('Error updating private profile:', error);
-//     next(error);
-//   }
-// };
-
-//! test
 const handleUpdatePrivateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -564,9 +347,12 @@ const handleUpdatePrivateProfile = async (req, res, next) => {
       if (user.profileImage) {
         await deleteFileFromCloudinary(user.profileImage);
       }
-      const uploadResponse = await cloudinary.uploader.upload(req.files.profileImage[0].path, {
-        folder: 'social-network/users/profile-images',
-      });
+      const uploadResponse = await cloudinary.uploader.upload(
+        req.files.profileImage[0].path,
+        {
+          folder: 'social-network/users/profile-images',
+        }
+      );
       user.profileImage = uploadResponse.secure_url;
     }
 
@@ -575,12 +361,15 @@ const handleUpdatePrivateProfile = async (req, res, next) => {
       if (user.coverImage) {
         await deleteFileFromCloudinary(user.coverImage);
       }
-      const uploadResponse = await cloudinary.uploader.upload(req.files.coverImage[0].path, {
-        folder: 'social-network/users/cover-images',
-      });
+      const uploadResponse = await cloudinary.uploader.upload(
+        req.files.coverImage[0].path,
+        {
+          folder: 'social-network/users/cover-images',
+        }
+      );
       user.coverImage = uploadResponse.secure_url;
     }
-   
+
     await user.save();
 
     return successResponse(res, {
@@ -593,8 +382,6 @@ const handleUpdatePrivateProfile = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 //! updateCoverImage
 const handleUpdateCoverImage = async (req, res, next) => {
@@ -628,87 +415,6 @@ const handleUpdateCoverImage = async (req, res, next) => {
     next(error);
   }
 };
-
-//! Update Public Profile (non-sensitive info)
-const handleUpdatePublicProfile = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findByPk(userId);
-
-    if (!user) {
-      return errorResponse(res, { statusCode: 404, message: 'User not found' });
-    }
-
-    // Validate file sizes
-    if (req.files?.profileImage) {
-      if (req.files.profileImage[0].size > 5 * 1024 * 1024) { // 5MB
-        return errorResponse(res, {
-          statusCode: 400,
-          message: 'Profile image must be less than 5MB'
-        });
-      }
-    }
-
-    if (req.files?.coverImage) {
-      if (req.files.coverImage[0].size > 10 * 1024 * 1024) { // 10MB
-        return errorResponse(res, {
-          statusCode: 400,
-          message: 'Cover image must be less than 10MB'
-        });
-      }
-    }
-
-    // Only allow updates to public fields
-    const { firstName, lastName, bio, website, location } = req.body;
-
-    // Update basic info
-    user.firstName = firstName || user.firstName;
-    user.lastName = lastName || user.lastName;
-    user.bio = bio || user.bio;
-    user.website = website || user.website;
-    user.location = location || user.location;
-
-    // Handle profile image upload
-    if (req.files?.profileImage) {
-      if (user.profileImage) {
-        await deleteFileFromCloudinary(user.profileImage);
-      }
-      const uploadResponse = await cloudinary.uploader.upload(
-        req.files.profileImage[0].path,
-        {
-          folder: 'social-network/users/profile-images',
-        }
-      );
-      user.profileImage = uploadResponse.secure_url;
-    }
-
-    // Handle cover image upload
-    if (req.files?.coverImage) {
-      if (user.coverImage) {
-        await deleteFileFromCloudinary(user.coverImage);
-      }
-      const uploadResponse = await cloudinary.uploader.upload(
-        req.files.coverImage[0].path,
-        {
-          folder: 'social-network/users/cover-images',
-        }
-      );
-      user.coverImage = uploadResponse.secure_url;
-    }
-
-    await user.save();
-
-    return successResponse(res, {
-      statusCode: 200,
-      message: 'Public profile updated successfully',
-      payload: { user },
-    });
-  } catch (error) {
-    console.error('Error updating public profile:', error);
-    next(error);
-  }
-};
-
 
 //! 🔐 Update Privacy Settings
 const handleUpdatePrivacySettings = async (req, res, next) => {
@@ -1034,7 +740,6 @@ const handleGetUserById = async (req, res) => {
     return errorResponse(res, 'Failed to retrieve user', 500);
   }
 };
-
 
 //! handleUpdateUserById
 const handleUpdateUserById = async (req, res, next) => {
@@ -1613,7 +1318,6 @@ module.exports = {
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
   handleUpdateCoverImage,
-  handleUpdatePublicProfile,
   handleUpdatePrivacySettings,
   handleUpdatePassword,
   handleForgetPassword,

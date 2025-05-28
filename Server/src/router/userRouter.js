@@ -20,7 +20,6 @@ const {
   handleUpdatePrivacySettings,
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
-  handleUpdatePublicProfile,
   handleUpdateCoverImage,
 } = require('../controller/userController');
 
@@ -70,7 +69,7 @@ userRouter.put(
 );
 
 //! Profile Routes
-// userRouter.get('/profile/:slug', isLoggedIn, handleGetPublicProfile);
+
 userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
 userRouter.get('/profile/me', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 
@@ -87,23 +86,6 @@ userRouter.put(
   isLoggedIn,
    uploadCoverImage.singleCoverImage,
   handleUpdateCoverImage
-);
-
-
-
-// For routes that need both
-userRouter.put(
-  '/profile/public',
-  isLoggedIn,
-  // (req, res, next) => {
-  //   // Handle profile image first
-  //   singleProfileImage(req, res, (err) => {
-  //     if (err) return next(err);
-  //     // Then handle cover image
-  //     uploadCoverImage.singleCoverImage(req, res, next);
-  //   });
-  // },
-  handleUpdatePublicProfile
 );
 
 

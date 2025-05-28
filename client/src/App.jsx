@@ -12,7 +12,6 @@ import NotFound from './components/NOTFOUND/NotFound';
 import PrivateProfilePage from './components/PROFILE/PrivateProfile/PrivateProfilePage';
 import PrivateProfileUpdate from './components/PROFILE/PrivateProfile/PrivateProfileUpdate';
 import PublicProfilePage from './components/PROFILE/PublicProfile/PublicProfilePage';
-import PublicProfileUpdate from './components/PROFILE/PublicProfile/PublicProfileUpdate';
 import Register from './components/REGISTER/Register';
 import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
 import UpdatePassword from './components/UPDATE-PASSWORD/UpdatePassword';
@@ -48,7 +47,6 @@ const App = () => {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             
             {/* Profile Routes */}
-                 {/* <Route path="/profile/:slug" element={<PublicProfilePage />} /> */}
             <Route path="/profile/me" element={<PrivateProfilePage />} />
             <Route path="/profile/public/:id" element={<PublicProfilePage />} />
             
@@ -56,8 +54,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/my-profile-update" element={<PrivateProfileUpdate />} />
-            <Route path="/public-profile-update" element={<PublicProfileUpdate />} />
-            <Route path="/update-user/:id" element={<UpdateUserById />} />
+                      <Route path="/update-user/:id" element={<UpdateUserById />} />
             <Route path="/user-table" element={<UserTable />} />
 
             {/* Chat Routes */}
