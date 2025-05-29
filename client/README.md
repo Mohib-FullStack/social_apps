@@ -4693,3 +4693,87 @@ If the Redux store is updating but the form fields are not populated, the issue 
    Verify that user in the store contains the correct user data by ID before rendering the form.
 2. Update the UpdateUserById Component to Populate the Form Fields:
    To ensure the form is populated when data is available, include checks within useEffect. Here’s a refined approach for UpdateUserById:
+
+#####
+
+Verification Checklist:
+Your profile:
+
+✅ No "Add Friend" button
+
+✅ Shows editing buttons
+
+Other users' profiles:
+
+✅ Shows "Add Friend" button
+
+✅ No editing buttons
+
+This is the simplest, most direct solution to your exact requirement. The key is properly passing (or not passing) the handleAddFriend prop based on isOwnProfile.
+<ProfileHeader
+userData={{
+    coverImage,
+    profileImage,
+    fullName: `${publicProfile.firstName} ${publicProfile.lastName}`,
+    isCurrentUser: isOwnProfile,  // This is the critical line
+    isVerified: publicProfile.isVerified
+  }}
+isMobile={false}
+navigate={navigate}
+onCoverPhotoEdit={isOwnProfile ? handleCoverPhotoEdit : null}
+onProfilePhotoEdit={isOwnProfile ? handleProfilePhotoEdit : null}
+coverImageLoading={updatePhotoStatus === 'loading'}
+// Only pass handleAddFriend if NOT current user's profile
+handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
+/>
+
+##
+
+<ProfileHeader
+userData={{
+    coverImage,
+    profileImage,
+    fullName: `${publicProfile.firstName} ${publicProfile.lastName}`,
+    isCurrentUser: isOwnProfile, // MUST be true for your own profile
+    isVerified: publicProfile.isVerified,
+    userId: publicProfile.id // Pass the actual profile ID
+  }}
+isMobile={false}
+// Only pass handleAddFriend for OTHER profiles
+showAddFriend={!isOwnProfile}
+onAddFriend={handleAddFriend}
+// ... other props
+/>
+
+{/_ <ProfileHeader
+userData={{
+    coverImage,
+    profileImage,
+    fullName: `${publicProfile.firstName} ${publicProfile.lastName}`,
+    isCurrentUser: isOwnProfile,
+    isVerified: publicProfile.isVerified
+  }}
+isMobile={false}
+navigate={navigate}
+onCoverPhotoEdit={isOwnProfile ? () => coverInputRef.current.click() : null}
+onProfilePhotoEdit={isOwnProfile ? () => profileInputRef.current.click() : null}
+coverImageLoading={updatePhotoStatus === 'loading'}
+handleAddFriend={!isOwnProfile ? handleAddFriend : null}
+/> _/}
+
+{/_ <ProfileHeader
+userData={{
+    coverImage,
+    profileImage,
+    fullName: `${publicProfile.firstName} ${publicProfile.lastName}`,
+    isCurrentUser: isOwnProfile,  // This is the critical line
+    isVerified: publicProfile.isVerified
+  }}
+isMobile={false}
+navigate={navigate}
+onCoverPhotoEdit={isOwnProfile ? handleCoverPhotoEdit : null}
+onProfilePhotoEdit={isOwnProfile ? handleProfilePhotoEdit : null}
+coverImageLoading={updatePhotoStatus === 'loading'}
+// Only pass handleAddFriend if NOT current user's profile
+handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
+/> _/}
