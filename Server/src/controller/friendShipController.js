@@ -272,6 +272,8 @@ const rejectFriendRequest = async (req, res, next) => {
 // List all friends with pagination
 const listFriends = async (req, res, next) => {
   try {
+    const { userId } = req.params;
+    const targetUserId = userId || req.user.id; // Use param or current user
     const { page = 1, size = 10 } = req.query;
     const { limit, offset } = getPagination(page, size);
 
@@ -279,8 +281,8 @@ const listFriends = async (req, res, next) => {
       where: {
         status: 'accepted',
         [Op.or]: [
-          { userId: req.user.id },
-          { friendId: req.user.id }
+          { userId: targetUserId },
+          { friendId: targetUserId }
         ]
       },
       include: [
@@ -301,17 +303,18 @@ const listFriends = async (req, res, next) => {
     });
 
     const formattedFriends = result.rows.map(friendship => {
-      return friendship.userId === req.user.id 
+      return friendship.userId === targetUserId 
         ? friendship.requested 
         : friendship.requester;
     }).filter(Boolean);
 
-    const response = getPagingData({
-      count: result.count,
-      rows: formattedFriends
-    }, page, limit);
-
-    res.status(200).json(response);
+    res.status(200).json({
+      success: true,
+      payload: getPagingData({
+        count: result.count,
+        rows: formattedFriends
+      }, page, limit)
+    });
   } catch (error) {
     next(error);
   }
@@ -526,6 +529,66 @@ const unblockUser = async (req, res, next) => {
 //   }
 // };
 
+// friendshipController.js
+const getFriendIds = async (userId) => {
+  const friendships = await Friendship.findAll({
+    where: {
+      status: 'accepted',
+      [Op.or]: [
+        { userId },
+        { friendId: userId }
+      ]
+    },
+    attributes: ['userId', 'friendId']
+  });
+
+  return friendships.map(f => 
+    f.userId === userId ? f.friendId : f.userId
+  );
+};
+
+const getMutualFriends = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, size = 10 } = req.query;
+    const { limit, offset } = getPagination(page, size);
+
+    validateUserId(userId, req.user.id);
+
+    // Get both users' friend IDs
+    const [currentUserFriends, targetUserFriends] = await Promise.all([
+      getFriendIds(req.user.id),
+      getFriendIds(userId)
+    ]);
+
+    // Find intersection (mutual friends)
+    const mutualFriendIds = currentUserFriends.filter(id => 
+      targetUserFriends.includes(id)
+    );
+
+    // Get paginated mutual friends with details
+    const { count, rows } = await User.findAndCountAll({
+      where: {
+        id: {
+          [Op.in]: mutualFriendIds
+        }
+      },
+      attributes: ['id', 'firstName', 'lastName', 'profileImage', 'lastActive'],
+      limit,
+      offset,
+      order: [['lastName', 'ASC'], ['firstName', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      payload: getPagingData({ count, rows }, page, limit)
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   sendFriendRequest,
   cancelFriendRequest,
@@ -538,5 +601,6 @@ module.exports = {
   removeFriendship,
   blockUser,
   unblockUser,
-  // getMutualFriends
+  getFriendIds,
+  getMutualFriends
 };

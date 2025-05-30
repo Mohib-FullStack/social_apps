@@ -1,7 +1,7 @@
 const express = require('express');
 const friendShipsRouter = express.Router();
 const { isLoggedIn } = require('../middleware/authMiddleware');
-const { sendFriendRequest, cancelFriendRequest, getPendingRequests, getSentRequests, acceptFriendRequest, rejectFriendRequest, listFriends, checkFriendshipStatus, removeFriendship, blockUser, unblockUser } = require('../controller/friendShipController');
+const { sendFriendRequest, cancelFriendRequest, getPendingRequests, getSentRequests, acceptFriendRequest, rejectFriendRequest, listFriends, checkFriendshipStatus, removeFriendship, blockUser, unblockUser, getMutualFriends } = require('../controller/friendShipController');
 
 // Friend request management
 friendShipsRouter.post('/requests', isLoggedIn,sendFriendRequest);
@@ -14,8 +14,11 @@ friendShipsRouter.put('/requests/:requestId/accept', isLoggedIn,acceptFriendRequ
 friendShipsRouter.put('/requests/:requestId/reject', isLoggedIn,rejectFriendRequest);
 
 // Friend management
+// In your friendShipsRouter.js
+friendShipsRouter.get('/:userId/friends', isLoggedIn, listFriends);
 friendShipsRouter.get('/', isLoggedIn,listFriends);
 friendShipsRouter.get('/status/:userId', isLoggedIn,checkFriendshipStatus);
+friendShipsRouter.get('/:userId/mutual-friends', isLoggedIn, getMutualFriends);
 friendShipsRouter.delete('/:friendshipId', isLoggedIn,removeFriendship);
 
 // Block management

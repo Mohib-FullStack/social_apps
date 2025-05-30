@@ -18,7 +18,8 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-import { fetchAllUsers, fetchUserProfile, logoutUser, logoutUserReducer } from '../../features/user/userSlice';
+// import { fetchAllUsers, fetchUserProfile, logoutUser, logoutUserReducer } from '../../features/user/userSlice';
+import { fetchAllUsers, fetchUserProfile, logoutUser } from '../../features/user/userSlice';
 import AuthButtons from './AuthButtons';
 import DesktopSearch from './DesktopSearch';
 import DrawerContent from './DrawerContent';
@@ -112,26 +113,46 @@ const Navbar = () => {
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
+  // const handleLogout = () => {
+  //   try {
+  //     localStorage.removeItem('accessToken');
+  //     localStorage.removeItem('refreshToken');
+  //     dispatch(logoutUser());
+  //     dispatch(logoutUserReducer());
+  //     dispatch(showSnackbar({ 
+  //       message: 'Successfully logged out', 
+  //       severity: 'success' 
+  //     }));
+  //   } catch (error) {
+  //     console.error('Logout failed:', error);
+  //     dispatch(showSnackbar({
+  //       message: 'Failed to logout',
+  //       severity: 'error'
+  //     }));
+  //   } finally {
+  //     handleMenuClose();
+  //   }
+  // };
+
   const handleLogout = () => {
-    try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      dispatch(logoutUser());
-      dispatch(logoutUserReducer());
-      dispatch(showSnackbar({ 
-        message: 'Successfully logged out', 
-        severity: 'success' 
-      }));
-    } catch (error) {
-      console.error('Logout failed:', error);
-      dispatch(showSnackbar({
-        message: 'Failed to logout',
-        severity: 'error'
-      }));
-    } finally {
-      handleMenuClose();
-    }
-  };
+  try {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    dispatch(logoutUser());  // This should be enough
+    dispatch(showSnackbar({ 
+      message: 'Successfully logged out', 
+      severity: 'success' 
+    }));
+  } catch (error) {
+    console.error('Logout failed:', error);
+    dispatch(showSnackbar({
+      message: 'Failed to logout',
+      severity: 'error'
+    }));
+  } finally {
+    handleMenuClose();
+  }
+};
 
   const handleSearchChange = (value) => setSearchInput(value);
   const handleSearchFocus = () => setSearchFocused(true);

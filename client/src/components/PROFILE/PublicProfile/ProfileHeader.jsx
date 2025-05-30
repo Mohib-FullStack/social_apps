@@ -1,183 +1,146 @@
-import { Box, Button, IconButton, Typography, useTheme, Avatar } from '@mui/material';
-import { 
-  Edit as EditIcon, 
-  Add as AddIcon, 
-  MoreVert as MoreIcon,
-  PersonAdd as AddContactIcon,
-  Send as MessageIcon
-} from '@mui/icons-material';
-import VerifiedIcon from '@mui/icons-material/Verified';
+import { useState } from 'react';
+import {
+  Avatar,
+  Box,
+  IconButton,
+  CircularProgress
+} from '@mui/material';
+import { CameraAlt } from '@mui/icons-material';
 import PropTypes from 'prop-types';
 
 const ProfileHeader = ({
-  profileData,
-  isMobile,
-  onProfileEdit,
-  onConnect,
-  isLoading
+  coverImage,
+  profileImage,
+  isOwnProfile,
+  onCoverPhotoEdit,
+  onProfilePhotoEdit,
+  coverImageLoading,
+  profileImageLoading,
+  isMobile
 }) => {
-  const theme = useTheme();
-  const isCurrentUser = profileData?.isCurrentUser;
+  const [coverPreview, setCoverPreview] = useState(coverImage);
+  const [profilePreview, setProfilePreview] = useState(profileImage);
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setCoverPreview(reader.result);
+    reader.readAsDataURL(file);
+    onCoverPhotoEdit(e);
+  };
+
+  const handleProfileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setProfilePreview(reader.result);
+    reader.readAsDataURL(file);
+    onProfilePhotoEdit(e);
+  };
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', mb: 8 }}>
-      {/* Cover Photo */}
+    <Box>
+      {/* Cover Section */}
       <Box
         sx={{
-          height: isMobile ? 200 : 350,
-          width: '100%',
           position: 'relative',
-          backgroundColor: theme.palette.grey[300],
+          width: '100%',
+          height: isMobile ? 200 : 350,
+          backgroundColor: 'grey.200',
           overflow: 'hidden',
           borderRadius: 2
         }}
       >
-        <img
-          src={profileData.coverImage}
-          alt="Cover"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            filter: isLoading ? 'blur(5px)' : 'none',
-            transition: 'filter 0.3s ease'
-          }}
-        />
-      </Box>
+        {coverImageLoading ? (
+          <Box
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <CircularProgress size={60} />
+          </Box>
+        ) : (
+          <img
+            src={coverPreview || coverImage}
+            alt="Cover"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        )}
 
-      {/* Profile Info Section */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'center' : 'flex-end',
-          justifyContent: 'space-between',
-          px: isMobile ? 2 : 4,
-          mt: isMobile ? -6 : -10,
-          position: 'relative',
-          zIndex: 1
-        }}
-      >
+        {/* Cover Edit */}
+        {isOwnProfile && (
+          <IconButton
+            component="label"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              backgroundColor: 'background.paper',
+              '&:hover': {
+                backgroundColor: 'primary.main',
+                color: 'common.white'
+              }
+            }}
+          >
+            <input
+              hidden
+              accept="image/*"
+              type="file"
+              onChange={handleCoverChange}
+            />
+            <CameraAlt />
+          </IconButton>
+        )}
+
         {/* Profile Avatar */}
-        <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            left: isMobile ? '50%' : 32,
+            bottom: isMobile ? -60 : -80,
+            transform: isMobile ? 'translateX(-50%)' : 'none'
+          }}
+        >
           <Avatar
-            src={profileData.profileImage}
+            src={profilePreview || profileImage}
             sx={{
               width: isMobile ? 120 : 168,
               height: isMobile ? 120 : 168,
               border: '4px solid',
-              borderColor: theme.palette.background.paper,
-              boxShadow: theme.shadows[4]
+              borderColor: 'background.paper',
+              boxShadow: 3
             }}
           />
-          {isCurrentUser && (
+          {isOwnProfile && (
             <IconButton
+              component="label"
               sx={{
                 position: 'absolute',
                 bottom: 8,
                 right: 8,
-                backgroundColor: theme.palette.primary.main,
+                backgroundColor: 'primary.main',
                 color: 'white',
                 '&:hover': {
-                  backgroundColor: theme.palette.primary.dark
+                  backgroundColor: 'primary.dark'
                 }
               }}
-              onClick={onProfileEdit}
             >
-              <EditIcon fontSize="small" />
+              <input
+                hidden
+                accept="image/*"
+                type="file"
+                onChange={handleProfileChange}
+              />
+              <CameraAlt fontSize="small" />
             </IconButton>
           )}
-        </Box>
-
-        {/* User Info and Actions */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            alignItems: 'center',
-            gap: 3,
-            mt: isMobile ? 2 : 0,
-            ml: isMobile ? 0 : 4
-          }}
-        >
-          <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
-            <Typography
-              variant={isMobile ? 'h5' : 'h4'}
-              component="h1"
-              sx={{ 
-                fontWeight: 700, 
-                display: 'flex', 
-                alignItems: 'center',
-                color: theme.palette.text.primary
-              }}
-            >
-              {profileData.fullName}
-              {profileData.isVerified && (
-                <VerifiedIcon
-                  color="primary"
-                  sx={{ ml: 1, fontSize: 'inherit' }}
-                />
-              )}
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              {profileData.headline || 'SocialSphere Member'}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {isCurrentUser ? (
-              <>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                    color: 'white',
-                    fontWeight: 600
-                  }}
-                >
-                  Create Story
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Edit Profile
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="contained"
-                  startIcon={<AddContactIcon />}
-                  onClick={onConnect}
-                  sx={{
-                    background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
-                    color: 'white',
-                    fontWeight: 600
-                  }}
-                >
-                  Connect
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<MessageIcon />}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Message
-                </Button>
-              </>
-            )}
-            <IconButton
-              sx={{
-                backgroundColor: theme.palette.action.hover,
-                color: theme.palette.text.primary
-              }}
-            >
-              <MoreIcon />
-            </IconButton>
-          </Box>
         </Box>
       </Box>
     </Box>
@@ -185,21 +148,569 @@ const ProfileHeader = ({
 };
 
 ProfileHeader.propTypes = {
-  profileData: PropTypes.shape({
-    coverImage: PropTypes.string.isRequired,
-    profileImage: PropTypes.string.isRequired,
-    fullName: PropTypes.string.isRequired,
-    headline: PropTypes.string,
-    isVerified: PropTypes.bool,
-    isCurrentUser: PropTypes.bool
-  }).isRequired,
-  isMobile: PropTypes.bool,
-  onProfileEdit: PropTypes.func,
-  onConnect: PropTypes.func,
-  isLoading: PropTypes.bool
+  coverImage: PropTypes.string.isRequired,
+  profileImage: PropTypes.string.isRequired,
+  isOwnProfile: PropTypes.bool.isRequired,
+  onCoverPhotoEdit: PropTypes.func,
+  onProfilePhotoEdit: PropTypes.func,
+  coverImageLoading: PropTypes.bool,
+  profileImageLoading: PropTypes.bool,
+  isMobile: PropTypes.bool
+};
+
+ProfileHeader.defaultProps = {
+  onCoverPhotoEdit: () => {},
+  onProfilePhotoEdit: () => {},
+  coverImageLoading: false,
+  profileImageLoading: false,
+  isMobile: false
 };
 
 export default ProfileHeader;
+
+
+
+
+
+
+
+
+
+//! with button
+// import { useState } from 'react';
+// import { Avatar, Box, IconButton, CircularProgress } from '@mui/material';
+// import { 
+//   CameraAlt,
+//   Add as AddIcon,
+//   ArrowForwardIos as ArrowForwardIosIcon,
+//   Check,
+//   MoreHoriz as MoreHorizIcon,
+//   PersonAdd,
+//   Send as SendIcon 
+// } from '@mui/icons-material';
+// import PropTypes from 'prop-types';
+
+// const ProfileHeader = ({ 
+//   coverImage,
+//   profileImage,
+//   isOwnProfile,
+//   onCoverPhotoEdit,
+//   onProfilePhotoEdit,
+//   coverImageLoading,
+//   profileImageLoading,
+//   isMobile,
+//   ...otherProps
+// }) => {
+//   const [coverPreview, setCoverPreview] = useState(coverImage);
+//   const [profilePreview, setProfilePreview] = useState(profileImage);
+
+//   const handleCoverChange = (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+    
+//     const reader = new FileReader();
+//     reader.onloadend = () => {
+//       setCoverPreview(reader.result);
+//     };
+//     reader.readAsDataURL(file);
+    
+//     onCoverPhotoEdit(e);
+//   };
+
+//   const handleProfileChange = (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+    
+//     const reader = new FileReader();
+//     reader.onloadend = () => {
+//       setProfilePreview(reader.result);
+//     };
+//     reader.readAsDataURL(file);
+    
+//     onProfilePhotoEdit(e);
+//   };
+
+//   return (
+//     <Box sx={{ 
+//       position: 'relative', 
+//       width: '100%', 
+//       height: isMobile ? 200 : 350,
+//       backgroundColor: 'grey.200',
+//       overflow: 'hidden',
+//       borderRadius: 2
+//     }}>
+//       {/* Cover Photo Section */}
+//       {coverImageLoading ? (
+//         <Box sx={{
+//           width: '100%',
+//           height: '100%',
+//           display: 'flex',
+//           justifyContent: 'center',
+//           alignItems: 'center'
+//         }}>
+//           <CircularProgress size={60} />
+//         </Box>
+//       ) : (
+//         <img
+//           src={coverPreview || coverImage}
+//           alt="Cover"
+//           style={{
+//             width: '100%',
+//             height: '100%',
+//             objectFit: 'cover'
+//           }}
+//         />
+//       )}
+      
+//       {/* Cover Photo Edit Button */}
+//       {isOwnProfile && (
+//         <IconButton
+//           component="label"
+//           sx={{
+//             position: 'absolute',
+//             top: 16,
+//             right: 16,
+//             backgroundColor: 'background.paper',
+//             '&:hover': {
+//               backgroundColor: 'primary.main',
+//               color: 'common.white'
+//             }
+//           }}
+//         >
+//           <input
+//             hidden
+//             accept="image/*"
+//             type="file"
+//             onChange={handleCoverChange}
+//           />
+//           <CameraAlt />
+//         </IconButton>
+//       )}
+      
+//       {/* Profile Image Section */}
+//       <Box sx={{
+//         position: 'absolute',
+//         left: isMobile ? '50%' : 32,
+//         bottom: isMobile ? -60 : -80,
+//         transform: isMobile ? 'translateX(-50%)' : 'none'
+//       }}>
+//         <Avatar
+//           src={profilePreview || profileImage}
+//           sx={{
+//             width: isMobile ? 120 : 168,
+//             height: isMobile ? 120 : 168,
+//             border: '4px solid',
+//             borderColor: 'background.paper',
+//             boxShadow: 3
+//           }}
+//         />
+//         {isOwnProfile && (
+//           <IconButton
+//             component="label"
+//             sx={{
+//               position: 'absolute',
+//               bottom: 8,
+//               right: 8,
+//               backgroundColor: 'primary.main',
+//               color: 'white',
+//               '&:hover': {
+//                 backgroundColor: 'primary.dark'
+//               }
+//             }}
+//           >
+//             <input
+//               hidden
+//               accept="image/*"
+//               type="file"
+//               onChange={handleProfileChange}
+//             />
+//             <CameraAlt fontSize="small" />
+//           </IconButton>
+//         )}
+//       </Box>
+
+//       {/* Profile Actions Section */}
+//       {otherProps.ProfileActions && (
+//         <Box sx={{ 
+//           position: 'absolute', 
+//           bottom: isMobile ? -100 : -120,
+//           left: 0,
+//           right: 0,
+//           px: 2
+//         }}>
+//           <otherProps.ProfileActions 
+//             isOwnProfile={isOwnProfile}
+//             {...otherProps}
+//           />
+//         </Box>
+//       )}
+//     </Box>
+//   );
+// };
+
+// ProfileHeader.propTypes = {
+//   coverImage: PropTypes.string.isRequired,
+//   profileImage: PropTypes.string.isRequired,
+//   isOwnProfile: PropTypes.bool.isRequired,
+//   onCoverPhotoEdit: PropTypes.func,
+//   onProfilePhotoEdit: PropTypes.func,
+//   coverImageLoading: PropTypes.bool,
+//   profileImageLoading: PropTypes.bool,
+//   isMobile: PropTypes.bool,
+//   ProfileActions: PropTypes.elementType
+// };
+
+// ProfileHeader.defaultProps = {
+//   onCoverPhotoEdit: () => {},
+//   onProfilePhotoEdit: () => {},
+//   coverImageLoading: false,
+//   profileImageLoading: false,
+//   isMobile: false
+// };
+
+// export default ProfileHeader;
+
+
+
+
+
+
+
+
+// ! old
+// import { Avatar, Box, IconButton } from '@mui/material';
+// import { CameraAlt } from '@mui/icons-material';
+// import PropTypes from 'prop-types';
+
+// const ProfileHeader = ({ 
+//   coverImage,
+//   profileImage,
+//   isOwnProfile,
+//   onCoverPhotoEdit,
+//   onProfilePhotoEdit,
+//   coverImageLoading,
+//   isMobile
+// }) => {
+//   return (
+//     <Box sx={{ 
+//       position: 'relative', 
+//       width: '100%', 
+//       height: isMobile ? 200 : 350,
+//       backgroundColor: 'grey.200',
+//       overflow: 'hidden',
+//       borderRadius: 2
+//     }}>
+//       {/* Cover Photo */}
+//       {coverImageLoading ? (
+//         <Box sx={{
+//           width: '100%',
+//           height: '100%',
+//           display: 'flex',
+//           justifyContent: 'center',
+//           alignItems: 'center'
+//         }}>
+//           <CircularProgress size={60} />
+//         </Box>
+//       ) : (
+//         <img
+//           src={coverImage}
+//           alt="Cover"
+//           style={{
+//             width: '100%',
+//             height: '100%',
+//             objectFit: 'cover'
+//           }}
+//         />
+//       )}
+      
+//       {/* Cover photo edit button (only for own profile) */}
+//       {isOwnProfile && (
+//         <IconButton
+//           component="label"
+//           sx={{
+//             position: 'absolute',
+//             top: 16,
+//             right: 16,
+//             backgroundColor: 'background.paper',
+//             '&:hover': {
+//               backgroundColor: 'primary.main',
+//               color: 'common.white'
+//             }
+//           }}
+//         >
+//           <input
+//             hidden
+//             accept="image/*"
+//             type="file"
+//             onChange={onCoverPhotoEdit}
+//           />
+//           <CameraAlt />
+//         </IconButton>
+//       )}
+      
+//       {/* Profile Image */}
+//       <Box sx={{
+//         position: 'absolute',
+//         left: isMobile ? '50%' : 32,
+//         bottom: isMobile ? -60 : -80,
+//         transform: isMobile ? 'translateX(-50%)' : 'none'
+//       }}>
+//         <Avatar
+//           src={profileImage}
+//           sx={{
+//             width: isMobile ? 120 : 168,
+//             height: isMobile ? 120 : 168,
+//             border: '4px solid',
+//             borderColor: 'background.paper',
+//             boxShadow: 3
+//           }}
+//         />
+//         {isOwnProfile && (
+//           <IconButton
+//             component="label"
+//             sx={{
+//               position: 'absolute',
+//               bottom: 8,
+//               right: 8,
+//               backgroundColor: 'primary.main',
+//               color: 'white',
+//               '&:hover': {
+//                 backgroundColor: 'primary.dark'
+//               }
+//             }}
+//           >
+//             <input
+//               hidden
+//               accept="image/*"
+//               type="file"
+//               onChange={onProfilePhotoEdit}
+//             />
+//             <CameraAlt fontSize="small" />
+//           </IconButton>
+//         )}
+//       </Box>
+//     </Box>
+//   );
+// };
+
+// ProfileHeader.propTypes = {
+//   coverImage: PropTypes.string.isRequired,
+//   profileImage: PropTypes.string.isRequired,
+//   isOwnProfile: PropTypes.bool.isRequired,
+//   onCoverPhotoEdit: PropTypes.func,
+//   onProfilePhotoEdit: PropTypes.func,
+//   coverImageLoading: PropTypes.bool,
+//   isMobile: PropTypes.bool
+// };
+
+// export default ProfileHeader;
+
+
+//! running
+// import { Box, Button, IconButton, Typography, useTheme, Avatar } from '@mui/material';
+// import { 
+//   Edit as EditIcon, 
+//   Add as AddIcon, 
+//   MoreVert as MoreIcon,
+//   PersonAdd as AddContactIcon,
+//   Send as MessageIcon
+// } from '@mui/icons-material';
+// import VerifiedIcon from '@mui/icons-material/Verified';
+// import PropTypes from 'prop-types';
+
+// const ProfileHeader = ({
+//   profileData,
+//   isMobile,
+//   onProfileEdit,
+//   onConnect,
+//   isLoading
+// }) => {
+//   const theme = useTheme();
+//   const isCurrentUser = profileData?.isCurrentUser;
+
+//   return (
+//     <Box sx={{ position: 'relative', width: '100%', mb: 8 }}>
+//       {/* Cover Photo */}
+//       <Box
+//         sx={{
+//           height: isMobile ? 200 : 350,
+//           width: '100%',
+//           position: 'relative',
+//           backgroundColor: theme.palette.grey[300],
+//           overflow: 'hidden',
+//           borderRadius: 2
+//         }}
+//       >
+//         <img
+//           src={profileData.coverImage}
+//           alt="Cover"
+//           style={{
+//             width: '100%',
+//             height: '100%',
+//             objectFit: 'cover',
+//             filter: isLoading ? 'blur(5px)' : 'none',
+//             transition: 'filter 0.3s ease'
+//           }}
+//         />
+//       </Box>
+
+//       {/* Profile Info Section */}
+//       <Box
+//         sx={{
+//           display: 'flex',
+//           flexDirection: isMobile ? 'column' : 'row',
+//           alignItems: isMobile ? 'center' : 'flex-end',
+//           justifyContent: 'space-between',
+//           px: isMobile ? 2 : 4,
+//           mt: isMobile ? -6 : -10,
+//           position: 'relative',
+//           zIndex: 1
+//         }}
+//       >
+//         {/* Profile Avatar */}
+//         <Box sx={{ position: 'relative' }}>
+//           <Avatar
+//             src={profileData.profileImage}
+//             sx={{
+//               width: isMobile ? 120 : 168,
+//               height: isMobile ? 120 : 168,
+//               border: '4px solid',
+//               borderColor: theme.palette.background.paper,
+//               boxShadow: theme.shadows[4]
+//             }}
+//           />
+//           {isCurrentUser && (
+//             <IconButton
+//               sx={{
+//                 position: 'absolute',
+//                 bottom: 8,
+//                 right: 8,
+//                 backgroundColor: theme.palette.primary.main,
+//                 color: 'white',
+//                 '&:hover': {
+//                   backgroundColor: theme.palette.primary.dark
+//                 }
+//               }}
+//               onClick={onProfileEdit}
+//             >
+//               <EditIcon fontSize="small" />
+//             </IconButton>
+//           )}
+//         </Box>
+
+//         {/* User Info and Actions */}
+//         <Box
+//           sx={{
+//             display: 'flex',
+//             flexDirection: isMobile ? 'column' : 'row',
+//             alignItems: 'center',
+//             gap: 3,
+//             mt: isMobile ? 2 : 0,
+//             ml: isMobile ? 0 : 4
+//           }}
+//         >
+//           <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
+//             <Typography
+//               variant={isMobile ? 'h5' : 'h4'}
+//               component="h1"
+//               sx={{ 
+//                 fontWeight: 700, 
+//                 display: 'flex', 
+//                 alignItems: 'center',
+//                 color: theme.palette.text.primary
+//               }}
+//             >
+//               {profileData.fullName}
+//               {profileData.isVerified && (
+//                 <VerifiedIcon
+//                   color="primary"
+//                   sx={{ ml: 1, fontSize: 'inherit' }}
+//                 />
+//               )}
+//             </Typography>
+//             <Typography variant="subtitle1" color="text.secondary">
+//               {profileData.headline || 'SocialSphere Member'}
+//             </Typography>
+//           </Box>
+
+//           <Box sx={{ display: 'flex', gap: 2 }}>
+//             {isCurrentUser ? (
+//               <>
+//                 <Button
+//                   variant="contained"
+//                   startIcon={<AddIcon />}
+//                   sx={{
+//                     background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+//                     color: 'white',
+//                     fontWeight: 600
+//                   }}
+//                 >
+//                   Create Story
+//                 </Button>
+//                 <Button
+//                   variant="outlined"
+//                   startIcon={<EditIcon />}
+//                   sx={{ fontWeight: 600 }}
+//                 >
+//                   Edit Profile
+//                 </Button>
+//               </>
+//             ) : (
+//               <>
+
+            
+//                  <Button
+//                   variant="contained"
+//                   startIcon={<AddContactIcon />}
+//                   onClick={onConnect}
+//                   sx={{
+//                     background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+//                     color: 'white',
+//                     fontWeight: 600
+//                   }}
+//                 >
+//                   Connect
+//                 </Button>
+//                  <Button
+//                   variant="outlined"
+//                   startIcon={<MessageIcon />}
+//                   sx={{ fontWeight: 600 }}
+//                 >
+//                   Message
+//                 </Button>
+//               </>
+//             )}
+//             <IconButton
+//               sx={{
+//                 backgroundColor: theme.palette.action.hover,
+//                 color: theme.palette.text.primary
+//               }}
+//             >
+//               <MoreIcon />
+//             </IconButton>
+//           </Box>
+//         </Box>
+//       </Box>
+//     </Box>
+//   );
+// };
+
+// ProfileHeader.propTypes = {
+//   profileData: PropTypes.shape({
+//     coverImage: PropTypes.string.isRequired,
+//     profileImage: PropTypes.string.isRequired,
+//     fullName: PropTypes.string.isRequired,
+//     headline: PropTypes.string,
+//     isVerified: PropTypes.bool,
+//     isCurrentUser: PropTypes.bool
+//   }).isRequired,
+//   isMobile: PropTypes.bool,
+//   onProfileEdit: PropTypes.func,
+//   onConnect: PropTypes.func,
+//   isLoading: PropTypes.bool
+// };
+
+// export default ProfileHeader;
 
 
 

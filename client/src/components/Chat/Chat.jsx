@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 // import { fetchFriendships } from '../../features/friendship/friendshipSlice';
 import theme from '../../theme';
-import SendFriendRequest from '../FriendRequest/SendFriendRequest';
-import AcceptFriendRequest from '../FriendRequest/AcceptFriendRequests';
-import FriendList from '../FriendRequest/FriendList';
+import SendFriendRequest from '../FriendsListPage/SendFriendRequest';
+import AcceptFriendRequest from '../FriendsListPage/AcceptFriendRequests';
 import { getSentRequests } from '../../features/friendship/friendshipSlice';
+import FriendsPage from '../FriendsListPage/FriendsPage';
+
 
 
 const Chat = () => {
@@ -46,7 +47,7 @@ const Chat = () => {
           <DialogContent>
             <SendFriendRequest />
             <AcceptFriendRequest />
-            <FriendList />
+            <FriendsPage />
           </DialogContent>
         </Card>
       </Box>

@@ -1,109 +1,113 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
-// import { Helmet } from 'react-helmet-async';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  AddReaction as ConnectIcon,
-  PhotoCamera as GalleryIcon,
-  Groups as CommunityIcon,
-  Article as PostsIcon,
-  Videocam as VideosIcon,
-  Cake as BirthdayIcon,
-  Work as WorkIcon,
-  Email as EmailIcon,
-  Link as LinkIcon,
-  LocationOn as LocationIcon,
-  Edit as EditIcon,
-  Favorite as LikeIcon,
-  ChatBubble as CommentIcon,
-  Share as ShareIcon,
-  MoreVert as MoreIcon,
-  PersonAdd as AddContactIcon,
-  Send as MessageIcon,
-  CameraAlt as CameraIcon,
-  VerifiedUser as VerifiedIcon
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Backdrop,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CircularProgress,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
   Grid,
-  IconButton,
+  Box,
   Typography,
   useMediaQuery,
-  useTheme
+  CircularProgress,
+  Alert,
+  Button,
 } from '@mui/material';
-import { fetchPublicProfile } from '../../../features/user/userSlice';
+
+import {
+  fetchPublicProfile,
+  updateCoverImage,
+} from '../../../features/user/userSlice';
+import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
+
 import ProfileHeader from './ProfileHeader';
-import TabsSection from './TabsSection';
+import ProfileActions from './ProfileActions';
 import AboutSection from './AboutSection';
-import ConnectionCard from './ConnectionCard';
-import MediaCard from './MediaCard';
-import StoryCard from './StoryCard';
+import TabsSection from './TabsSection';
 import PostCard from './PostCard';
 
 const PublicProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const {
-    publicProfile,
-    publicProfileStatus: status,
-    publicProfileError: error,
-    updatePhotoStatus
-  } = useSelector((state) => state.user);
-  
-  const { user } = useSelector((state) => state.user);
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+
+  // Redux state
+  const { profile, publicProfile, publicProfileStatus, publicProfileError } = useSelector(state => state.user);
+  const { statusByUserId = {} } = useSelector(state => state.friendship);
+
+  const currentUserId = profile?.id;
+  const isOwnProfile = id === currentUserId?.toString();
+  const friendStatus = statusByUserId[id] || 'not_friends';
+
+  // Local state
   const [activeTab, setActiveTab] = useState('timeline');
-  const [imageDialog, setImageDialog] = useState({ open: false, type: null });
-  const [imageToCrop, setImageToCrop] = useState(null);
-  const fileInputRef = useRef(null);
+  const [coverImageLoading, setCoverImageLoading] = useState(false);
+  const [profileImageLoading, setProfileImageLoading] = useState(false);
 
-  const isOwnProfile = useMemo(
-    () => String(user?.id) === String(publicProfile?.id),
-    [user, publicProfile]
-  );
-
+  // Memoized profile data
   const profileData = useMemo(() => ({
-    ...publicProfile,
-    fullName: publicProfile ? `${publicProfile.firstName} ${publicProfile.lastName}` : '',
+    fullName: publicProfile ? `${publicProfile.firstName || ''} ${publicProfile.lastName || ''}` : '',
     profileImage: publicProfile?.profileImage || '/default-avatar.png',
     coverImage: publicProfile?.coverImage || '/default-cover.jpg',
-    isCurrentUser: isOwnProfile
-  }), [publicProfile, isOwnProfile]);
+    headline: publicProfile?.headline || 'SocialSphere Member',
+    friendsCount: publicProfile?.friendsCount || 0,
+    ...publicProfile,
+  }), [publicProfile]);
 
-  const formattedDate = useMemo(() => {
-    if (!publicProfile?.birthDate) return null;
-    return new Date(publicProfile.birthDate).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }, [publicProfile?.birthDate]);
+  // Handlers
+  const handleAddFriend = useCallback(async () => {
+    try {
+      await dispatch(sendFriendRequest({ targetUserId: id })).unwrap();
+    } catch (err) {
+      console.error('Failed to send friend request:', err);
+    }
+  }, [dispatch, id]);
 
-  // Load profile data
+  const handleMessage = () => navigate(`/messages/${id}`);
+  const handleEditProfile = () => navigate('/profile/edit');
+  const handleCreateStory = () => navigate('/stories/create');
+  const handleViewFriends = () => navigate(`/profile/${id}/friends`);
+
+  const handleCoverPhotoEdit = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setCoverImageLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('coverImage', file);
+      await dispatch(updateCoverImage(formData)).unwrap();
+    } catch (err) {
+      console.error('Failed to update cover image:', err);
+    } finally {
+      setCoverImageLoading(false);
+    }
+  };
+
+  const handleProfilePhotoEdit = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setProfileImageLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+      await dispatch(updateProfileImage(formData)).unwrap();
+    } catch (err) {
+      console.error('Failed to update profile image:', err);
+    } finally {
+      setProfileImageLoading(false);
+    }
+  };
+
+  // Fetch profile data
   useEffect(() => {
     if (!id || id === 'undefined') {
-      navigate(user?.id ? `/profile/${user.id}` : '/');
+      navigate(currentUserId ? `/profile/${currentUserId}` : '/');
       return;
     }
-    
-    if (id === 'me' && user?.id) {
-      navigate(`/profile/${user.id}`, { replace: true });
+
+    if (id === 'me' && currentUserId) {
+      navigate(`/profile/${currentUserId}`, { replace: true });
       return;
     }
 
@@ -112,70 +116,27 @@ const PublicProfilePage = () => {
     } else {
       navigate('/error/invalid-profile');
     }
-  }, [id, user?.id, dispatch, navigate]);
+  }, [id, currentUserId, dispatch, navigate]);
 
-  // Handle errors
-  useEffect(() => {
-    if (error && error.status === 400 && error.message.includes('Invalid user ID')) {
-      navigate(user?.id ? `/profile/${user.id}` : '/', { replace: true });
-    }
-  }, [error, navigate, user?.id]);
-
-  const handleTabChange = (newTab) => {
-    setActiveTab(newTab);
-  };
-
-  const handleFileChange = (e, type) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageToCrop(reader.result);
-        setImageDialog({ open: true, type });
-      };
-      reader.readAsDataURL(file);
-    }
-    e.target.value = null;
-  };
-
-  const handleConnect = () => {
-    console.log('Connect with user:', publicProfile?.id);
-    // Implement connection logic
-  };
-
-  if (status === 'loading') {
+  // Loading state
+  if (publicProfileStatus === 'loading') {
     return (
-      <Backdrop open sx={{ zIndex: theme.zIndex.drawer + 1, color: '#fff' }}>
-        <CircularProgress color="inherit" />
-      </Backdrop>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress size={60} />
+      </Box>
     );
   }
 
-  if (error) {
+  // Error state
+  if (publicProfileError) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Card sx={{ 
-          backgroundColor: 'error.light', 
-          p: 3, 
-          borderRadius: 2,
-          mb: 3,
-          boxShadow: 4
-        }}>
-          <Typography variant="h6" color="error.contrastText">
-            Failed to load profile
-          </Typography>
-          <Typography color="error.contrastText">
-            Error: {error.message || 'Unknown error'}
-          </Typography>
-        </Card>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            Go Home
-          </Button>
-          <Button variant="outlined" onClick={() => dispatch(fetchPublicProfile(id))}>
-            Try Again
-          </Button>
-        </Box>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {publicProfileError.message || 'Failed to load profile'}
+        </Alert>
+        <Button variant="contained" onClick={() => navigate('/')} fullWidth>
+          Go Home
+        </Button>
       </Container>
     );
   }
@@ -183,322 +144,235 @@ const PublicProfilePage = () => {
   if (!publicProfile) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Card sx={{ 
-          backgroundColor: 'warning.light', 
-          p: 3, 
-          borderRadius: 2,
-          mb: 3,
-          boxShadow: 3
-        }}>
-          <Typography variant="h6" color="warning.contrastText">
-            Profile not found
-          </Typography>
-        </Card>
-        <Button variant="contained" onClick={() => navigate('/')}>
-          Return Home
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Profile not found
+        </Alert>
+        <Button variant="contained" onClick={() => navigate('/')} fullWidth>
+          Go Home
         </Button>
       </Container>
     );
   }
 
   return (
-    <>
-      {/* <Helmet> */}
-        <title>{profileData.fullName} | SocialSphere Profile</title>
-        <meta name="description" content={`View ${profileData.fullName}'s profile on SocialSphere`} />
-        <meta property="og:title" content={`${profileData.fullName} | SocialSphere`} />
-        <meta property="og:description" content={`Connect with ${profileData.fullName} on SocialSphere`} />
-        <meta property="og:image" content={profileData.profileImage} />
-      {/* </Helmet> */}
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+      <ProfileHeader
+        coverImage={profileData.coverImage}
+        profileImage={profileData.profileImage}
+        isOwnProfile={isOwnProfile}
+        isMobile={isMobile}
+        onCoverPhotoEdit={isOwnProfile ? handleCoverPhotoEdit : undefined}
+        onProfilePhotoEdit={isOwnProfile ? handleProfilePhotoEdit : undefined}
+        coverImageLoading={coverImageLoading}
+      />
 
-      <Container maxWidth="lg" sx={{ mt: 0, mb: 4 }}>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={(e) => handleFileChange(e, 'profile')}
-          accept="image/*"
-          hidden
+      <Box sx={{ mt: isMobile ? 12 : 10, mb: 4 }}>
+        <Typography variant="h4" align="center" gutterBottom>
+          {profileData.fullName}
+        </Typography>
+        <Typography variant="subtitle1" align="center" color="text.secondary">
+          {profileData.headline}
+        </Typography>
+
+        <ProfileActions
+          isOwnProfile={isOwnProfile}
+          friendStatus={friendStatus}
+          onAddFriend={!isOwnProfile ? handleAddFriend : undefined}
+          onMessage={!isOwnProfile ? handleMessage : undefined}
+          onEditProfile={isOwnProfile ? handleEditProfile : undefined}
+          onCreateStory={isOwnProfile ? handleCreateStory : undefined}
+          onViewFriends={isOwnProfile ? handleViewFriends : undefined}
         />
+      </Box>
 
-        <ProfileHeader
-          profileData={profileData}
-          isMobile={isMobile}
-          onProfileEdit={() => fileInputRef.current.click()}
-          onConnect={handleConnect}
-          isLoading={updatePhotoStatus === 'loading'}
-        />
+      <TabsSection activeTab={activeTab} onChangeTab={setActiveTab} />
 
-        <TabsSection activeTab={activeTab} onChangeTab={handleTabChange} />
-
-        <Grid container spacing={3}>
-          {/* Left Column */}
+      <Grid container spacing={3}>
+        {activeTab !== 'about' && (
           <Grid item xs={12} md={4}>
-            <AboutSection 
-              profile={publicProfile}
-              isOwnProfile={isOwnProfile}
-              formattedDate={formattedDate}
-            />
-
-            {/* Media Gallery */}
-            <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-              <CardHeader 
-                title="Media Gallery" 
-                avatar={<GalleryIcon color="primary" />}
-                action={
-                  <Button 
-                    color="primary" 
-                    endIcon={<GalleryIcon />}
-                    onClick={() => navigate(`/profile/${id}/media`)}
-                  >
-                    Explore
-                  </Button>
-                }
-              />
-              <CardContent>
-                <Grid container spacing={1}>
-                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                    <Grid item xs={4} key={item}>
-                      <MediaCard 
-                        imageUrl={`/sample-media/${item}.jpg`}
-                        likes={Math.floor(Math.random() * 50) + 5}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-
-            {/* Connections */}
-            <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 2 }}>
-              <CardHeader 
-                title="Connections" 
-                avatar={<CommunityIcon color="secondary" />}
-                subheader={`${Math.floor(Math.random() * 500) + 50} connections`}
-                action={
-                  <Button 
-                    color="secondary" 
-                    endIcon={<CommunityIcon />}
-                    onClick={() => navigate(`/profile/${id}/connections`)}
-                  >
-                    View All
-                  </Button>
-                }
-              />
-              <CardContent>
-                <Grid container spacing={2}>
-                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                    <Grid item xs={6} key={item}>
-                      <ConnectionCard 
-                        name={`Connection ${item}`}
-                        avatar={`/avatar-${item % 3 + 1}.jpg`}
-                        mutual={item % 2 === 0 ? Math.floor(Math.random() * 10) + 1 : 0}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
+            <AboutSection profile={publicProfile} isOwnProfile={isOwnProfile} condensed />
           </Grid>
+        )}
 
-          {/* Right Column */}
-          <Grid item xs={12} md={8}>
-            {isOwnProfile && (
-              <StoryCard 
-                profileImage={profileData.profileImage}
-                onPostClick={() => navigate('/create-post')}
-              />
-            )}
-
-            {/* Timeline Content */}
-            {activeTab === 'timeline' && (
-              <Box>
-                {[1, 2].map(post => (
-                  <PostCard 
-                    key={post}
-                    author={profileData.fullName}
-                    content={post === 1 
-                      ? "Just visited the new art museum! The contemporary exhibits were breathtaking." 
-                      : "Working on a new project that combines AI with creative design. Excited to share more soon!"}
-                    date={post === 1 ? "2 hours ago" : "1 day ago"}
-                    likes={post === 1 ? 24 : 12}
-                    comments={post === 1 ? 5 : 3}
-                    shares={post === 1 ? 2 : 0}
-                    image={post === 1 ? '/post-sample-1.jpg' : null}
-                    profileImage={profileData.profileImage}
-                  />
-                ))}
-              </Box>
-            )}
-
-            {activeTab !== 'timeline' && (
-              <Card sx={{ mb: 3, p: 4, textAlign: 'center', borderRadius: 3 }}>
-                <Typography variant="h5" gutterBottom>
-                  {activeTab === 'about' && 'About Section'}
-                  {activeTab === 'connections' && 'Connections Network'}
-                  {activeTab === 'media' && 'Media Collection'}
-                  {activeTab === 'videos' && 'Video Gallery'}
-                </Typography>
-                <Typography color="text.secondary">
-                  This section would show detailed {activeTab} information
-                </Typography>
-              </Card>
-            )}
-          </Grid>
-        </Grid>
-
-        {/* Image Upload Dialog */}
-        <Dialog 
-          open={imageDialog.open} 
-          onClose={() => setImageDialog({ open: false, type: null })}
-          maxWidth="md" 
-          fullWidth
-        >
-          <DialogTitle>
-            Edit {imageDialog.type === 'profile' ? 'Profile' : 'Cover'} Image
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ 
-              height: 300, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              bgcolor: 'background.paper',
-              borderRadius: 2
-            }}>
-              {/* Image cropper would go here */}
-              <Typography>Image cropper preview</Typography>
+        <Grid item xs={12} md={activeTab === 'about' ? 12 : 8}>
+          {activeTab === 'timeline' && (
+            <Box>
+              {samplePosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  author={profileData.fullName}
+                  content={post.content}
+                  date={post.date}
+                  likes={post.likes}
+                  comments={post.comments}
+                  shares={post.shares}
+                  image={post.image}
+                  profileImage={profileData.profileImage}
+                />
+              ))}
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setImageDialog({ open: false, type: null })}
-              color="inherit"
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                setImageDialog({ open: false, type: null });
-                // Handle image save
-              }}
-              color="primary"
-            >
-              Save Changes
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </>
+          )}
+          {activeTab === 'about' && (
+            <AboutSection profile={publicProfile} isOwnProfile={isOwnProfile} />
+          )}
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 
-export default PublicProfilePage;
+// Sample posts (you'll replace this with real post data eventually)
+const samplePosts = [
+  {
+    id: 1,
+    content: "Enjoying the beautiful weather today!",
+    date: "2 hours ago",
+    likes: 24,
+    comments: 5,
+    shares: 2,
+    image: '/sample-post.jpg',
+  },
+];
+
+export default React.memo(PublicProfilePage);
 
 
 
-//! running
+
+
+
+
+
+//! old
+// import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// import { useSelector, useDispatch } from 'react-redux';
+// import { useParams, useNavigate } from 'react-router-dom';
 // import {
-//   Add,
-//   Groups,
-//   PhotoLibrary as PhotoLibraryIcon,
-//   VideoLibrary as VideoLibraryIcon
-// } from '@mui/icons-material';
-// import {
-//   Avatar,
-//   Backdrop,
-//   Box,
-//   Button,
+//   Container,
+//   Grid,
 //   Card,
 //   CardContent,
-//   CardHeader,
 //   CircularProgress,
-//   Container,
-//   Dialog,
-//   DialogActions,
-//   DialogContent,
-//   DialogTitle,
-//   Divider,
-//   Grid,
 //   Typography,
+//   Box,
 //   useMediaQuery,
-//   useTheme
+//   Button,
+//   Alert
 // } from '@mui/material';
-// import { useEffect, useMemo, useRef, useState } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { useNavigate, useParams } from 'react-router-dom';
-// import { fetchPublicProfile } from '../../../features/user/userSlice';
-// import AboutSection from './AboutSection';
-// import FriendCard from './FriendCard';
-// import PhotoCard from './PhotoCard';
-// import PostCard from './PostCard';
+// import {
+//   fetchPublicProfile,
+//   updateCoverImage,
+//   // updateProfileImage
+// } from '../../../features/user/userSlice';
+// import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
 // import ProfileHeader from './ProfileHeader';
+// import ProfileActions from './ProfileActions';
+// import AboutSection from './AboutSection';
+// import PostCard from './PostCard';
 // import TabsSection from './TabsSection';
 
 // const PublicProfilePage = () => {
 //   const { id } = useParams();
 //   const navigate = useNavigate();
 //   const dispatch = useDispatch();
-//   const theme = useTheme();
-//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+//   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   
+//   // Redux state
 //   const {
-//     publicProfile,
+//     profile,                // Current user's profile
+//     publicProfile,          // Profile being viewed
 //     publicProfileStatus: status,
 //     publicProfileError: error,
-//     updatePhotoStatus
-//   } = useSelector((state) => state.user);
-  
-//   const { user } = useSelector((state) => state.user);
-//   const [tabValue, setTabValue] = useState(0);
-//   const [showCoverDialog, setShowCoverDialog] = useState(false);
-//   const [showProfileDialog, setShowProfileDialog] = useState(false);
-//   const [imageToCrop, setImageToCrop] = useState(null);
-//   const [croppedImage, setCroppedImage] = useState(null);
-//   const [uploadType, setUploadType] = useState(null);
-//   const [anchorEl, setAnchorEl] = useState(null);
-//   const coverInputRef = useRef(null);
-//   const profileInputRef = useRef(null);
+//   } = useSelector(state => state.user);
 
-//   // Memoized derived values
-//   const isOwnProfile = useMemo(
-//     () => String(user?.id) === String(publicProfile?.id),
-//     [user, publicProfile]
-//   );
+//   const { statusByUserId = {} } = useSelector(state => state.friendship);
+//   const friendStatus = id ? statusByUserId[id] || 'not_friends' : 'not_friends';
 
-//   // Debug logging
-//   console.log("🤖 Debug isOwnProfile:", isOwnProfile);
-//   console.log("🔑 Logged-in user ID:", user?.id);
-//   console.log("🧑‍ Profile being viewed ID:", publicProfile?.id);
+//   // Local state
+//   const [activeTab, setActiveTab] = useState('timeline');
+//   const [coverImageLoading, setCoverImageLoading] = useState(false);
+//   const [profileImageLoading, setProfileImageLoading] = useState(false);
 
-//   console.log("👤 user.id:", user?.id, typeof user?.id);
-// console.log("📝 publicProfile.id:", publicProfile?.id, typeof publicProfile?.id);
-// console.log("✅ isOwnProfile:", isOwnProfile);
+//   const isOwnProfile = profile?.id === publicProfile?.id;
 
+//   // Memoized profile data
+//   const profileData = useMemo(() => ({
+//     fullName: publicProfile ? `${publicProfile.firstName || ''} ${publicProfile.lastName || ''}` : '',
+//     profileImage: publicProfile?.profileImage || '/default-avatar.png',
+//     coverImage: publicProfile?.coverImage || '/default-cover.jpg',
+//     headline: publicProfile?.headline || 'SocialSphere Member',
+//     friendsCount: publicProfile?.friendsCount || 0,
+//     isCurrentUser: isOwnProfile,
+//     ...publicProfile
+//   }), [publicProfile, isOwnProfile]);
 
-//   const formattedDate = useMemo(() => {
-//     return publicProfile?.birthDate 
-//       ? new Date(publicProfile.birthDate).toLocaleDateString('en-US', {
-//           year: 'numeric',
-//           month: 'long',
-//           day: 'numeric'
-//         })
-//       : null;
-//   }, [publicProfile?.birthDate]);
+//   // Handlers
+//   const handleAddFriend = useCallback(async () => {
+//     if (!id) return;
+//     try {
+//       await dispatch(sendFriendRequest({ targetUserId: id })).unwrap();
+//     } catch (err) {
+//       console.error('Failed to send friend request:', err);
+//     }
+//   }, [dispatch, id]);
 
-//   const profileImage = publicProfile?.profileImage || '/default-avatar.png';
-//   const coverImage = publicProfile?.coverImage || '/default-cover.jpg';
-//   const fullName = publicProfile ? `${publicProfile.firstName} ${publicProfile.lastName}` : '';
+//   const handleMessage = useCallback(() => {
+//     navigate(`/messages/${id}`);
+//   }, [navigate, id]);
 
-//   // Effect for loading profile
+//   const handleEditProfile = useCallback(() => {
+//     navigate('/profile/edit');
+//   }, [navigate]);
+
+//   const handleCreateStory = useCallback(() => {
+//     navigate('/stories/create');
+//   }, [navigate]);
+
+//   const handleViewFriends = useCallback(() => {
+//     navigate(`/profile/${id}/friends`);
+//   }, [navigate, id]);
+
+//   const handleCoverPhotoEdit = useCallback(async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     setCoverImageLoading(true);
+//     try {
+//       const formData = new FormData();
+//       formData.append('coverImage', file);
+//       await dispatch(updateCoverImage(formData)).unwrap();
+//     } catch (err) {
+//       console.error('Failed to update cover image:', err);
+//     } finally {
+//       setCoverImageLoading(false);
+//     }
+//   }, [dispatch]);
+
+//   const handleProfilePhotoEdit = useCallback(async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     setProfileImageLoading(true);
+//     try {
+//       const formData = new FormData();
+//       formData.append('profileImage', file);
+//       await dispatch(updateProfileImage(formData)).unwrap();
+//     } catch (err) {
+//       console.error('Failed to update profile image:', err);
+//     } finally {
+//       setProfileImageLoading(false);
+//     }
+//   }, [dispatch]);
+
+//   // Fetch profile data
 //   useEffect(() => {
 //     if (!id || id === 'undefined') {
-//       navigate(user?.id ? `/profile/public/${user.id}` : '/');
+//       navigate(profile?.id ? `/profile/${profile.id}` : '/');
 //       return;
 //     }
     
-//     if (id === 'me' && user?.id) {
-//       navigate(`/profile/public/${user.id}`, { replace: true });
+//     if (id === 'me' && profile?.id) {
+//       navigate(`/profile/${profile.id}`, { replace: true });
 //       return;
 //     }
 
@@ -507,118 +381,27 @@ export default PublicProfilePage;
 //     } else {
 //       navigate('/error/invalid-profile');
 //     }
-//   }, [id, user?.id, dispatch, navigate]);
+//   }, [id, profile?.id, dispatch, navigate]);
 
-//   // Effect for handling errors
-//   useEffect(() => {
-//     if (error && error.status === 400 && error.message.includes('Invalid user ID')) {
-//       if (user?.id) {
-//         navigate(`/profile/public/${user.id}`, { replace: true });
-//       } else {
-//         navigate('/');
-//       }
-//     }
-//   }, [error, navigate, user?.id]);
-
-//   // Mock data - would normally come from API
-//   const { posts, photos, friends } = useMemo(() => ({
-//     posts: [
-//       { 
-//         id: 1, 
-//         author: fullName,
-//         content: "Just visited the new art museum!", 
-//         date: "2 hours ago", 
-//         likes: 24, 
-//         comments: 5,
-//         shares: 2,
-//         image: '/post1.jpg'
-//       },
-//       { 
-//         id: 2, 
-//         author: fullName,
-//         content: "Working on a new project", 
-//         date: "1 day ago", 
-//         likes: 12, 
-//         comments: 3,
-//         shares: 0
-//       }
-//     ],
-//     photos: [
-//       { id: 1, url: "/photo1.jpg", caption: "Vacation", likes: 15 },
-//       { id: 2, url: "/photo2.jpg", caption: "Friends", likes: 23 },
-//       { id: 3, url: "/photo3.jpg", caption: "Conference", likes: 8 }
-//     ],
-//     friends: Array(8).fill(0).map((_, i) => ({
-//       id: i + 1,
-//       name: `Friend ${i + 1}`,
-//       avatar: `/avatar${(i % 3) + 1}.jpg`,
-//       mutual: i % 2 === 0 ? Math.floor(Math.random() * 10) + 1 : 0
-//     }))
-//   }), [fullName]);
-
-//   const handleTabChange = (event, newValue) => {
-//     setTabValue(newValue);
-//   };
-
-//   const handleRetry = () => {
-//     dispatch(fetchPublicProfile(id));
-//   };
-
-//   const handleMenuOpen = (event) => {
-//     setAnchorEl(event.currentTarget);
-//   };
-
-//   const handleMenuClose = () => {
-//     setAnchorEl(null);
-//   };
-
-//   const handleFileChange = (e, type) => {
-//     const file = e.target.files[0];
-//     if (file) {
-//       setUploadType(type);
-//       const reader = new FileReader();
-//       reader.onload = () => {
-//         setImageToCrop(reader.result);
-//         type === 'cover' ? setShowCoverDialog(true) : setShowProfileDialog(true);
-//       };
-//       reader.readAsDataURL(file);
-//     }
-//     e.target.value = null;
-//   };
-
-//   const handleAddFriend = () => {
-//     console.log('Add friend clicked for user ID:', publicProfile?.id);
-//   };
-
+//   // Loading state
 //   if (status === 'loading') {
 //     return (
-//       <Backdrop open sx={{ zIndex: theme.zIndex.drawer + 1, color: '#fff' }}>
-//         <CircularProgress color="inherit" />
-//       </Backdrop>
+//       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+//         <CircularProgress size={60} />
+//       </Box>
 //     );
 //   }
 
+//   // Error states
 //   if (error) {
 //     return (
 //       <Container maxWidth="lg" sx={{ mt: 4 }}>
-//         <Card sx={{ 
-//           backgroundColor: 'error.light', 
-//           p: 3, 
-//           borderRadius: 2,
-//           mb: 3,
-//           boxShadow: 4
-//         }}>
-//           <Typography variant="h6" color="error.contrastText">Failed to load profile</Typography>
-//           <Typography color="error.contrastText">Error: {error.message || 'Unknown error'}</Typography>
-//         </Card>
-//         <Box sx={{ display: 'flex', gap: 2 }}>
-//           <Button variant="contained" onClick={() => navigate('/')}>
-//             Go Home
-//           </Button>
-//           <Button variant="outlined" onClick={handleRetry}>
-//             Try Again
-//           </Button>
-//         </Box>
+//         <Alert severity="error" sx={{ mb: 2 }}>
+//           {error.message || 'Failed to load profile'}
+//         </Alert>
+//         <Button variant="contained" onClick={() => navigate('/')} fullWidth>
+//           Go Home
+//         </Button>
 //       </Container>
 //     );
 //   }
@@ -626,258 +409,407 @@ export default PublicProfilePage;
 //   if (!publicProfile) {
 //     return (
 //       <Container maxWidth="lg" sx={{ mt: 4 }}>
-//         <Card sx={{ 
-//           backgroundColor: 'warning.light', 
-//           p: 3, 
-//           borderRadius: 2,
-//           mb: 3,
-//           boxShadow: 3
-//         }}>
-//           <Typography variant="h6" color="warning.contrastText">Profile not found</Typography>
-//         </Card>
-//         <Button variant="contained" onClick={() => navigate('/')}>
-//           Return Home
+//         <Alert severity="warning" sx={{ mb: 2 }}>
+//           Profile not found
+//         </Alert>
+//         <Button variant="contained" onClick={() => navigate('/')} fullWidth>
+//           Go Home
 //         </Button>
 //       </Container>
 //     );
 //   }
 
 //   return (
-//     <Container maxWidth="lg" sx={{ mt: 0, mb: 4 }}>
-//       {/* Hidden file inputs */}
-//       <input
-//         type="file"
-//         ref={coverInputRef}
-//         onChange={(e) => handleFileChange(e, 'cover')}
-//         accept="image/*"
-//         hidden
-//       />
-//       <input
-//         type="file"
-//         ref={profileInputRef}
-//         onChange={(e) => handleFileChange(e, 'profile')}
-//         accept="image/*"
-//         hidden
-//       />
-
+//     <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+//       {/* Profile Header Section */}
 //       <ProfileHeader
-//         userData={{
-//           ...publicProfile,
-//           fullName,
-//           profileImage,
-//           coverImage,
-//           isCurrentUser: isOwnProfile
-//         }}
-//         isMobile={isMobile}
-//         navigate={navigate}
-//         onCoverPhotoEdit={isOwnProfile ? (e) => handleFileChange(e, 'cover') : undefined}
-//         onProfilePhotoEdit={isOwnProfile ? (e) => handleFileChange(e, 'profile') : undefined}
-//         coverImageLoading={updatePhotoStatus === 'loading'}
-//         handleAddFriend={handleAddFriend}
+//         coverImage={profileData.coverImage}
+//         profileImage={profileData.profileImage}
 //         isOwnProfile={isOwnProfile}
+//         isMobile={isMobile}
+//         onCoverPhotoEdit={isOwnProfile ? handleCoverPhotoEdit : undefined}
+//         onProfilePhotoEdit={isOwnProfile ? handleProfilePhotoEdit : undefined}
+//         coverImageLoading={coverImageLoading}
 //       />
 
+//       {/* Profile Info Section */}
+//       <Box sx={{ mt: isMobile ? 12 : 10, mb: 4 }}>
+//         <Typography variant="h4" align="center" gutterBottom>
+//           {profileData.fullName}
+//         </Typography>
+//         <Typography variant="subtitle1" align="center" color="text.secondary">
+//           {profileData.headline}
+//         </Typography>
+
+//         {/* Action Buttons - Now properly differentiated */}
+//         <ProfileActions
+//           isOwnProfile={isOwnProfile}
+//           friendStatus={friendStatus}
+//           onAddFriend={!isOwnProfile ? handleAddFriend : undefined}
+//           onMessage={!isOwnProfile ? handleMessage : undefined}
+//           onEditProfile={isOwnProfile ? handleEditProfile : undefined}
+//           onCreateStory={isOwnProfile ? handleCreateStory : undefined}
+//           onViewFriends={isOwnProfile ? handleViewFriends : undefined}
+//         />
+//       </Box>
+
+//       {/* Tabs Section */}
 //       <TabsSection 
-//         tabValue={tabValue} 
-//         handleTabChange={handleTabChange} 
+//         activeTab={activeTab} 
+//         onChangeTab={setActiveTab} 
 //       />
 
+//       {/* Tab Content */}
 //       <Grid container spacing={3}>
-//         {/* Left Column */}
-//         <Grid item xs={12} md={4}>
-//           <AboutSection 
-//             publicProfile={publicProfile}
-//             isOwnProfile={isOwnProfile}
-//             formattedDate={formattedDate}
-//           />
-
-//           {/* Photos Card */}
-//           <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 2 }}>
-//             <CardHeader 
-//               title="Photos" 
-//               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-//               action={<Button color="primary">See All</Button>}
+//         {activeTab !== 'about' && (
+//           <Grid item xs={12} md={4}>
+//             <AboutSection 
+//               profile={publicProfile}
+//               isOwnProfile={isOwnProfile}
+//               condensed
 //             />
-//             <CardContent>
-//               <Grid container spacing={1}>
-//                 {photos.slice(0, 6).map((photo) => (
-//                   <Grid item xs={4} key={photo.id}>
-//                     <PhotoCard photo={photo} />
-//                   </Grid>
-//                 ))}
-//               </Grid>
-//             </CardContent>
-//           </Card>
+//           </Grid>
+//         )}
 
-//           {/* Friends Card */}
-//           <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 2 }}>
-//             <CardHeader 
-//               title="Friends" 
-//               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-//               subheader={`${friends.length} friends`}
-//               action={<Button color="primary">See All</Button>}
-//             />
-//             <CardContent>
-//               <Grid container spacing={2}>
-//                 {friends.slice(0, 6).map((friend) => (
-//                   <Grid item xs={6} key={friend.id}>
-//                     <FriendCard friend={friend} />
-//                   </Grid>
-//                 ))}
-//               </Grid>
-//             </CardContent>
-//           </Card>
-//         </Grid>
-
-//         {/* Right Column */}
-//         <Grid item xs={12} md={8}>
-//           {/* Create Post Card (only for own profile) */}
-//           {isOwnProfile && (
-//             <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 2 }}>
-//               <CardContent>
-//                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-//                   <Avatar src={profileImage} sx={{ mr: 2 }} />
-//                   <Button 
-//                     fullWidth 
-//                     variant="outlined" 
-//                     sx={{ 
-//                       justifyContent: 'flex-start',
-//                       borderRadius: 20,
-//                       backgroundColor: '#f0f2f5',
-//                       textTransform: 'none',
-//                       color: '#65676b'
-//                     }}
-//                     onClick={() => navigate('/create-post')}
-//                   >
-//                     What's on your mind?
-//                   </Button>
-//                 </Box>
-//                 <Divider />
-//                 <Box sx={{ display: 'flex', justifyContent: 'space-around', pt: 1 }}>
-//                   <Button 
-//                     startIcon={<VideoLibraryIcon color="error" />}
-//                     sx={{ color: '#65676b', textTransform: 'none' }}
-//                   >
-//                     Live Video
-//                   </Button>
-//                   <Button 
-//                     startIcon={<PhotoLibraryIcon color="success" />}
-//                     sx={{ color: '#65676b', textTransform: 'none' }}
-//                   >
-//                     Photo/Video
-//                   </Button>
-//                   <Button 
-//                     startIcon={<Groups color="warning" />}
-//                     sx={{ color: '#65676b', textTransform: 'none' }}
-//                   >
-//                     Feeling/Activity
-//                   </Button>
-//                 </Box>
-//               </CardContent>
-//             </Card>
+//         <Grid item xs={12} md={activeTab === 'about' ? 12 : 8}>
+//           {activeTab === 'timeline' && (
+//             <Box>
+//               {samplePosts.map((post) => (
+//                 <PostCard 
+//                   key={post.id}
+//                   author={profileData.fullName}
+//                   content={post.content}
+//                   date={post.date}
+//                   likes={post.likes}
+//                   comments={post.comments}
+//                   shares={post.shares}
+//                   image={post.image}
+//                   profileImage={profileData.profileImage}
+//                 />
+//               ))}
+//             </Box>
 //           )}
-
-//           {/* Posts */}
-//           {posts.length > 0 ? (
-//             posts.map((post) => (
-//               <PostCard 
-//                 key={post.id} 
-//                 post={post} 
-//                 profileImage={profileImage}
-//               />
-//             ))
-//           ) : (
-//             <Card sx={{ 
-//               mb: 3, 
-//               borderRadius: 2,
-//               boxShadow: 2,
-//               textAlign: 'center',
-//               p: 4
-//             }}>
-//               <PhotoLibraryIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-//               <Typography variant="h6" gutterBottom>
-//                 {isOwnProfile ? "You haven't posted anything yet" : "No posts yet"}
-//               </Typography>
-//               <Typography color="text.secondary" sx={{ mb: 2 }}>
-//                 {isOwnProfile 
-//                   ? "Share your first post with your friends!" 
-//                   : "When this user posts, you'll see it here."}
-//               </Typography>
-//               {isOwnProfile && (
-//                 <Button 
-//                   variant="contained" 
-//                   startIcon={<Add />}
-//                   onClick={() => navigate('/create-post')}
-//                 >
-//                   Create Post
-//                 </Button>
-//               )}
-//             </Card>
+//           {activeTab === 'about' && (
+//             <AboutSection profile={publicProfile} isOwnProfile={isOwnProfile} />
 //           )}
 //         </Grid>
 //       </Grid>
-
-//       {/* Image Upload Dialogs */}
-//       <Dialog open={showCoverDialog} onClose={() => setShowCoverDialog(false)} maxWidth="md" fullWidth>
-//         <DialogTitle>Edit Cover Photo</DialogTitle>
-//         <DialogContent>
-//           <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-//             <Typography>Image cropper would appear here</Typography>
-//           </Box>
-//         </DialogContent>
-//         <DialogActions>
-//           <Button onClick={() => setShowCoverDialog(false)}>Cancel</Button>
-//           <Button 
-//             variant="contained" 
-//             onClick={() => {
-//               setShowCoverDialog(false);
-//               // Handle cover photo update
-//             }}
-//           >
-//             Save
-//           </Button>
-//         </DialogActions>
-//       </Dialog>
-
-//       <Dialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} maxWidth="sm" fullWidth>
-//         <DialogTitle>Edit Profile Photo</DialogTitle>
-//         <DialogContent>
-//           <Box sx={{ 
-//             height: 300, 
-//             display: 'flex', 
-//             alignItems: 'center', 
-//             justifyContent: 'center',
-//             position: 'relative'
-//           }}>
-//             <Typography>Image cropper would appear here</Typography>
-//           </Box>
-//         </DialogContent>
-//         <DialogActions>
-//           <Button onClick={() => setShowProfileDialog(false)}>Cancel</Button>
-//           <Button 
-//             variant="contained" 
-//             onClick={() => {
-//               setShowProfileDialog(false);
-//               // Handle profile photo update
-//             }}
-//           >
-//             Save
-//           </Button>
-//         </DialogActions>
-//       </Dialog>
 //     </Container>
 //   );
 // };
 
-// export default PublicProfilePage;
+// // Sample data (replace with real data)
+// const samplePosts = [
+//   {
+//     id: 1,
+//     content: "Enjoying the beautiful weather today!",
+//     date: "2 hours ago",
+//     likes: 24,
+//     comments: 5,
+//     shares: 2,
+//     image: '/sample-post.jpg'
+//   }
+// ];
+
+// export default React.memo(PublicProfilePage);
 
 
 
 
 
+//! old
+// import React, { useEffect, useMemo, useCallback, useState } from 'react';
+// import { useSelector, useDispatch } from 'react-redux';
+// import { useParams, useNavigate } from 'react-router-dom';
+// import {
+//   Container,
+//   Grid,
+//   Card,
+//   CardContent,
+//   CircularProgress,
+//   Typography,
+//   Box,
+//   useMediaQuery,
+//   Button,
+//   Alert
+// } from '@mui/material';
+// import { fetchPublicProfile } from '../../../features/user/userSlice';
+// import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
+// import ProfileHeader from './ProfileHeader';
+// import ProfileActions from './ProfileActions';
+// import AboutSection from './AboutSection';
+// import ConnectionCard from './ConnectionCard';
+// import MediaCard from './MediaCard';
+// import PostCard from './PostCard';
+// import TabsSection from './TabsSection';
 
+// // Memoize static data to prevent recreation on every render
+// const staticPosts = [
+//   {
+//     id: 1,
+//     content: "Just visited the new art museum! The contemporary exhibits were breathtaking.",
+//     date: "2 hours ago",
+//     likes: 24,
+//     comments: 5,
+//     shares: 2,
+//     image: '/post-sample-1.jpg'
+//   },
+//   {
+//     id: 2,
+//     content: "Working on a new project that combines AI with creative design. Excited to share more soon!",
+//     date: "1 day ago",
+//     likes: 12,
+//     comments: 3,
+//     shares: 0,
+//     image: null
+//   }
+// ];
 
+// const staticMedia = Array.from({ length: 6 }, (_, i) => ({
+//   id: i + 1,
+//   imageUrl: `/sample-media/${i + 1}.jpg`,
+//   likes: Math.floor(Math.random() * 50) + 5
+// }));
 
+// const staticConnections = Array.from({ length: 6 }, (_, i) => ({
+//   id: i + 1,
+//   name: `Connection ${i + 1}`,
+//   avatar: `/avatar-${(i % 3) + 1}.jpg`,
+//   mutual: i % 2 === 0 ? Math.floor(Math.random() * 10) + 1 : 0
+// }));
+
+// const PublicProfilePage = () => {
+//   const { id } = useParams();
+//   const navigate = useNavigate();
+//   const dispatch = useDispatch();
+//   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  
+//   // Redux state selectors
+//   const {
+//     profile,                // Current user's profile
+//     publicProfile,          // Profile being viewed
+//     publicProfileStatus: status,
+//     publicProfileError: error,
+//   } = useSelector(state => state.user);
+
+//   const {
+//     statusByUserId = {}
+//   } = useSelector(state => state.friendship);
+
+//   const friendStatus = id ? statusByUserId[id] || 'none' : 'none';
+
+//   const [activeTab, setActiveTab] = useState('timeline');
+//   const isOwnProfile = profile?.id === publicProfile?.id;
+
+//   const profileData = useMemo(() => ({
+//     fullName: publicProfile ? `${publicProfile.firstName || ''} ${publicProfile.lastName || ''}` : '',
+//     profileImage: publicProfile?.profileImage || '/default-avatar.png',
+//     coverImage: publicProfile?.coverImage || '/default-cover.jpg',
+//     headline: publicProfile?.headline || 'SocialSphere Member',
+//     isCurrentUser: isOwnProfile,
+//     ...publicProfile
+//   }), [publicProfile, isOwnProfile]);
+
+//   const handleAddFriend = useCallback(async () => {
+//     if (!id) return;
+    
+//     try {
+//       await dispatch(sendFriendRequest({ targetUserId: id })).unwrap();
+//     } catch (err) {
+//       console.error('Failed to send friend request:', err);
+//       return <Alert severity="error">Failed to send friend request</Alert>;
+//     }
+//   }, [dispatch, id]);
+
+//   const handleMessage = useCallback(() => {
+//     if (!id) return;
+//     navigate(`/messages/${id}`);
+//   }, [navigate, id]);
+
+//   const handleEditProfile = useCallback(() => {
+//     navigate('/profile/edit');
+//   }, [navigate]);
+
+//   const handleCreateStory = useCallback(() => {
+//     navigate('/stories/create');
+//   }, [navigate]);
+
+//   useEffect(() => {
+//     if (!id || id === 'undefined') {
+//       navigate(profile?.id ? `/profile/${profile.id}` : '/');
+//       return;
+//     }
+    
+//     if (id === 'me' && profile?.id) {
+//       navigate(`/profile/${profile.id}`, { replace: true });
+//       return;
+//     }
+
+//     if (/^\d+$/.test(id)) {
+//       dispatch(fetchPublicProfile(id));
+//     } else {
+//       navigate('/error/invalid-profile');
+//     }
+//   }, [id, profile?.id, dispatch, navigate]);
+
+//   if (status === 'loading') {
+//     return (
+//       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+//         <CircularProgress size={60} />
+//       </Box>
+//     );
+//   }
+
+//   if (error) {
+//     return (
+//       <Container maxWidth="lg" sx={{ mt: 4 }}>
+//         <Alert severity="error" sx={{ mb: 2 }}>
+//           Failed to load profile: {error.message || error}
+//         </Alert>
+//         <Button 
+//           variant="contained" 
+//           onClick={() => navigate('/')}
+//           fullWidth
+//         >
+//           Go Home
+//         </Button>
+//       </Container>
+//     );
+//   }
+
+//   if (!publicProfile) {
+//     return (
+//       <Container maxWidth="lg" sx={{ mt: 4 }}>
+//         <Alert severity="warning" sx={{ mb: 2 }}>
+//           Profile not found
+//         </Alert>
+//         <Button 
+//           variant="contained" 
+//           onClick={() => navigate('/')}
+//           fullWidth
+//         >
+//           Go Home
+//         </Button>
+//       </Container>
+//     );
+//   }
+
+//   const renderProfileContent = () => {
+//     switch (activeTab) {
+//       case 'timeline':
+//         return (
+//           <Box>
+//             {staticPosts.map((post) => (
+//               <PostCard 
+//                 key={post.id}
+//                 author={profileData.fullName}
+//                 content={post.content}
+//                 date={post.date}
+//                 likes={post.likes}
+//                 comments={post.comments}
+//                 shares={post.shares}
+//                 image={post.image}
+//                 profileImage={profileData.profileImage}
+//               />
+//             ))}
+//           </Box>
+//         );
+//       case 'about':
+//         return <AboutSection profile={publicProfile} isOwnProfile={isOwnProfile} />;
+//       case 'friends':
+//         return <div>Friends content</div>;
+//       case 'photos':
+//         return <div>Photos content</div>;
+//       default:
+//         return null;
+//     }
+//   };
+
+//   return (
+//     <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+//       <ProfileHeader
+//         coverImage={profileData.coverImage}
+//         profileImage={profileData.profileImage}
+//         isOwnProfile={isOwnProfile}
+//         isMobile={isMobile}
+//       />
+
+//       <Box sx={{ mt: isMobile ? 12 : 10, mb: 4 }}>
+//         <Typography variant="h4" align="center" gutterBottom>
+//           {profileData.fullName}
+//         </Typography>
+//         <Typography variant="subtitle1" align="center" color="text.secondary">
+//           {profileData.headline}
+//         </Typography>
+
+//         <ProfileActions
+//           isOwnProfile={isOwnProfile}
+//           friendStatus={friendStatus}
+//           onAddFriend={!isOwnProfile ? handleAddFriend : undefined}
+//           onMessage={!isOwnProfile ? handleMessage : undefined}
+//           onEditProfile={isOwnProfile ? handleEditProfile : undefined}
+//           onCreateStory={isOwnProfile ? handleCreateStory : undefined}
+//         />
+//       </Box>
+
+//       <TabsSection 
+//         activeTab={activeTab} 
+//         onChangeTab={setActiveTab} 
+//       />
+
+//       <Grid container spacing={3}>
+//         {activeTab !== 'about' && (
+//           <Grid item xs={12} md={4}>
+//             <AboutSection 
+//               profile={publicProfile}
+//               isOwnProfile={isOwnProfile}
+//               condensed
+//             />
+
+//             <Card sx={{ mb: 3 }}>
+//               <CardContent>
+//                 <Typography variant="h6" gutterBottom>Media</Typography>
+//                 <Grid container spacing={1}>
+//                   {staticMedia.map((media) => (
+//                     <Grid item xs={4} key={media.id}>
+//                       <MediaCard 
+//                         imageUrl={media.imageUrl}
+//                         likes={media.likes}
+//                       />
+//                     </Grid>
+//                   ))}
+//                 </Grid>
+//               </CardContent>
+//             </Card>
+
+//             <Card>
+//               <CardContent>
+//                 <Typography variant="h6" gutterBottom>Connections</Typography>
+//                 <Grid container spacing={2}>
+//                   {staticConnections.map((connection) => (
+//                     <Grid item xs={6} key={connection.id}>
+//                       <ConnectionCard 
+//                         name={connection.name}
+//                         avatar={connection.avatar}
+//                         mutual={connection.mutual}
+//                       />
+//                     </Grid>
+//                   ))}
+//                 </Grid>
+//               </CardContent>
+//             </Card>
+//           </Grid>
+//         )}
+
+//         <Grid item xs={12} md={activeTab === 'about' ? 12 : 8}>
+//           {renderProfileContent()}
+//         </Grid>
+//       </Grid>
+//     </Container>
+//   );
+// };
+
+// export default React.memo(PublicProfilePage);
 
 
 

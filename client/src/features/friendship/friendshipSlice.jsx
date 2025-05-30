@@ -1,37 +1,53 @@
 // src/features/friendship/friendshipSlice.js
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axiosInstance from '../../axiosInstance';
 
-// Thunks matching the controller logic
-// export const sendFriendRequest = createAsyncThunk(
-//   'friendship/sendFriendRequest',
-//   async ({ targetUserId }, { rejectWithValue }) => {
-//     try {
-//       const res = await axiosInstance.post('/friendships/requests', { friendId: targetUserId });
-//       return {
-//         friendship: res.data.friendship,
-//         message: res.data.message
-//       };
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data || 'Failed to send friend request');
-//     }
-//   }
-// );
+// Thunks
+
+export const fetchUserFriends = createAsyncThunk(
+  'friendship/fetchUserFriends',
+  async ({ userId, page = 1 }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `/friendships/${userId}/friends?page=${page}`
+      );
+      return {
+        data: response.data.payload.data,
+        pagination: response.data.payload.pagination,
+        userId // Track which user these friends belong to
+      };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchMutualFriends = createAsyncThunk(
+  'friendship/fetchMutualFriends',
+  async ({ userId, page = 1 }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `/friendships/${userId}/mutual-friends?page=${page}`
+      );
+      return {
+        data: response.data.payload.data,
+        pagination: response.data.payload.pagination,
+        userId
+      };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 
 export const sendFriendRequest = createAsyncThunk(
   'friendship/sendFriendRequest',
   async ({ targetUserId }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post('/friendships/requests', { 
-        friendId: targetUserId 
-      });
-      
-      // Ensure the response has the expected structure
+      const res = await axiosInstance.post('/friendships/requests', { friendId: targetUserId });
       return {
-        friendship: {
-          ...res.data.friendship,
-          to: res.data.friendship.friendId // Add 'to' field
-        }
+        ...res.data.friendship,
+        to: res.data.friendship.friendId,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to send friend request');
@@ -159,62 +175,136 @@ export const unblockUser = createAsyncThunk(
   }
 );
 
+// Initial State
+
+const initialState = {
+  friendsList: [],
+  friendsStatus: 'idle',
+  friendsError: null,
+  requests: [],
+  mutualFriends: {
+    data: [],
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+    },
+  },
+  friendshipStatus: {},
+  status: 'idle',
+  error: null,
+  friends: [],
+};
+
+// Slice
+
 const friendshipSlice = createSlice({
   name: 'friendship',
-  initialState: {
-    requests: [],
-    friends: [],
-    friendshipStatus: {},
-    status: 'idle',
-    error: null,
-  },
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
-            // Update the sendFriendRequest.fulfilled reducer
-.addCase(sendFriendRequest.fulfilled, (state, action) => {
-  if (action.payload?.friendship) {
-    // Transform the friendship object if needed
-    const friendship = {
-      ...action.payload.friendship,
-      to: action.payload.friendship.friendId // Ensure 'to' exists
+      // .addCase(fetchUserFriends.pending, (state) => {
+      //   state.friendsStatus = 'loading';
+      // })
+      // .addCase(fetchUserFriends.fulfilled, (state, action) => {
+      //   state.friendsStatus = 'succeeded';
+      //   state.friendsList = action.payload;
+      // })
+      // .addCase(fetchUserFriends.rejected, (state, action) => {
+      //   state.friendsStatus = 'failed';
+      //   state.friendsError = action.payload;
+      // })
+      .addCase(fetchUserFriends.fulfilled, (state, action) => {
+  if (action.meta.arg.page === 1) {
+    // First page - replace data
+    state.friendsList = {
+      data: action.payload.data,
+      pagination: action.payload.pagination
     };
-    state.requests.push(friendship);
+  } else {
+    // Subsequent pages - append data
+    state.friendsList = {
+      data: [...state.friendsList.data, ...action.payload.data],
+      pagination: action.payload.pagination
+    };
   }
-  state.status = 'succeeded';
+  state.friendsStatus = 'succeeded';
 })
+
+      // .addCase(fetchMutualFriends.pending, (state) => {
+      //   state.mutualFriendsStatus = 'loading';
+      // })
+      // .addCase(fetchMutualFriends.fulfilled, (state, action) => {
+      //   state.mutualFriendsStatus = 'succeeded';
+      //   state.mutualFriends = action.payload;
+      // })
+      // .addCase(fetchMutualFriends.rejected, (state, action) => {
+      //   state.mutualFriendsStatus = 'failed';
+      //   state.mutualFriendsError = action.payload;
+      // })
+      .addCase(fetchMutualFriends.fulfilled, (state, action) => {
+  if (action.meta.arg.page === 1) {
+    state.mutualFriends = {
+      data: action.payload.data,
+      pagination: action.payload.pagination
+    };
+  } else {
+    state.mutualFriends = {
+      data: [...state.mutualFriends.data, ...action.payload.data],
+      pagination: action.payload.pagination
+    };
+  }
+  state.mutualFriendsStatus = 'succeeded';
+})
+
+      .addCase(sendFriendRequest.fulfilled, (state, action) => {
+        state.requests.push(action.payload);
+        state.status = 'succeeded';
+      })
+
       .addCase(cancelFriendRequest.fulfilled, (state, action) => {
         state.requests = state.requests.filter(r => r.id !== action.payload);
       })
+
       .addCase(acceptFriendRequest.fulfilled, (state, action) => {
         state.friends.push(action.payload);
         state.requests = state.requests.filter(r => r.id !== action.payload.id);
       })
+
       .addCase(rejectFriendRequest.fulfilled, (state, action) => {
         state.requests = state.requests.filter(r => r.id !== action.payload.id);
       })
+
       .addCase(listFriends.fulfilled, (state, action) => {
         state.friends = action.payload;
       })
+
       .addCase(getPendingRequests.fulfilled, (state, action) => {
         state.requests = action.payload;
       })
+
       .addCase(getSentRequests.fulfilled, (state, action) => {
         state.requests = action.payload;
       })
+
       .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
         const { userId, status } = action.payload;
         state.friendshipStatus[userId] = status;
       })
+
       .addCase(removeFriendship.fulfilled, (state, action) => {
         state.friends = state.friends.filter(f => f.id !== action.payload);
       })
+
       .addCase(blockUser.fulfilled, (state) => {
         state.status = 'succeeded';
       })
+
       .addCase(unblockUser.fulfilled, (state) => {
         state.status = 'succeeded';
       })
+
       .addMatcher(
         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/pending'),
         (state) => {
@@ -222,6 +312,7 @@ const friendshipSlice = createSlice({
           state.error = null;
         }
       )
+
       .addMatcher(
         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/rejected'),
         (state, action) => {
@@ -229,7 +320,7 @@ const friendshipSlice = createSlice({
           state.error = action.payload || 'An error occurred';
         }
       );
-  }
+  },
 });
 
 export default friendshipSlice.reducer;

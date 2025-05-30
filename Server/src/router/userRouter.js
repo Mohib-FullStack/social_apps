@@ -69,7 +69,6 @@ userRouter.put(
 );
 
 //! Profile Routes
-
 userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
 userRouter.get('/profile/me', isLoggedIn, handleFetchUserProfile); // Your existing profile route
 

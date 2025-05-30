@@ -4777,3 +4777,35 @@ coverImageLoading={updatePhotoStatus === 'loading'}
 // Only pass handleAddFriend if NOT current user's profile
 handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
 /> _/}
+
+
+
+
+###### Profile Action  
+
+### **Key Difference in Action Buttons (Own Profile vs. Others' Profile):**  
+1. **Facebook (our Goal):**  
+   - **Own Profile:** Shows **"Add to story," "Edit profile," "See all"** (focused on *managing your own content*).  
+   - **Others' Profile:** Shows **"Message," "Follow," "Add friend"** (focused on *interacting with others*).  
+
+   ### **Recommendation:**  
+- Mirror Facebook’s logic:  
+  - Hide "Edit Profile" on others’ profiles.  
+  - Hide "Follow/Message" on your own profile.  
+  - Use clear, functional buttons (not placeholders like [ ]).  
+
+2. **Your SocialApp (Current State):**  
+   - **Own Profile (384):** No clear action buttons (just "MESSAGE" and tabs).  
+   - **Others' Profile (385):** Broken/unclear buttons (empty checkboxes).  
+
+### **What’s Missing in Your App:**  
+- **Own Profile:** Should have buttons like **"Edit Profile," "Add Post/Story," "Manage Friends"** (user-controlled actions).  
+- **Others' Profile:** Should show **"Message," "Follow," "Add Friend"** (interaction options).  
+
+### **Recommendation:**  
+- Mirror Facebook’s logic:  
+  - Hide "Edit Profile" on others’ profiles.  
+  - Hide "Follow/Message" on your own profile.  
+  - Use clear, functional buttons (not placeholders like [ ]).  
+
+This separation ensures users intuitively know *whose profile they’re viewing* and what actions they can take. Would you like mockups for how to implement this?
