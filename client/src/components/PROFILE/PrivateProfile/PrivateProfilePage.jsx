@@ -1,22 +1,13 @@
-/**
- * PRIVATE PROFILE PAGE COMPONENT - REFACTORED
- * Enhanced with better error handling, safer data access, and improved structure
- */
-
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, useMediaQuery, ClickAwayListener } from '@mui/material';
-import { Box, CircularProgress, Button } from '@mui/material';
+import { Box, CircularProgress, Fade, Zoom } from '@mui/material';
 import theme from '../../../theme';
 
-
- 
 // Redux actions
-import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
 import {
-  fetchAllUsers,
   fetchUserProfile,
   logoutUser,
   updateCoverImage
@@ -28,8 +19,10 @@ import ProfileInfoSection from './ProfileInfoSection';
 import ProfileStats from './ProfileStats';
 import ProfileTabs from './ProfileTabs';
 import DeleteAccountDialog from './DeleteAccountDialog';
+import ProfileActions from './ProfileActions';
 import SearchBar from '../../SearchBar/SearchBar';
-import UserSearchResults from '../../SearchBar/UserSearchResults';
+// import LoadingScreen from '../../common/LoadingScreen';
+// import ProfileSkeleton from './ProfileSkeleton';
 
 // Constants
 const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
@@ -40,7 +33,7 @@ const PrivateProfilePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { profile, loading } = useSelector((state) => state.user);
+  const { profile, loading, error } = useSelector((state) => state.user);
 
   // ====================== STATE MANAGEMENT ======================
   const [tabValue, setTabValue] = useState(0);
@@ -53,35 +46,29 @@ const PrivateProfilePage = () => {
   });
   const [privacyChanged, setPrivacyChanged] = useState(false);
   const [searchInput, setSearchInput] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [openDropdown, setOpenDropdown] = useState(false);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
 
   // ====================== DERIVED VALUES ======================
-  const userId = useMemo(() => {
-    return profile?.user?.id || profile?.id || 'me';
-  }, [profile]);
+  const userId = useMemo(() => profile?.user?.id || profile?.id || 'me', [profile]);
 
-  const userData = useMemo(() => {
-    const data = profile?.user || profile || {};
-    return {
-      id: userId,
-      fullName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
-      email: data.email || 'No email provided',
-      phone: data.phone || 'No phone provided',
-      location: data.location || 'Location not set',
-      website: data.website || null,
-      bio: data.bio || 'Tell your story...',
-      isVerified: data.isVerified || false,
-      profileImage: data.profileImage || DEFAULT_PROFILE_IMAGE,
-      coverImage: data.coverImage || DEFAULT_COVER_IMAGE,
-      createdAt: data.createdAt || new Date(),
-      updatedAt: data.updatedAt || new Date(),
-      postsCount: data.postsCount || 0,
-      friendsCount: data.friendsCount || 0,
-      viewsCount: data.viewsCount || 0,
-      isCurrentUser: true // Always true for private profile
-    };
-  }, [profile, userId]);
+  const userData = useMemo(() => ({
+    id: userId,
+    fullName: `${profile?.user?.firstName || profile?.firstName || ''} ${profile?.user?.lastName || profile?.lastName || ''}`.trim(),
+    email: profile?.user?.email || profile?.email || 'No email provided',
+    phone: profile?.user?.phone || profile?.phone || 'No phone provided',
+    location: profile?.user?.location || profile?.location || 'Location not set',
+    website: profile?.user?.website || profile?.website || null,
+    bio: profile?.user?.bio || profile?.bio || 'Tell your story...',
+    isVerified: profile?.user?.isVerified || profile?.isVerified || false,
+    profileImage: profile?.user?.profileImage || profile?.profileImage || DEFAULT_PROFILE_IMAGE,
+    coverImage: profile?.user?.coverImage || profile?.coverImage || DEFAULT_COVER_IMAGE,
+    createdAt: profile?.user?.createdAt || profile?.createdAt || new Date(),
+    updatedAt: profile?.user?.updatedAt || profile?.updatedAt || new Date(),
+    postsCount: profile?.user?.postsCount || profile?.postsCount || 0,
+    friendsCount: profile?.user?.friendsCount || profile?.friendsCount || 0,
+    viewsCount: profile?.user?.viewsCount || profile?.viewsCount || 0,
+    isCurrentUser: true
+  }), [profile, userId]);
 
   // ====================== EFFECTS ======================
   useEffect(() => {
@@ -89,36 +76,13 @@ const PrivateProfilePage = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    const searchUsers = async () => {
-      if (!searchInput.trim()) {
-        setSearchResults([]);
-        setOpenDropdown(false);
-        return;
-      }
-
-      try {
-        const action = await dispatch(fetchAllUsers({
-          search: searchInput,
-          page: 1,
-          limit: 5,
-          excludeCurrent: true,
-        }));
-        
-        const filteredResults = (action.payload?.users || [])
-          .filter(user => user._id !== userId);
-        
-        setSearchResults(filteredResults);
-        setOpenDropdown(filteredResults.length > 0);
-      } catch (error) {
-        console.error('Search failed:', error);
-        setSearchResults([]);
-        setOpenDropdown(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(searchUsers, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchInput, dispatch, userId]);
+    if (error) {
+      dispatch(showSnackbar({
+        message: error,
+        severity: 'error'
+      }));
+    }
+  }, [error, dispatch]);
 
   // ====================== UTILITY FUNCTIONS ======================
   const formatDate = (dateString) => {
@@ -137,26 +101,10 @@ const PrivateProfilePage = () => {
   };
 
   // ====================== EVENT HANDLERS ======================
-  const handleSearchResultClick = (userId) => {
-    setSearchInput('');
-    setOpenDropdown(false);
-    navigate(`/profile/public/${userId}`);
-  };
-
-  const handleAddFriend = async () => {
-    try {
-      await dispatch(sendFriendRequest({ targetUserId: userId })).unwrap();
-      dispatch(showSnackbar({
-        message: 'Friend request sent successfully!',
-        severity: 'success'
-      }));
-    } catch (error) {
-      dispatch(showSnackbar({
-        message: error?.message || 'Failed to send friend request',
-        severity: 'warning'
-      }));
-    }
-  };
+  const handleCreateStory = () => navigate('/create-story');
+  const handleEditProfile = () => navigate('/my-profile-update');
+  const handleViewFriends = () => navigate('/friends');
+  const handleEditPrivateProfile = () => navigate('/profile/private-update');
 
   const handlePrivacyUpdate = (field, value) => {
     setPrivacy(prev => ({ ...prev, [field]: value }));
@@ -167,7 +115,6 @@ const PrivateProfilePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validation
     if (!file.type.startsWith('image/')) {
       dispatch(showSnackbar({
         message: 'Only image files are allowed',
@@ -190,7 +137,7 @@ const PrivateProfilePage = () => {
       formData.append('coverImage', file);
       await dispatch(updateCoverImage(formData)).unwrap();
       dispatch(showSnackbar({
-        message: 'Cover image updated successfully',
+        message: 'Cover image updated successfully!',
         severity: 'success'
       }));
       await dispatch(fetchUserProfile());
@@ -205,19 +152,31 @@ const PrivateProfilePage = () => {
     }
   };
 
-  const handleProfileNavigation = () => navigate('/my-profile-update');
-  const handlePublicPreview = () => navigate(`/profile/public/${userId}`);
-
   // ====================== RENDER LOGIC ======================
   if (loading || !profile) {
+    return <ProfileSkeleton />;
+  }
+
+  if (error) {
     return (
       <Box sx={{
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh'
+        height: '100vh',
+        flexDirection: 'column',
+        gap: 2
       }}>
-        <CircularProgress size={60} />
+        <Typography variant="h6" color="error">
+          Failed to load profile
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => dispatch(fetchUserProfile())}
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -229,90 +188,85 @@ const PrivateProfilePage = () => {
         minHeight: '100vh',
         pb: 6
       }}>
-        {/* Profile Header */}
+        {/* Profile Header with Cover Photo */}
         <ProfileHeader
           userData={userData}
           isMobile={isMobile}
           onCoverPhotoEdit={handleCoverPhotoUpdate}
-          onProfilePhotoEdit={handleProfileNavigation}
+          onProfilePhotoEdit={handleEditProfile}
           coverImageLoading={coverImageLoading}
+          isHoveringCover={isHoveringCover}
+          setIsHoveringCover={setIsHoveringCover}
         />
 
-        {/* Public Preview Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handlePublicPreview}
-            sx={{
-              borderRadius: '20px',
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4,
-                transform: 'translateY(-2px)'
-              }
-            }}
-          >
-            Preview Public Profile
-          </Button>
-        </Box>
-
-        {/* Enhanced Search */}
-        <ClickAwayListener onClickAway={() => setOpenDropdown(false)}>
-          <Box sx={{
-            p: 2,
-            position: 'relative',
-            width: '100%',
-            maxWidth: 600,
-            mx: 'auto'
-          }}>
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onFocus={() => searchResults.length && setOpenDropdown(true)}
+        {/* Profile Actions with Animation */}
+        <Zoom in={!loading} timeout={500}>
+          <Box>
+            <ProfileActions
+              isOwnProfile={true}
+              onCreateStory={handleCreateStory}
+              onEditProfile={handleEditProfile}
+              onViewFriends={handleViewFriends}
+              onEditPrivateProfile={handleEditPrivateProfile}
             />
-
-            {openDropdown && (
-              <UserSearchResults
-                results={searchResults}
-                onResultClick={handleSearchResultClick}
-              />
-            )}
           </Box>
+        </Zoom>
+
+        {/* Search Bar */}
+        <ClickAwayListener onClickAway={() => setSearchInput('')}>
+          <Fade in={!loading} timeout={800}>
+            <Box sx={{
+              p: 2,
+              width: '100%',
+              maxWidth: 600,
+              mx: 'auto',
+              mt: 2
+            }}>
+              <SearchBar
+                value={searchInput}
+                onChange={setSearchInput}
+                placeholder="Search your profile..."
+              />
+            </Box>
+          </Fade>
         </ClickAwayListener>
 
         {/* Profile Sections */}
-        <ProfileInfoSection
-          userData={userData}
-          isMobile={isMobile}
-          formatDate={formatDate}
-        />
+        <Fade in={!loading} timeout={1000}>
+          <Box>
+            <ProfileInfoSection
+              userData={userData}
+              isMobile={isMobile}
+              formatDate={formatDate}
+            />
 
-        <Box sx={{
-          maxWidth: 'lg',
-          mx: 'auto',
-          px: { xs: 2, sm: 3, md: 4 }
-        }}>
-          <ProfileStats userData={userData} />
+            <Box sx={{
+              maxWidth: 'lg',
+              mx: 'auto',
+              px: { xs: 2, sm: 3, md: 4 }
+            }}>
+              <ProfileStats userData={userData} />
 
-          <ProfileTabs
-            tabValue={tabValue}
-            handleTabChange={(_, val) => setTabValue(val)}
-            privacy={privacy}
-            privacyChanged={privacyChanged}
-            handlePrivacyChange={handlePrivacyUpdate}
-            onSavePrivacy={() => {
-              dispatch(showSnackbar({
-                message: 'Privacy settings saved',
-                severity: 'success'
-              }));
-              setPrivacyChanged(false);
-            }}
-            onDeleteAccount={() => setDeleteDialogOpen(true)}
-            userData={userData}
-            formatDate={formatDate}
-          />
-        </Box>
+              <ProfileTabs
+                tabValue={tabValue}
+                handleTabChange={(_, val) => setTabValue(val)}
+                privacy={privacy}
+                privacyChanged={privacyChanged}
+                handlePrivacyChange={handlePrivacyUpdate}
+                onSavePrivacy={() => {
+                  dispatch(showSnackbar({
+                    message: 'Privacy settings saved!',
+                    severity: 'success'
+                  }));
+                  setPrivacyChanged(false);
+                }}
+                onDeleteAccount={() => setDeleteDialogOpen(true)}
+                userData={userData}
+                formatDate={formatDate}
+              />
+            </Box>
+          </Box>
+        </Fade>
 
         {/* Delete Account Dialog */}
         <DeleteAccountDialog
@@ -333,6 +287,652 @@ const PrivateProfilePage = () => {
 };
 
 export default PrivateProfilePage;
+
+//! running
+/**
+ * PRIVATE PROFILE PAGE COMPONENT - REFACTORED FOR REACT ROUTER v6
+ * Private-only actions with enhanced structure and error handling
+ */
+
+// import { useState, useEffect, useMemo } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigate } from 'react-router-dom';
+// import { ThemeProvider, useMediaQuery, ClickAwayListener } from '@mui/material';
+// import { Box, CircularProgress } from '@mui/material';
+// import theme from '../../../theme';
+
+// // Debug statement
+// console.log('Rendering Private Profile');
+
+// // Redux actions
+// import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
+// import {
+//   fetchUserProfile,
+//   logoutUser,
+//   updateCoverImage
+// } from '../../../features/user/userSlice';
+
+// // Components
+// import ProfileHeader from './ProfileHeader';
+// import ProfileInfoSection from './ProfileInfoSection';
+// import ProfileStats from './ProfileStats';
+// import ProfileTabs from './ProfileTabs';
+// import DeleteAccountDialog from './DeleteAccountDialog';
+// import ProfileActions from './ProfileActions';
+// import SearchBar from '../../SearchBar/SearchBar';
+
+// // Constants
+// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
+// const DEFAULT_COVER_IMAGE = '/default-cover.jpg';
+
+// const PrivateProfilePage = () => {
+//   // Debug statement
+//   console.log('Initializing PrivateProfilePage component');
+
+//   // ====================== INITIALIZATION ======================
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+//   const { profile, loading } = useSelector((state) => state.user);
+
+//   // Debug statement
+//   console.log('Profile loading state:', loading);
+//   console.log('Profile data:', profile);
+
+//   // ====================== STATE MANAGEMENT ======================
+//   const [tabValue, setTabValue] = useState(0);
+//   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+//   const [coverImageLoading, setCoverImageLoading] = useState(false);
+//   const [privacy, setPrivacy] = useState({
+//     profileVisibility: 'public',
+//     emailVisibility: 'friends',
+//     phoneVisibility: 'private'
+//   });
+//   const [privacyChanged, setPrivacyChanged] = useState(false);
+//   const [searchInput, setSearchInput] = useState('');
+
+//   // ====================== DERIVED VALUES ======================
+//   const userId = useMemo(() => {
+//     const id = profile?.user?.id || profile?.id || 'me';
+//     console.log('Derived userId:', id);
+//     return id;
+//   }, [profile]);
+
+//   const userData = useMemo(() => {
+//     const data = profile?.user || profile || {};
+//     const derivedData = {
+//       id: userId,
+//       fullName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+//       email: data.email || 'No email provided',
+//       phone: data.phone || 'No phone provided',
+//       location: data.location || 'Location not set',
+//       website: data.website || null,
+//       bio: data.bio || 'Tell your story...',
+//       isVerified: data.isVerified || false,
+//       profileImage: data.profileImage || DEFAULT_PROFILE_IMAGE,
+//       coverImage: data.coverImage || DEFAULT_COVER_IMAGE,
+//       createdAt: data.createdAt || new Date(),
+//       updatedAt: data.updatedAt || new Date(),
+//       postsCount: data.postsCount || 0,
+//       friendsCount: data.friendsCount || 0,
+//       viewsCount: data.viewsCount || 0,
+//       isCurrentUser: true // Always true for private profile
+//     };
+//     console.log('Derived userData:', derivedData);
+//     return derivedData;
+//   }, [profile, userId]);
+
+//   // ====================== EFFECTS ======================
+//   useEffect(() => {
+//     console.log('Fetching user profile...');
+//     dispatch(fetchUserProfile());
+//   }, [dispatch]);
+
+//   // ====================== UTILITY FUNCTIONS ======================
+//   const formatDate = (dateString) => {
+//     try {
+//       const date = new Date(dateString);
+//       return isNaN(date.getTime()) 
+//         ? 'Unknown date' 
+//         : date.toLocaleDateString('en-US', {
+//             year: 'numeric',
+//             month: 'long',
+//             day: 'numeric'
+//           });
+//     } catch {
+//       return 'Unknown date';
+//     }
+//   };
+
+//   // ====================== EVENT HANDLERS ======================
+//   const handleCreateStory = () => {
+//     console.log('Navigating to create story');
+//     navigate('/create-story');
+//   };
+
+//   const handleEditProfile = () => {
+//     console.log('Navigating to edit profile');
+//     navigate('/my-profile-update');
+//   };
+
+//   const handleViewFriends = () => {
+//     console.log('Navigating to friends list');
+//     navigate('/friends');
+//   };
+
+//   const handlePrivacyUpdate = (field, value) => {
+//     console.log(`Updating privacy setting: ${field} = ${value}`);
+//     setPrivacy(prev => ({ ...prev, [field]: value }));
+//     setPrivacyChanged(true);
+//   };
+
+//   const handleCoverPhotoUpdate = async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     console.log('Attempting to update cover photo with file:', file.name);
+
+//     // Validation
+//     if (!file.type.startsWith('image/')) {
+//       console.warn('Invalid file type attempted:', file.type);
+//       dispatch(showSnackbar({
+//         message: 'Only image files are allowed',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     if (file.size > 5 * 1024 * 1024) {
+//       console.warn('File too large:', file.size);
+//       dispatch(showSnackbar({
+//         message: 'Image size must be less than 5MB',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     setCoverImageLoading(true);
+//     try {
+//       const formData = new FormData();
+//       formData.append('coverImage', file);
+//       console.log('Dispatching cover image update');
+//       await dispatch(updateCoverImage(formData)).unwrap();
+//       dispatch(showSnackbar({
+//         message: 'Cover image updated successfully',
+//         severity: 'success'
+//       }));
+//       console.log('Refetching user profile after update');
+//       await dispatch(fetchUserProfile());
+//     } catch (error) {
+//       console.error('Cover image update failed:', error);
+//       dispatch(showSnackbar({
+//         message: error.message || 'Failed to update cover image',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       setCoverImageLoading(false);
+//       e.target.value = '';
+//     }
+//   };
+
+//   // ====================== RENDER LOGIC ======================
+//   if (loading || !profile) {
+//     console.log('Rendering loading state');
+//     return (
+//       <Box sx={{
+//         display: 'flex',
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         height: '100vh'
+//       }}>
+//         <CircularProgress size={60} />
+//       </Box>
+//     );
+//   }
+
+//   console.log('Rendering profile page with data');
+//   return (
+//     <ThemeProvider theme={theme}>
+//       <Box sx={{
+//         backgroundColor: 'background.default',
+//         minHeight: '100vh',
+//         pb: 6
+//       }}>
+//         {/* Profile Header */}
+//         <ProfileHeader
+//           userData={userData}
+//           isMobile={isMobile}
+//           onCoverPhotoEdit={handleCoverPhotoUpdate}
+//           onProfilePhotoEdit={handleEditProfile}
+//           coverImageLoading={coverImageLoading}
+//         />
+
+//         {/* Profile Actions */}
+//         <ProfileActions
+//           isOwnProfile={true}
+//           onCreateStory={handleCreateStory}
+//           onEditProfile={handleEditProfile}
+//           onViewFriends={handleViewFriends}
+//         />
+
+//         {/* Search Bar */}
+//         <ClickAwayListener onClickAway={() => {}}>
+//           <Box sx={{
+//             p: 2,
+//             width: '100%',
+//             maxWidth: 600,
+//             mx: 'auto'
+//           }}>
+//             <SearchBar
+//               value={searchInput}
+//               onChange={setSearchInput}
+//             />
+//           </Box>
+//         </ClickAwayListener>
+
+//         {/* Profile Sections */}
+//         <ProfileInfoSection
+//           userData={userData}
+//           isMobile={isMobile}
+//           formatDate={formatDate}
+//         />
+
+//         <Box sx={{
+//           maxWidth: 'lg',
+//           mx: 'auto',
+//           px: { xs: 2, sm: 3, md: 4 }
+//         }}>
+//           <ProfileStats userData={userData} />
+
+//           <ProfileTabs
+//             tabValue={tabValue}
+//             handleTabChange={(_, val) => {
+//               console.log('Tab changed to:', val);
+//               setTabValue(val);
+//             }}
+//             privacy={privacy}
+//             privacyChanged={privacyChanged}
+//             handlePrivacyChange={handlePrivacyUpdate}
+//             onSavePrivacy={() => {
+//               console.log('Saving privacy settings');
+//               dispatch(showSnackbar({
+//                 message: 'Privacy settings saved',
+//                 severity: 'success'
+//               }));
+//               setPrivacyChanged(false);
+//             }}
+//             onDeleteAccount={() => {
+//               console.log('Opening delete account dialog');
+//               setDeleteDialogOpen(true);
+//             }}
+//             userData={userData}
+//             formatDate={formatDate}
+//           />
+//         </Box>
+
+//         {/* Delete Account Dialog */}
+//         <DeleteAccountDialog
+//           open={deleteDialogOpen}
+//           onClose={() => {
+//             console.log('Closing delete account dialog');
+//             setDeleteDialogOpen(false);
+//           }}
+//           onConfirm={() => {
+//             console.log('Confirming account deletion');
+//             dispatch(logoutUser());
+//             dispatch(showSnackbar({
+//               message: 'Account deleted successfully',
+//               severity: 'success'
+//             }));
+//             navigate('/');
+//           }}
+//         />
+//       </Box>
+//     </ThemeProvider>
+//   );
+// };
+
+// export default PrivateProfilePage;
+
+
+
+
+//! running
+// /**
+//  * PRIVATE PROFILE PAGE COMPONENT - REFACTORED
+//  * Enhanced with better error handling, safer data access, and improved structure
+//  */
+
+// import { useState, useEffect, useMemo } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigate } from 'react-router-dom';
+// import { ThemeProvider, useMediaQuery, ClickAwayListener } from '@mui/material';
+// import { Box, CircularProgress, Button } from '@mui/material';
+// import theme from '../../../theme';
+
+
+ 
+// // Redux actions
+// import { sendFriendRequest } from '../../../features/friendship/friendshipSlice';
+// import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
+// import {
+//   fetchAllUsers,
+//   fetchUserProfile,
+//   logoutUser,
+//   updateCoverImage
+// } from '../../../features/user/userSlice';
+
+// // Components
+// import ProfileHeader from './ProfileHeader';
+// import ProfileInfoSection from './ProfileInfoSection';
+// import ProfileStats from './ProfileStats';
+// import ProfileTabs from './ProfileTabs';
+// import DeleteAccountDialog from './DeleteAccountDialog';
+// import SearchBar from '../../SearchBar/SearchBar';
+// import UserSearchResults from '../../SearchBar/UserSearchResults';
+
+// // Constants
+// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
+// const DEFAULT_COVER_IMAGE = '/default-cover.jpg';
+
+// const PrivateProfilePage = () => {
+//   // ====================== INITIALIZATION ======================
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+//   const { profile, loading } = useSelector((state) => state.user);
+
+//   // ====================== STATE MANAGEMENT ======================
+//   const [tabValue, setTabValue] = useState(0);
+//   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+//   const [coverImageLoading, setCoverImageLoading] = useState(false);
+//   const [privacy, setPrivacy] = useState({
+//     profileVisibility: 'public',
+//     emailVisibility: 'friends',
+//     phoneVisibility: 'private'
+//   });
+//   const [privacyChanged, setPrivacyChanged] = useState(false);
+//   const [searchInput, setSearchInput] = useState('');
+//   const [searchResults, setSearchResults] = useState([]);
+//   const [openDropdown, setOpenDropdown] = useState(false);
+
+//   // ====================== DERIVED VALUES ======================
+//   const userId = useMemo(() => {
+//     return profile?.user?.id || profile?.id || 'me';
+//   }, [profile]);
+
+//   const userData = useMemo(() => {
+//     const data = profile?.user || profile || {};
+//     return {
+//       id: userId,
+//       fullName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+//       email: data.email || 'No email provided',
+//       phone: data.phone || 'No phone provided',
+//       location: data.location || 'Location not set',
+//       website: data.website || null,
+//       bio: data.bio || 'Tell your story...',
+//       isVerified: data.isVerified || false,
+//       profileImage: data.profileImage || DEFAULT_PROFILE_IMAGE,
+//       coverImage: data.coverImage || DEFAULT_COVER_IMAGE,
+//       createdAt: data.createdAt || new Date(),
+//       updatedAt: data.updatedAt || new Date(),
+//       postsCount: data.postsCount || 0,
+//       friendsCount: data.friendsCount || 0,
+//       viewsCount: data.viewsCount || 0,
+//       isCurrentUser: true // Always true for private profile
+//     };
+//   }, [profile, userId]);
+
+//   // ====================== EFFECTS ======================
+//   useEffect(() => {
+//     dispatch(fetchUserProfile());
+//   }, [dispatch]);
+
+//   useEffect(() => {
+//     const searchUsers = async () => {
+//       if (!searchInput.trim()) {
+//         setSearchResults([]);
+//         setOpenDropdown(false);
+//         return;
+//       }
+
+//       try {
+//         const action = await dispatch(fetchAllUsers({
+//           search: searchInput,
+//           page: 1,
+//           limit: 5,
+//           excludeCurrent: true,
+//         }));
+        
+//         const filteredResults = (action.payload?.users || [])
+//           .filter(user => user._id !== userId);
+        
+//         setSearchResults(filteredResults);
+//         setOpenDropdown(filteredResults.length > 0);
+//       } catch (error) {
+//         console.error('Search failed:', error);
+//         setSearchResults([]);
+//         setOpenDropdown(false);
+//       }
+//     };
+
+//     const debounceTimer = setTimeout(searchUsers, 300);
+//     return () => clearTimeout(debounceTimer);
+//   }, [searchInput, dispatch, userId]);
+
+//   // ====================== UTILITY FUNCTIONS ======================
+//   const formatDate = (dateString) => {
+//     try {
+//       const date = new Date(dateString);
+//       return isNaN(date.getTime()) 
+//         ? 'Unknown date' 
+//         : date.toLocaleDateString('en-US', {
+//             year: 'numeric',
+//             month: 'long',
+//             day: 'numeric'
+//           });
+//     } catch {
+//       return 'Unknown date';
+//     }
+//   };
+
+//   // ====================== EVENT HANDLERS ======================
+//   const handleSearchResultClick = (userId) => {
+//     setSearchInput('');
+//     setOpenDropdown(false);
+//     navigate(`/profile/${userId}`);
+//   };
+
+//   const handleAddFriend = async () => {
+//     try {
+//       await dispatch(sendFriendRequest({ targetUserId: userId })).unwrap();
+//       dispatch(showSnackbar({
+//         message: 'Friend request sent successfully!',
+//         severity: 'success'
+//       }));
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: error?.message || 'Failed to send friend request',
+//         severity: 'warning'
+//       }));
+//     }
+//   };
+
+//   const handlePrivacyUpdate = (field, value) => {
+//     setPrivacy(prev => ({ ...prev, [field]: value }));
+//     setPrivacyChanged(true);
+//   };
+
+//   const handleCoverPhotoUpdate = async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     // Validation
+//     if (!file.type.startsWith('image/')) {
+//       dispatch(showSnackbar({
+//         message: 'Only image files are allowed',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     if (file.size > 5 * 1024 * 1024) {
+//       dispatch(showSnackbar({
+//         message: 'Image size must be less than 5MB',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     setCoverImageLoading(true);
+//     try {
+//       const formData = new FormData();
+//       formData.append('coverImage', file);
+//       await dispatch(updateCoverImage(formData)).unwrap();
+//       dispatch(showSnackbar({
+//         message: 'Cover image updated successfully',
+//         severity: 'success'
+//       }));
+//       await dispatch(fetchUserProfile());
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: error.message || 'Failed to update cover image',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       setCoverImageLoading(false);
+//       e.target.value = '';
+//     }
+//   };
+
+//   const handleProfileNavigation = () => navigate('/my-profile-update');
+//   const handlePublicPreview = () => navigate(`/profile/${userId}`);
+
+//   // ====================== RENDER LOGIC ======================
+//   if (loading || !profile) {
+//     return (
+//       <Box sx={{
+//         display: 'flex',
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         height: '100vh'
+//       }}>
+//         <CircularProgress size={60} />
+//       </Box>
+//     );
+//   }
+
+//   return (
+//     <ThemeProvider theme={theme}>
+//       <Box sx={{
+//         backgroundColor: 'background.default',
+//         minHeight: '100vh',
+//         pb: 6
+//       }}>
+//         {/* Profile Header */}
+//         <ProfileHeader
+//           userData={userData}
+//           isMobile={isMobile}
+//           onCoverPhotoEdit={handleCoverPhotoUpdate}
+//           onProfilePhotoEdit={handleProfileNavigation}
+//           coverImageLoading={coverImageLoading}
+//         />
+
+//         {/* Public Preview Button */}
+//         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+//           <Button
+//             variant="contained"
+//             color="secondary"
+//             onClick={handlePublicPreview}
+//             sx={{
+//               borderRadius: '20px',
+//               boxShadow: 2,
+//               '&:hover': {
+//                 boxShadow: 4,
+//                 transform: 'translateY(-2px)'
+//               }
+//             }}
+//           >
+//             Preview Public Profile
+//           </Button>
+//         </Box>
+
+//         {/* Enhanced Search */}
+//         <ClickAwayListener onClickAway={() => setOpenDropdown(false)}>
+//           <Box sx={{
+//             p: 2,
+//             position: 'relative',
+//             width: '100%',
+//             maxWidth: 600,
+//             mx: 'auto'
+//           }}>
+//             <SearchBar
+//               value={searchInput}
+//               onChange={setSearchInput}
+//               onFocus={() => searchResults.length && setOpenDropdown(true)}
+//             />
+
+//             {openDropdown && (
+//               <UserSearchResults
+//                 results={searchResults}
+//                 onResultClick={handleSearchResultClick}
+//               />
+//             )}
+//           </Box>
+//         </ClickAwayListener>
+
+//         {/* Profile Sections */}
+//         <ProfileInfoSection
+//           userData={userData}
+//           isMobile={isMobile}
+//           formatDate={formatDate}
+//         />
+
+//         <Box sx={{
+//           maxWidth: 'lg',
+//           mx: 'auto',
+//           px: { xs: 2, sm: 3, md: 4 }
+//         }}>
+//           <ProfileStats userData={userData} />
+
+//           <ProfileTabs
+//             tabValue={tabValue}
+//             handleTabChange={(_, val) => setTabValue(val)}
+//             privacy={privacy}
+//             privacyChanged={privacyChanged}
+//             handlePrivacyChange={handlePrivacyUpdate}
+//             onSavePrivacy={() => {
+//               dispatch(showSnackbar({
+//                 message: 'Privacy settings saved',
+//                 severity: 'success'
+//               }));
+//               setPrivacyChanged(false);
+//             }}
+//             onDeleteAccount={() => setDeleteDialogOpen(true)}
+//             userData={userData}
+//             formatDate={formatDate}
+//           />
+//         </Box>
+
+//         {/* Delete Account Dialog */}
+//         <DeleteAccountDialog
+//           open={deleteDialogOpen}
+//           onClose={() => setDeleteDialogOpen(false)}
+//           onConfirm={() => {
+//             dispatch(logoutUser());
+//             dispatch(showSnackbar({
+//               message: 'Account deleted successfully',
+//               severity: 'success'
+//             }));
+//             navigate('/');
+//           }}
+//         />
+//       </Box>
+//     </ThemeProvider>
+//   );
+// };
+
+// export default PrivateProfilePage;
 
 
 

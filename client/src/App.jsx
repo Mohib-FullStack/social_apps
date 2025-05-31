@@ -22,8 +22,6 @@ import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar/Navbar';
 
-
-
 const App = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -45,16 +43,22 @@ const App = () => {
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
-            
+
             {/* Profile Routes */}
+            {/* <Route path="/profile/me" element={<PrivateProfilePage />} />
+            <Route path="/profile/public/:id" element={<PublicProfilePage />} /> */}
+
             <Route path="/profile/me" element={<PrivateProfilePage />} />
-            <Route path="/profile/public/:id" element={<PublicProfilePage />} />
-            
+            <Route path="/profile/:id" element={<PublicProfilePage />} />
+
             {/* Protected/User-Specific Routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="/my-profile-update" element={<PrivateProfileUpdate />} />
-                      <Route path="/update-user/:id" element={<UpdateUserById />} />
+            <Route
+              path="/my-profile-update"
+              element={<PrivateProfileUpdate />}
+            />
+            <Route path="/update-user/:id" element={<UpdateUserById />} />
             <Route path="/user-table" element={<UserTable />} />
 
             {/* Chat Routes */}
@@ -74,11 +78,6 @@ const App = () => {
 };
 
 export default App;
-
-
-
-
-
 
 // old
 // import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -163,24 +162,6 @@ export default App;
 // };
 
 // export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //! test with wraper
 // import { LocalizationProvider } from '@mui/x-date-pickers';

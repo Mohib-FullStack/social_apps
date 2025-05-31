@@ -4785,7 +4785,7 @@ handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
 
 ### **Key Difference in Action Buttons (Own Profile vs. Others' Profile):**  
 1. **Facebook (our Goal):**  
-   - **Own Profile:** Shows **"Add to story," "Edit profile," "See all"** (focused on *managing your own content*).  
+   - **Own Profile:** Shows **"Add to story," "See all"** (focused on *managing your own content*).  
    - **Others' Profile:** Shows **"Message," "Follow," "Add friend"** (focused on *interacting with others*).  
 
    ### **Recommendation:**  
@@ -4794,9 +4794,9 @@ handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
   - Hide "Follow/Message" on your own profile.  
   - Use clear, functional buttons (not placeholders like [ ]).  
 
-2. **Your SocialApp (Current State):**  
-   - **Own Profile (384):** No clear action buttons (just "MESSAGE" and tabs).  
-   - **Others' Profile (385):** Broken/unclear buttons (empty checkboxes).  
+2. **our SocialApp (Current State):**  
+   - **Own Profile :** No clear action buttons (just "MESSAGE" and tabs).  
+   - **Others' Profile :** Broken/unclear buttons (empty checkboxes).  
 
 ### **What’s Missing in Your App:**  
 - **Own Profile:** Should have buttons like **"Edit Profile," "Add Post/Story," "Manage Friends"** (user-controlled actions).  

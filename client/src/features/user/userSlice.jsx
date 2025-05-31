@@ -638,7 +638,8 @@
 // export default userSlice.reducer;
 
 
-//! new
+// ! new
+// src/features/user/userSlice.js
 // src/features/user/userSlice.js
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axiosInstance from '../../axiosInstance';
@@ -648,6 +649,18 @@ const handleRejected = (state, action) => {
   state.status = 'failed';
   state.error = action.payload || 'An error occurred';
 };
+
+// Selectors
+export const selectCurrentUser = (state) => state.user.user;
+export const selectCurrentProfile = (state) => state.user.profile;
+export const selectPublicProfile = (state) => state.user.publicProfile;
+export const selectPublicProfileStatus = (state) => state.user.publicProfileStatus;
+export const selectPublicProfileError = (state) => state.user.publicProfileError;
+export const selectIsAdmin = (state) => state.user.isAdmin;
+export const selectIsAuthenticated = (state) => state.user.loggedIn;
+export const selectUsers = (state) => state.user.users;
+export const selectUserStatus = (state) => state.user.status;
+export const selectUserError = (state) => state.user.error;
 
 // Async Thunks
 //! Login User
@@ -729,7 +742,7 @@ export const fetchPublicProfile = createAsyncThunk(
   'user/fetchPublicProfile',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get(`/users/profile/public/${userId}`);
+      const response = await axiosInstance.get(`/users/profile/${userId}`);
       if (!response.data?.payload?.id) {
         throw new Error('Invalid profile data structure');
       }
@@ -953,12 +966,52 @@ export const fetchChats = createAsyncThunk(
   }
 );
 
+// const initialState = {
+//   user: null,
+//   profile: null,
+//   publicProfile: null,
+//   publicProfileStatus: 'idle',
+//   publicProfileError: null,
+//   currentUserId: null,
+//   users: [],
+//   status: 'idle',
+//   error: null,
+//   loggedIn: false,
+//   isAdmin: false,
+//   updatePasswordMessage: '',
+//   resetPasswordMessage: '',
+//   activationMessage: '',
+// };
+
+// const userSlice = createSlice({
+//   name: 'user',
+//   initialState,
+//   reducers: {
+//     logout(state) {
+//       localStorage.removeItem('accessToken');
+//       localStorage.removeItem('refreshToken');
+//       state.user = null;
+//       state.profile = null;
+//       state.loggedIn = false;
+//       state.isAdmin = false;
+//       state.publicProfile = null;
+//       state.publicProfileStatus = 'idle';
+//       state.publicProfileError = null;
+//     },
+//     setLoggedInUser(state, action) {
+//       state.user = action.payload;
+//       state.loggedIn = true;
+//       state.isAdmin = action.payload?.isAdmin || false;
+//     }
+//   },
+
 const initialState = {
   user: null,
   profile: null,
   publicProfile: null,
   publicProfileStatus: 'idle',
   publicProfileError: null,
+  currentUserId: null,
   users: [],
   status: 'idle',
   error: null,
@@ -988,17 +1041,30 @@ const userSlice = createSlice({
       state.user = action.payload;
       state.loggedIn = true;
       state.isAdmin = action.payload?.isAdmin || false;
+    },
+    clearPublicProfile(state) {
+      state.publicProfile = null;
+      state.publicProfileStatus = 'idle';
+      state.publicProfileError = null;
     }
   },
   extraReducers: (builder) => {
     builder
       // Login User
+      // .addCase(loginUser.fulfilled, (state, action) => {
+      //   state.loggedIn = true;
+      //   state.user = action.payload.user || action.payload;
+      //   state.isAdmin = action.payload.user?.isAdmin || false;
+      //   state.error = null;
+      // })
       .addCase(loginUser.fulfilled, (state, action) => {
-        state.loggedIn = true;
-        state.user = action.payload.user || action.payload;
-        state.isAdmin = action.payload.user?.isAdmin || false;
-        state.error = null;
-      })
+  state.loggedIn = true;
+  state.user = action.payload.user || action.payload;
+  state.profile = action.payload.user || action.payload; // Ensure profile is set
+  state.isAdmin = action.payload.user?.isAdmin || false;
+  state.error = null;
+})
+
       .addCase(loginUser.rejected, handleRejected)
 
       // Logout User
@@ -1026,27 +1092,42 @@ const userSlice = createSlice({
         state.status = 'loading';
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
-        state.profile = action.payload;
-        state.user = action.payload;
-        state.loggedIn = true;
-        state.isAdmin = action.payload?.isAdmin || false;
-        state.status = 'succeeded';
-      })
+  state.profile = action.payload
+  state.currentUserId = action.payload.id})
+
+    //   .addCase(fetchUserProfile.fulfilled, (state, action) => {
+    //     state.profile = action.payload;
+    //     state.user = action.payload;
+    //     state.loggedIn = true;
+    //     state.isAdmin = action.payload?.isAdmin || false;
+    //     state.status = 'succeeded';
+    //   })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })
 
       // Update Private Profile
-      .addCase(updatePrivateProfile.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.profile = action.payload;
-        if (action.payload.user) {
-          state.user = action.payload.user;
-          state.isAdmin = action.payload.user?.isAdmin || false;
-        }
-      })
-      .addCase(updatePrivateProfile.rejected, handleRejected)
+      // .addCase(updatePrivateProfile.fulfilled, (state, action) => {
+      //   state.status = 'succeeded';
+      //   state.profile = action.payload;
+      //   if (action.payload.user) {
+      //     state.user = action.payload.user;
+      //     state.isAdmin = action.payload.user?.isAdmin || false;
+      //   }
+      // })
+      // .addCase(updatePrivateProfile.rejected, handleRejected)
+      .addCase(updatePrivateProfile.pending, (state) => {
+  state.status = 'loading';
+})
+.addCase(updatePrivateProfile.fulfilled, (state, action) => {
+  state.status = 'succeeded';
+  state.profile = action.payload;
+})
+.addCase(updatePrivateProfile.rejected, (state, action) => {
+  state.status = 'failed';
+  state.error = action.payload;
+})
 
       // Update Cover Image
       .addCase(updateCoverImage.pending, (state) => {
@@ -1085,10 +1166,16 @@ const userSlice = createSlice({
         state.publicProfileStatus = 'loading';
         state.publicProfileError = null;
       })
-      .addCase(fetchPublicProfile.fulfilled, (state, action) => {
-        state.publicProfileStatus = 'succeeded';
-        state.publicProfile = action.payload;
-      })
+      // .addCase(fetchPublicProfile.fulfilled, (state, action) => {
+      //   state.publicProfileStatus = 'succeeded';
+      //   state.publicProfile = action.payload;
+      // })
+.addCase(fetchPublicProfile.fulfilled, (state, action) => {
+  state.publicProfileStatus = 'succeeded';
+  state.publicProfile = action.payload;
+  console.log('Stored public profile:', action.payload.id); // Debug log
+})
+
       .addCase(fetchPublicProfile.rejected, (state, action) => {
         state.publicProfileStatus = 'failed';
         state.publicProfileError = action.payload;
@@ -1161,13 +1248,21 @@ const userSlice = createSlice({
       })
 
       // Refresh Access Token
+      // .addCase(refreshAccessToken.fulfilled, (state, action) => {
+      //   state.loggedIn = true;
+      //   if (action.payload.user) {
+      //     state.user = action.payload.user;
+      //     state.isAdmin = action.payload.user?.isAdmin || false;
+      //   }
+      // })
       .addCase(refreshAccessToken.fulfilled, (state, action) => {
-        state.loggedIn = true;
-        if (action.payload.user) {
-          state.user = action.payload.user;
-          state.isAdmin = action.payload.user?.isAdmin || false;
-        }
-      })
+  state.loggedIn = true;
+  if (action.payload.user) {
+    state.user = action.payload.user;
+    state.profile = action.payload.user; // Update profile
+    state.isAdmin = action.payload.user?.isAdmin || false;
+  }
+})
       .addCase(refreshAccessToken.rejected, (state) => {
         state.loggedIn = false;
         state.user = null;
@@ -1204,3 +1299,6 @@ const userSlice = createSlice({
 
 export const { logout, setLoggedInUser } = userSlice.actions;
 export default userSlice.reducer;
+
+
+

@@ -64,7 +64,7 @@ const PostCard = ({ author, content, date, likes, comments, shares, image, profi
           startIcon={<LikeIcon color="error" />}
           sx={{ color: 'text.secondary' }}
         >
-          React
+          Like
         </Button>
         <Button 
           startIcon={<CommentIcon color="info" />}

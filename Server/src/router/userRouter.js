@@ -6,7 +6,7 @@ const {
   handleGetUserById,
   handleUpdateUserById,
   handleDeleteUserById,
-  handleFetchUserProfile,
+  handleGetPrivateProfile,
   handleProcessRegister,
   handleBanUserById,
   handleUnbanUserById,
@@ -21,6 +21,7 @@ const {
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
   handleUpdateCoverImage,
+
 } = require('../controller/userController');
 
 const { isLoggedIn, isAdmin } = require('../middleware/authMiddleware');
@@ -69,8 +70,11 @@ userRouter.put(
 );
 
 //! Profile Routes
-userRouter.get('/profile/public/:id', isLoggedIn, handleGetPublicProfile);
-userRouter.get('/profile/me', isLoggedIn, handleFetchUserProfile); // Your existing profile route
+// Private profile (requires auth)
+userRouter.get('/profile/me', isLoggedIn,handleGetPrivateProfile);
+
+// Public profile (viewable by anyone)
+userRouter.get('/profile/:id', handleGetPublicProfile);
 
 userRouter.put(
   '/profile/me',

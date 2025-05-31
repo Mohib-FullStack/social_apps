@@ -176,8 +176,136 @@ const handleActivateUser = async (req, res, next) => {
 };
 
 // 🔵 USER PROFILE MANAGEMENT
-//! Handle fetch private user profile
-const handleFetchUserProfile = async (req, res, next) => {
+//! Handle Get private profile
+// const handleGetPrivateProfile = async (req, res, next) => {
+//   try {
+//     const userId = req.user?.id; // Safely extract user ID from JWT
+
+//     // Log userId for debugging
+//     console.log('User ID from request:', userId);
+
+//     if (!userId) {
+//       console.error('User ID is missing in the request.');
+//       return errorResponse(res, {
+//         statusCode: 401,
+//         message: 'Unauthorized. User ID is not found in the request.',
+//       });
+//     }
+
+//     // Log before querying the database
+//     console.log(
+//       'Attempting to fetch user profile from DB for user ID:',
+//       userId
+//     );
+
+//     const user = await User.findByPk(userId, {
+//       attributes: { exclude: ['password', 'isAdmin'] },
+//     });
+
+//     // Log the result of the query
+//     console.log('User fetched from DB:', user);
+
+//     if (!user) {
+//       console.error('User not found in the database.');
+//       return errorResponse(res, {
+//         statusCode: 404,
+//         message: 'User not found',
+//       });
+//     }
+
+//     // Successful response
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'User profile retrieved successfully',
+//       payload: { user },
+//     });
+//   } catch (error) {
+//     // Log detailed error
+//     console.error('Error fetching user profile:', error);
+//     return errorResponse(res, {
+//       statusCode: 500,
+//       message: 'An error occurred while fetching the user profile',
+//     });
+//   }
+// };
+
+// //! 🛡️ Get Public Profile (for other users) with ID
+// const handleGetPublicProfile = async (req, res, next) => {
+//   try {
+//     const rawId = req.params.id;
+
+//     // 1️⃣ Validate presence
+//     if (!rawId || rawId === 'undefined') {
+//       return errorResponse(res, {
+//         statusCode: 400,
+//         message: 'User ID is required',
+//       });
+//     }
+
+//     // 2️⃣ Reject the literal "me" on public route
+//     if (rawId === 'me') {
+//       return errorResponse(res, {
+//         statusCode: 400,
+//         message: 'Invalid user ID for public profile',
+//       });
+//     }
+
+//     // 3️⃣ Optionally coerce to integer and validate
+//     const userId = parseInt(rawId, 10);
+//     if (isNaN(userId)) {
+//       return errorResponse(res, {
+//         statusCode: 400,
+//         message: 'User ID must be a number',
+//       });
+//     }
+
+//     // 4️⃣ Fetch the user
+//     const user = await User.findByPk(userId, {
+//       attributes: {
+//         exclude: ['password', 'isAdmin', 'emailVerifyToken'],
+//       },
+//       raw: true,
+//     });
+
+//     // 5️⃣ Not found?
+//     if (!user) {
+//       return errorResponse(res, {
+//         statusCode: 404,
+//         message: 'User not found',
+//       });
+//     }
+
+//     // 6️⃣ Build public payload
+//     const publicData = {
+//       id: user.id,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       profileImage: user.profileImage,
+//       coverImage: user.coverImage || '/default-cover.jpg',
+//       bio: user.bio,
+//       website: user.website,
+//       email: user.email,
+//       phone: user.phone,
+//       birthDate: user.birthDate,
+//       gender: user.gender,
+//       createdAt: user.createdAt,
+//       updatedAt: user.updatedAt,
+//     };
+
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'Public profile retrieved successfully',
+//       payload: publicData,
+//     });
+//   } catch (error) {
+//     console.error('Error in handleGetPublicProfile:', error);
+//     next(error);
+//   }
+// };
+
+// 🔵 USER PROFILE MANAGEMENT
+//! Handle Get private profile
+const handleGetPrivateProfile = async (req, res, next) => {
   try {
     const userId = req.user?.id; // Safely extract user ID from JWT
 
@@ -213,11 +341,14 @@ const handleFetchUserProfile = async (req, res, next) => {
       });
     }
 
-    // Successful response
+    // Successful response with isOwnProfile: true
     return successResponse(res, {
       statusCode: 200,
       message: 'User profile retrieved successfully',
-      payload: { user },
+      payload: { 
+        ...user.toJSON(),
+        isOwnProfile: true 
+      },
     });
   } catch (error) {
     // Log detailed error
@@ -233,6 +364,7 @@ const handleFetchUserProfile = async (req, res, next) => {
 const handleGetPublicProfile = async (req, res, next) => {
   try {
     const rawId = req.params.id;
+    const requestingUserId = req.user?.id; // Get the current user's ID if authenticated
 
     // 1️⃣ Validate presence
     if (!rawId || rawId === 'undefined') {
@@ -275,7 +407,7 @@ const handleGetPublicProfile = async (req, res, next) => {
       });
     }
 
-    // 6️⃣ Build public payload
+    // 6️⃣ Build public payload with isOwnProfile flag
     const publicData = {
       id: user.id,
       firstName: user.firstName,
@@ -290,6 +422,7 @@ const handleGetPublicProfile = async (req, res, next) => {
       gender: user.gender,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      isOwnProfile: requestingUserId ? requestingUserId === userId : false,
     };
 
     return successResponse(res, {
@@ -1314,7 +1447,7 @@ const handleUnbanUserById = async (req, res, next) => {
 module.exports = {
   handleProcessRegister,
   handleActivateUser,
-  handleFetchUserProfile,
+handleGetPrivateProfile,
   handleGetPublicProfile,
   handleUpdatePrivateProfile,
   handleUpdateCoverImage,
