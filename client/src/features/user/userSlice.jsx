@@ -706,6 +706,11 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
+
+
+
+
+
 //! Fetch Protected Data
 export const getProtectedData = createAsyncThunk(
   'user/getProtectedData',

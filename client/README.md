@@ -4783,29 +4783,236 @@ handleAddFriend={!isOwnProfile ? handleAddFriend : undefined}
 
 ###### Profile Action  
 
-### **Key Difference in Action Buttons (Own Profile vs. Others' Profile):**  
-1. **Facebook (our Goal):**  
-   - **Own Profile:** Shows **"Add to story," "See all"** (focused on *managing your own content*).  
-   - **Others' Profile:** Shows **"Message," "Follow," "Add friend"** (focused on *interacting with others*).  
+Here's a professional approach to friend requests in social apps, with diagrams and best practices:
 
-   ### **Recommendation:**  
-- Mirror Facebook’s logic:  
-  - Hide "Edit Profile" on others’ profiles.  
-  - Hide "Follow/Message" on your own profile.  
-  - Use clear, functional buttons (not placeholders like [ ]).  
+---
 
-2. **our SocialApp (Current State):**  
-   - **Own Profile :** No clear action buttons (just "MESSAGE" and tabs).  
-   - **Others' Profile :** Broken/unclear buttons (empty checkboxes).  
+### **Friend Request Flow Diagram**
 
-### **What’s Missing in Your App:**  
-- **Own Profile:** Should have buttons like **"Edit Profile," "Add Post/Story," "Manage Friends"** (user-controlled actions).  
-- **Others' Profile:** Should show **"Message," "Follow," "Add Friend"** (interaction options).  
+```mermaid
+stateDiagram-v2
+    [*] --> NoRelationship
+    NoRelationship --> Pending: User A sends request to User B
+    Pending --> Accepted: User B accepts
+    Pending --> Declined: User B declines
+    Accepted --> Blocked: Either user blocks
+    Declined --> NoRelationship: Can resend after cooling period
+    Blocked --> [*]: Permanent until unblocked
+```
 
-### **Recommendation:**  
-- Mirror Facebook’s logic:  
-  - Hide "Edit Profile" on others’ profiles.  
-  - Hide "Follow/Message" on your own profile.  
-  - Use clear, functional buttons (not placeholders like [ ]).  
+---
 
-This separation ensures users intuitively know *whose profile they’re viewing* and what actions they can take. Would you like mockups for how to implement this?
+### **Best Practices for Friend Requests**
+
+#### 1. **Database Schema**
+```javascript
+// Friendship Model
+{
+  requester: { type: Schema.Types.ObjectId, ref: 'User' },  // Who sent
+  recipient: { type: Schema.Types.ObjectId, ref: 'User' }, // Who received
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'declined', 'blocked'],
+    default: 'pending'
+  },
+  actionBy: { type: Schema.Types.ObjectId, ref: 'User' }, // Who last acted
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### 2. **State Management Rules**
+
+| Action | Allowed When | Notification | DB Update |
+|--------|--------------|--------------|-----------|
+| Send Request | status=null | "Request sent to [user]" | Create new `pending` record |
+| Cancel Request | status=pending AND requester=currentUser | "Request cancelled" | Delete record |
+| Accept Request | status=pending AND recipient=currentUser | "You're now friends with [user]" | Update to `accepted` |
+| Decline Request | status=pending AND recipient=currentUser | "Request declined" | Update to `declined` |
+| Block User | Any status | "[user] blocked" | Update to `blocked` |
+
+#### 3. **Frontend Validation (Before API Call)**
+```javascript
+function canSendRequest(currentUser, targetUser) {
+  const existingStatus = checkExistingFriendship(currentUser.id, targetUser.id);
+  
+  if (!existingStatus) return true;
+  if (existingStatus === 'declined') {
+    return isCoolingPeriodPassed(); // e.g., 1 week
+  }
+  
+  return false;
+}
+```
+
+---
+
+### **Professional Implementation**
+
+#### Backend Controller (Enhanced)
+```javascript
+// friendshipsController.js
+const sendFriendRequest = async (req, res) => {
+  try {
+    const { recipientId } = req.body;
+    
+    // 1. Validate
+    const existing = await Friendship.findOne({
+      $or: [
+        { requester: req.user.id, recipient: recipientId },
+        { requester: recipientId, recipient: req.user.id }
+      ]
+    });
+
+    if (existing) {
+      switch (existing.status) {
+        case 'pending':
+          return res.status(400).json({ 
+            code: 'REQUEST_PENDING',
+            message: 'Friend request already pending' 
+          });
+        case 'accepted':
+          return res.status(400).json({
+            code: 'ALREADY_FRIENDS', 
+            message: 'You are already friends'
+          });
+        case 'blocked':
+          return res.status(403).json({
+            code: 'BLOCKED',
+            message: 'This friendship is blocked'
+          });
+      }
+    }
+
+    // 2. Create
+    const friendship = await Friendship.create({
+      requester: req.user.id,
+      recipient: recipientId,
+      status: 'pending',
+      actionBy: req.user.id
+    });
+
+    // 3. Notify
+    await Notification.create({
+      recipient: recipientId,
+      type: 'friend_request',
+      sender: req.user.id,
+      metadata: { friendshipId: friendship._id }
+    });
+
+    // 4. Real-time update
+    req.io.to(`user-${recipientId}`).emit('new_notification', {
+      type: 'friend_request',
+      from: req.user.id
+    });
+
+    res.status(201).json(friendship);
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+```
+
+#### Frontend Handling
+```javascript
+// friendshipSlice.js
+const sendFriendRequest = createAsyncThunk(
+  'friendship/sendRequest',
+  async (recipientId, { getState, rejectWithValue }) => {
+    try {
+      const { user, friendship } = getState();
+      
+      // Pre-check
+      const existing = friendship.relationships[recipientId];
+      if (existing) {
+        switch (existing.status) {
+          case 'pending':
+            throw { code: 'REQUEST_PENDING' };
+          case 'accepted':
+            throw { code: 'ALREADY_FRIENDS' };
+        }
+      }
+
+      const response = await api.post('/friendships', { recipientId });
+      return response.data;
+
+    } catch (error) {
+      switch (error.code) {
+        case 'REQUEST_PENDING':
+          showSnackbar('Your previous request is still pending');
+          break;
+        case 'ALREADY_FRIENDS':
+          showSnackbar('You are already friends');
+          break;
+      }
+      return rejectWithValue(error);
+    }
+  }
+);
+```
+
+---
+
+### **Key Professional Patterns**
+
+1. **Atomic Operations**:
+   - Check → Create → Notify in single transaction
+
+2. **Status Codes**:
+   - Use specific codes (`ALREADY_FRIENDS`) not just HTTP statuses
+
+3. **Cooling Period**:
+   ```javascript
+   // After decline
+   const COOLING_PERIOD = 7 * 24 * 60 * 60 * 1000; // 1 week
+   if (existing.status === 'declined' && 
+       Date.now() - existing.updatedAt < COOLING_PERIOD) {
+     throw { code: 'COOLING_PERIOD' };
+   }
+   ```
+
+4. **Real-time Updates**:
+   - Socket.io rooms for user-specific notifications
+   ```javascript
+   // When user connects
+   socket.join(`user-${userId}`);
+   ```
+
+5. **Audit Logging**:
+   ```javascript
+   // Log all friendship state changes
+   FriendshipLog.create({
+     friendship: friendship._id,
+     changedBy: userId,
+     fromStatus: oldStatus,
+     toStatus: newStatus
+   });
+   ```
+
+---
+
+### **Facebook-Style Enhancements**
+
+1. **Request Limits**:
+   - Max 500 pending requests per user
+   - Rate limiting (e.g., 10 requests/hour)
+
+2. **Smart Notifications**:
+   - Only notify if recipient interacted with sender before
+   - "You may know" suggestions instead of direct requests
+
+3. **Decline Options**:
+   - "Decline" (can request again)
+   - "Decline and block" (permanent)
+
+4. **Request Expiry**:
+   ```javascript
+   // Auto-expire after 30 days
+   Friendship.deleteMany({
+     status: 'pending',
+     createdAt: { $lt: new Date(Date.now() - 30 * 86400000) }
+   });
+   ```
+
+This architecture ensures professional-grade reliability while preventing spammy behavior. Would you like me to elaborate on any specific part?

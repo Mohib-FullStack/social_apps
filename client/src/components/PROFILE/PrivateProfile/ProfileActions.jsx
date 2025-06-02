@@ -1,60 +1,82 @@
-// src/components/profile/ProfileActions.jsx
-import { Button, Box } from "@mui/material";
-import { 
-  Send as SendIcon, 
-  PersonAdd as PersonAddIcon, 
+import { Button, Box } from '@mui/material';
+import {
+  Send as SendIcon,
+  PersonAdd as PersonAddIcon,
   HourglassEmpty as HourglassEmptyIcon,
   Add as AddIcon,
   Edit as EditIcon,
   ArrowForward as ArrowForwardIcon,
   Check as CheckIcon,
-  MoreHoriz as MoreHorizIcon
-} from "@mui/icons-material";
-import PropTypes from "prop-types";
+  MoreHoriz as MoreHorizIcon,
+  Visibility as VisibilityIcon,
+} from '@mui/icons-material';
+import PropTypes from 'prop-types';
 
 const ProfileActions = ({
   isOwnProfile,
-  friendStatus = "not_friends",
+  friendStatus = 'not_friends',
   onAddFriend,
   onMessage,
   onEditProfile,
   onCreateStory,
-  onViewFriends
+  onViewFriends,
+  onViewAsPublic,
 }) => {
   const commonStyles = {
     display: 'flex',
     gap: 2,
     mt: 2,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
   };
 
   const storyButtonStyles = {
     background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366)',
-    color: 'white'
+    color: 'white',
+    '&:hover': {
+      opacity: 0.9,
+    },
+  };
+
+  const viewAsPublicButtonStyles = {
+    background: 'linear-gradient(45deg, #2196F3, #21CBF3)',
+    color: 'white',
+    '&:hover': {
+      opacity: 0.9,
+    },
   };
 
   if (isOwnProfile) {
     return (
       <Box sx={commonStyles}>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={onCreateStory}
           sx={storyButtonStyles}
         >
           Add to story
         </Button>
-        
-        <Button 
-          variant="outlined" 
+
+        <Button
+          variant="contained"
           startIcon={<EditIcon />}
           onClick={onEditProfile}
+          color="primary"
         >
           Edit profile
         </Button>
-        
-        <Button 
-          variant="text" 
+
+        <Button
+          variant="contained"
+          startIcon={<VisibilityIcon />}
+          onClick={onViewAsPublic}
+          sx={viewAsPublicButtonStyles}
+        >
+          View As Public
+        </Button>
+
+        <Button
+          variant="outlined"
           endIcon={<ArrowForwardIcon fontSize="small" />}
           onClick={onViewFriends}
         >
@@ -66,43 +88,43 @@ const ProfileActions = ({
 
   return (
     <Box sx={commonStyles}>
-      {friendStatus === "not_friends" && (
-        <Button 
-          variant="contained" 
+      {friendStatus === 'not_friends' && (
+        <Button
+          variant="contained"
           startIcon={<PersonAddIcon />}
           onClick={onAddFriend}
         >
           Add Friend
         </Button>
       )}
-      
-      {friendStatus === "pending" && (
+
+      {friendStatus === 'pending' && (
         <Button variant="outlined" disabled startIcon={<HourglassEmptyIcon />}>
           Request Sent
         </Button>
       )}
-      
-      {friendStatus === "friends" && (
+
+      {friendStatus === 'friends' && (
         <Button variant="contained" disabled startIcon={<CheckIcon />}>
           Friends
         </Button>
       )}
-      
-      {friendStatus === "following" && (
+
+      {friendStatus === 'following' && (
         <Button variant="outlined" disabled>
           Following
         </Button>
       )}
-      
-      <Button 
-        variant="contained" 
+
+      <Button
+        variant="contained"
         color="secondary"
         startIcon={<SendIcon />}
         onClick={onMessage}
       >
         Message
       </Button>
-      
+
       <Button variant="outlined">
         <MoreHorizIcon />
       </Button>
@@ -112,211 +134,23 @@ const ProfileActions = ({
 
 ProfileActions.propTypes = {
   isOwnProfile: PropTypes.bool.isRequired,
-  friendStatus: PropTypes.oneOf(["friends", "pending", "not_friends", "following"]),
+  friendStatus: PropTypes.oneOf([
+    'friends',
+    'pending',
+    'not_friends',
+    'following',
+  ]),
   onAddFriend: PropTypes.func,
   onMessage: PropTypes.func,
   onEditProfile: PropTypes.func,
   onCreateStory: PropTypes.func,
-  onViewFriends: PropTypes.func
+  onViewFriends: PropTypes.func,
+  onViewAsPublic: PropTypes.func,
 };
 
 ProfileActions.defaultProps = {
-  friendStatus: "not_friends"
+  friendStatus: 'not_friends',
+  onViewAsPublic: () => {},
 };
 
 export default ProfileActions;
-
-
-
-//! running
-// src/components/profile/ProfileActions.jsx
-// import { Button, Box } from "@mui/material";
-// import { 
-//   Send as SendIcon, 
-//   PersonAdd as PersonAddIcon, 
-//   HourglassEmpty,
-//   Add as AddIcon,
-//   Edit as EditIcon,
-//   ArrowForward as ArrowForwardIcon,
-//   Check,
-//   MoreHoriz as MoreHorizIcon
-// } from "@mui/icons-material";
-// import PropTypes from "prop-types";
-
-// const ProfileActions = ({
-//   isOwnProfile,
-//   friendStatus, // "friends" | "pending" | "not_friends" | "following"
-//   onAddFriend,
-//   onMessage,
-//   onEditProfile,
-//   onCreateStory,
-//   onViewFriends
-// }) => {
-//   if (isOwnProfile) {
-//     return (
-//       <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
-//         <Button 
-//           variant="contained" 
-//           startIcon={<AddIcon />}
-//           onClick={onCreateStory}
-//           sx={{
-//             background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366)',
-//             color: 'white'
-//           }}
-//         >
-//           Add to story
-//         </Button>
-//         <Button 
-//           variant="outlined" 
-//           startIcon={<EditIcon />}
-//           onClick={onEditProfile}
-//         >
-//           Edit profile
-//         </Button>
-//         <Button 
-//           variant="text" 
-//           endIcon={<ArrowForwardIcon fontSize="small" />}
-//           onClick={onViewFriends}
-//         >
-//           See all friends
-//         </Button>
-//       </Box>
-//     );
-//   }
-
-//   return (
-//     <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
-//       {friendStatus === "not_friends" && (
-//         <Button 
-//           variant="contained" 
-//           startIcon={<PersonAddIcon />}
-//           onClick={onAddFriend}
-//         >
-//           Add Friend
-//         </Button>
-//       )}
-      
-//       {friendStatus === "pending" && (
-//         <Button variant="outlined" disabled startIcon={<HourglassEmpty />}>
-//           Request Sent
-//         </Button>
-//       )}
-      
-//       {friendStatus === "friends" && (
-//         <Button variant="contained" disabled startIcon={<Check />}>
-//           Friends
-//         </Button>
-//       )}
-      
-//       {friendStatus === "following" && (
-//         <Button variant="outlined" disabled>
-//           Following
-//         </Button>
-//       )}
-      
-//       <Button 
-//         variant="contained" 
-//         color="secondary"
-//         startIcon={<SendIcon />}
-//         onClick={onMessage}
-//       >
-//         Message
-//       </Button>
-      
-//       <Button variant="outlined">
-//         <MoreHorizIcon />
-//       </Button>
-//     </Box>
-//   );
-// };
-
-// ProfileActions.propTypes = {
-//   isOwnProfile: PropTypes.bool.isRequired,
-//   friendStatus: PropTypes.oneOf(["friends", "pending", "not_friends", "following"]),
-//   onAddFriend: PropTypes.func,
-//   onMessage: PropTypes.func,
-//   onEditProfile: PropTypes.func,
-//   onCreateStory: PropTypes.func,
-//   onViewFriends: PropTypes.func
-// };
-
-// export default ProfileActions;
-
-
-
-
-
-
-
-
-
-
-//! old
-// // src/components/profile/ProfileActions.jsx
-// import { Button, Box } from "@mui/material";
-// import { Send, PersonAdd, HourglassEmpty } from "@mui/icons-material";
-// import PropTypes from "prop-types";
-
-// const ProfileActions = ({
-//   isOwnProfile,
-//   friendStatus,   // "friends" | "pending" | "not_friends"
-//   onAddFriend,
-//   onMessage,
-//   onEditProfile,
-//   onCreateStory,
-// }) => {
-//   // 1) Own profile
-//   if (isOwnProfile) {
-//     return (
-//       <Box display="flex" gap={2} mt={2} justifyContent="center" flexWrap="wrap">
-//         {onCreateStory && (
-//           <Button variant="contained" startIcon={<PersonAdd />} onClick={onCreateStory}>
-//             Create Story
-//           </Button>
-//         )}
-//         {onEditProfile && (
-//           <Button variant="outlined" startIcon={<HourglassEmpty />} onClick={onEditProfile}>
-//             Edit Profile
-//           </Button>
-//         )}
-//       </Box>
-//     );
-//   }
-
-//   // 2) Someone else’s profile
-//   return (
-//     <Box display="flex" gap={2} mt={2} justifyContent="center" flexWrap="wrap">
-//       {friendStatus === "not_friends" && onAddFriend && (
-//         <Button variant="contained" startIcon={<PersonAdd />} onClick={onAddFriend}>
-//           Add Friend
-//         </Button>
-//       )}
-//       {friendStatus === "pending" && (
-//         <Button variant="outlined" startIcon={<HourglassEmpty />} disabled>
-//           Pending
-//         </Button>
-//       )}
-//       {friendStatus === "friends" && (
-//         <Button variant="contained" disabled>
-//           Friends
-//         </Button>
-//       )}
-//       {onMessage && (
-//         <Button variant="outlined" startIcon={<Send />} onClick={onMessage}>
-//           Message
-//         </Button>
-//       )}
-//     </Box>
-//   );
-// };
-
-// ProfileActions.propTypes = {
-//   isOwnProfile: PropTypes.bool.isRequired,
-//   friendStatus: PropTypes.oneOf(["friends", "pending", "not_friends"]),
-//   onAddFriend: PropTypes.func,
-//   onMessage: PropTypes.func,
-//   onEditProfile: PropTypes.func,
-//   onCreateStory: PropTypes.func,
-// };
-
-// export default ProfileActions;

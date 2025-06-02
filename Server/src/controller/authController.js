@@ -1,66 +1,154 @@
+// const createError = require('http-errors');
+// const jwt = require('jsonwebtoken');
+// const bcrypt = require('bcrypt'); // ✅ Not bcryptjs!
+// const User = require('../models/userModel');
+// const {
+//   successResponse,
+//   errorResponse,
+// } = require('../controller/responseController');
+// const { createJSONWebToken } = require('../helper/jsonwebtoken');
+// const { jwtAccessKey, jwtRefreshKey } = require('../secret');
+// const {
+//   setAccessTokenCookie,
+//   setRefreshTokenCookie,
+// } = require('../helper/cookie');
+
+// // Handle Login
+// const handleLogin = async (req, res, next) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // Trim and normalize email
+//     const normalizedEmail = email.trim().toLowerCase();
+//     const trimmedPassword = password.trim();
+
+//     console.log(`Login attempt for: ${normalizedEmail}`); // Debug log
+
+//     // Find user including the password field
+//     const user = await User.findOne({
+//       where: { email: normalizedEmail },
+//       attributes: ['id', 'email', 'password', 'isBanned', 'isAdmin'],
+//       paranoid: false,
+//       raw: true, // Get plain object instead of model instance
+//     });
+
+//     if (!user) {
+//       console.log('No user found with email:', normalizedEmail); // Debug log
+//       return errorResponse(res, {
+//         statusCode: 401,
+//         message: 'Email or password is incorrect.',
+//       });
+//     }
+
+//     console.log('User found:', user.id); // Debug log
+//     console.log('Stored password hash:', user.password); // Debug log
+
+//     // Verify the password is a valid bcrypt hash
+//     const isHashValid = user.password.match(/^\$2[aby]\$\d+\$.{53}$/);
+//     console.log('Is stored password a valid bcrypt hash?', isHashValid); // Debug log
+
+//     if (!isHashValid) {
+//       console.error('Invalid password hash format in database');
+//       return errorResponse(res, {
+//         statusCode: 500,
+//         message: 'System error. Please contact support.',
+//       });
+//     }
+
+//     const isPasswordMatch = await bcrypt.compare(
+//       trimmedPassword,
+//       user.password
+//     );
+//     console.log('Password match result:', isPasswordMatch); // Debug log
+
+//     if (!isPasswordMatch) {
+//       return errorResponse(res, {
+//         statusCode: 401,
+//         message: 'Email or password is incorrect.',
+//       });
+//     }
+
+//     if (user.isBanned) {
+//       return errorResponse(res, {
+//         statusCode: 403,
+//         message: 'You are banned. Contact the administrator.',
+//       });
+//     }
+
+//     // Rest of your successful login logic...
+//     const accessToken = createJSONWebToken(
+//       { id: user.id, email: user.email, isAdmin: user.isAdmin },
+//       jwtAccessKey,
+//       '15m'
+//     );
+
+//     const refreshToken = createJSONWebToken(
+//       { id: user.id, email: user.email, isAdmin: user.isAdmin },
+//       jwtRefreshKey,
+//       '7d'
+//     );
+
+//     setAccessTokenCookie(res, accessToken);
+//     setRefreshTokenCookie(res, refreshToken);
+
+//     // Remove password before response
+//     delete user.password;
+
+//     return successResponse(res, {
+//       statusCode: 200,
+//       message: 'Login successful',
+//       payload: { user },
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     return errorResponse(res, {
+//       statusCode: 500,
+//       message: 'Login failed due to server error',
+//     });
+//   }
+// };
+
+//! update
+// authController.js
 const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt'); // ✅ Not bcryptjs!
+const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
-const {
-  successResponse,
-  errorResponse,
-} = require('../controller/responseController');
+const { successResponse, errorResponse } = require('./responseController');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
 const { jwtAccessKey, jwtRefreshKey } = require('../secret');
-const {
-  setAccessTokenCookie,
-  setRefreshTokenCookie,
-} = require('../helper/cookie');
+const { setAccessTokenCookie, setRefreshTokenCookie } = require('../helper/cookie');
+const sendLoginNotificationEmail = require('../helper/loginNotificationEmail');
+const geoip = require('geoip-lite'); // For IP geolocation
+const DeviceDetector = require('device-detector-js'); // For device detection
 
-// Handle Login
 const handleLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.connection.remoteAddress;
 
     // Trim and normalize email
     const normalizedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
 
-    console.log(`Login attempt for: ${normalizedEmail}`); // Debug log
-
     // Find user including the password field
     const user = await User.findOne({
       where: { email: normalizedEmail },
-      attributes: ['id', 'email', 'password', 'isBanned', 'isAdmin'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'password', 'isBanned', 'isAdmin'],
       paranoid: false,
-      raw: true, // Get plain object instead of model instance
+      raw: true,
     });
 
     if (!user) {
-      console.log('No user found with email:', normalizedEmail); // Debug log
       return errorResponse(res, {
         statusCode: 401,
         message: 'Email or password is incorrect.',
       });
     }
 
-    console.log('User found:', user.id); // Debug log
-    console.log('Stored password hash:', user.password); // Debug log
-
-    // Verify the password is a valid bcrypt hash
-    const isHashValid = user.password.match(/^\$2[aby]\$\d+\$.{53}$/);
-    console.log('Is stored password a valid bcrypt hash?', isHashValid); // Debug log
-
-    if (!isHashValid) {
-      console.error('Invalid password hash format in database');
-      return errorResponse(res, {
-        statusCode: 500,
-        message: 'System error. Please contact support.',
-      });
-    }
-
-    const isPasswordMatch = await bcrypt.compare(
-      trimmedPassword,
-      user.password
-    );
-    console.log('Password match result:', isPasswordMatch); // Debug log
-
+    // Password verification
+    const isPasswordMatch = await bcrypt.compare(trimmedPassword, user.password);
     if (!isPasswordMatch) {
       return errorResponse(res, {
         statusCode: 401,
@@ -75,7 +163,7 @@ const handleLogin = async (req, res, next) => {
       });
     }
 
-    // Rest of your successful login logic...
+    // Generate tokens
     const accessToken = createJSONWebToken(
       { id: user.id, email: user.email, isAdmin: user.isAdmin },
       jwtAccessKey,
@@ -90,6 +178,34 @@ const handleLogin = async (req, res, next) => {
 
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
+
+    // Prepare login notification (async - don't wait for it)
+    try {
+      // Get location from IP
+      const geo = geoip.lookup(ipAddress) || {};
+      const location = {
+        city: geo.city || 'Unknown',
+        region: geo.region || 'Unknown',
+        country: geo.country || 'Unknown'
+      };
+
+      // Detect device
+      const deviceDetector = new DeviceDetector();
+      const deviceInfo = deviceDetector.parse(userAgent);
+      const device = deviceInfo.device?.type 
+        ? `${deviceInfo.device.type} (${deviceInfo.os?.name || 'Unknown OS'})`
+        : 'Unknown Device';
+
+      await sendLoginNotificationEmail(user, {
+        time: new Date(),
+        location,
+        device,
+        ipAddress
+      });
+    } catch (emailError) {
+      console.error('Failed to send login notification:', emailError);
+      // Don't fail login if email fails
+    }
 
     // Remove password before response
     delete user.password;
@@ -108,7 +224,10 @@ const handleLogin = async (req, res, next) => {
   }
 };
 
-// Handle Logout
+
+
+
+//! Handle Logout
 const handleLogout = (req, res, next) => {
   try {
     res.clearCookie('accessToken');
