@@ -62,7 +62,7 @@ useEffect(() => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/my-profile-update" element={<PrivateProfileUpdate />} />
-            <Route path="/friend-requests" element={<FriendRequestsPage />} />
+            <Route path="/friendships" element={<FriendRequestsPage />} />
             <Route path="/update-user/:id" element={<UpdateUserById />} />
             <Route path="/user-table" element={<UserTable />} />
 

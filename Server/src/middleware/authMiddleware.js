@@ -37,18 +37,6 @@ const isLoggedOut = (req, res, next) => {
 };
 
 // Middleware to check if the user is an admin
-// const isAdmin = (req, res, next) => {
-//   if (req.user && req.user.isAdmin) {
-//     return next();
-//   }
-//   // Return a structured error response
-//   return res.status(403).json({
-//     success: false,
-//     message: "Access denied. Admin privileges required.",
-//   });
-// };
-
-// In authMiddleware.js - isAdmin middleware
 const isAdmin = (req, res, next) => {
   // Ensure req.user exists and isAdmin is explicitly set
   if (req.user && req.user.isAdmin === true) {

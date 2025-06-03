@@ -166,31 +166,45 @@ const sendFriendRequest = async (req, res, next) => {
         ];
 
     // 🟠 Create notification and real-time event
-    await Notification.create({
-      userId: friendId,
-      type: 'friend_request',
-      senderId: req.user.id,
-      message: friendship.requestCount > 1 
-        ? `${req.user.firstName} resent a friend request` 
-        : `${req.user.firstName} sent a friend request`,
-      metadata: { 
-        friendshipId: friendship.id,
-        requestCount: friendship.requestCount
+    try {
+      await Notification.create({
+        userId: friendId,
+        type: 'friend_request',
+        senderId: req.user.id,
+        message: friendship.requestCount > 1 
+          ? `${req.user.firstName} resent a friend request` 
+          : `${req.user.firstName} sent a friend request`,
+        metadata: { 
+          friendshipId: friendship.id,
+          requestCount: friendship.requestCount
+        }
+      });
+
+      if (req.io) {
+        req.io.to(`user_${friendId}`).emit('friend_request', {
+          from: req.user.id,
+          friendshipId: friendship.id
+        });
       }
-    });
+    } catch (notificationError) {
+      console.error('Notification creation failed:', notificationError);
+      // Continue even if notification fails since friendship was created
+    }
 
-    req.io.to(`user_${friendId}`).emit('friend_request', {
-      from: req.user.id,
-      friendshipId: friendship.id
-    });
-
-    res.status(201).json({
+    return res.status(201).json({
       message: created ? "Friend request sent" : "Friend request updated",
       friendship
     });
 
   } catch (error) {
-    next(error);
+    console.error('Friend request error:', error);
+    // Ensure we don't send headers twice
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
+    }
   }
 };
 
