@@ -14,6 +14,7 @@ class SocketService {
   connect(queryParams = '?validation=true') {
     if (!this.socket) {
       const socketUrl = `${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030'}${queryParams}`;
+      
       console.log('Connecting to socket at:', socketUrl); // Debug log
       
       this.socket = io(socketUrl, {

@@ -1,8 +1,10 @@
 // src/models/chatModel.js
-const { DataTypes } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Chat = sequelize.define('Chat', {
+class Chat extends Model {}
+
+Chat.init({
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -17,6 +19,8 @@ const Chat = sequelize.define('Chat', {
     allowNull: true
   }
 }, {
+  sequelize,
+  modelName: 'Chat',
   tableName: 'Chats',
   timestamps: true,
   createdAt: 'createdAt',
@@ -24,4 +28,38 @@ const Chat = sequelize.define('Chat', {
 });
 
 module.exports = Chat;
+
+
+
+
+
+
+
+
+// // src/models/chatModel.js
+// const { DataTypes } = require('sequelize');
+// const sequelize = require('../config/database');
+
+// const Chat = sequelize.define('Chat', {
+//   id: {
+//     type: DataTypes.INTEGER,
+//     autoIncrement: true,
+//     primaryKey: true
+//   },
+//   lastMessage: {
+//     type: DataTypes.TEXT,
+//     allowNull: true
+//   },
+//   lastMessageAt: {
+//     type: DataTypes.DATE,
+//     allowNull: true
+//   }
+// }, {
+//   tableName: 'Chats',
+//   timestamps: true,
+//   createdAt: 'createdAt',
+//   updatedAt: 'updatedAt'
+// });
+
+// module.exports = Chat;
   

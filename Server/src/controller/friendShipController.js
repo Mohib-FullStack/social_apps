@@ -15,9 +15,13 @@
  * 🔴 Red: Error handling
  */
 
-const { Friendship, User, Notification, Chat } = require('../models');
+// const { Friendship, User, Notification, Chat } = require('../models');
 const { Op } = require('sequelize');
 const { getPagination, getPagingData } = require('../helper/pagination');
+const Friendship = require('../models/friendshipModel');
+const User = require('../models/userModel');
+const Notification = require('../models/notificationModel');
+const Chat = require('../models/chatModel');
 
 // 🟢 CONSTANTS & CONFIGURATION ====================================
 const MAX_PENDING_REQUESTS = 500; // Max pending requests per user
@@ -44,7 +48,7 @@ const validateUserId = (userId, currentUserId) => {
  * Get all friend IDs for a user (accepted friendships only)
  */
 const getFriendIds = async (userId) => {
-  const friendships = await Friendship.findAll({
+  const friendships = await Friendship .findAll({
     where: {
       status: 'accepted',
       [Op.or]: [

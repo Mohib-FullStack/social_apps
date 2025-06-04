@@ -21,7 +21,7 @@ export const store = configureStore({
     user: persistedUserReducer,
     snackbar: snackbarReducer,
     friendship: friendshipReducer,
-    notification: notificationReducer,
+    notifications: notificationReducer,
   
   },
   middleware: (getDefaultMiddleware) =>

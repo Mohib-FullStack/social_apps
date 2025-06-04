@@ -1,88 +1,317 @@
-//! src/models/friendshipModel
-const { DataTypes } = require('sequelize');
+// models/friendship.model.ts
+const {
+  Model,
+  DataTypes
+} = require('sequelize');
 const sequelize = require('../config/database');
+const User = require('./userModel');
 
-const Friendship = sequelize.define('Friendship', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-  friendId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-  status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'),
-    defaultValue: 'pending'
-  },
-  actionUserId: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  acceptedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  coolingPeriod: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    defaultValue: null
-  },
-  requestCount: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1
+const FriendshipStatus = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+  BLOCKED: 'blocked'
+};
+
+const COOLING_PERIOD_DAYS = 7;
+
+class Friendship extends Model {
+  canResendRequest() {
+    return !this.coolingPeriod || new Date() > this.coolingPeriod;
   }
-}, {
-  tableName: 'friendships',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['userId', 'friendId']
+
+  getRemainingCoolingDays() {
+    if (!this.coolingPeriod) return null;
+    const now = new Date();
+    if (now > this.coolingPeriod) return 0;
+    return Math.ceil((this.coolingPeriod.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  isActive() {
+    return this.status === FriendshipStatus.ACCEPTED;
+  }
+
+  static associate(models) {
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'requester',
+      onDelete: 'CASCADE'
+    });
+
+    this.belongsTo(models.User, {
+      foreignKey: 'friendId',
+      as: 'receiver',
+      onDelete: 'CASCADE'
+    });
+
+    this.belongsTo(models.User, {
+      foreignKey: 'actionUserId',
+      as: 'actionUser',
+      onDelete: 'SET NULL'
+    });
+  }
+}
+
+Friendship.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true
     },
-    {
-      fields: ['userId', 'status']
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
     },
-    {
-      fields: ['friendId', 'status']
+    friendId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
+    status: {
+      type: DataTypes.ENUM(
+        FriendshipStatus.PENDING,
+        FriendshipStatus.ACCEPTED,
+        FriendshipStatus.REJECTED,
+        FriendshipStatus.BLOCKED
+      ),
+      defaultValue: FriendshipStatus.PENDING,
+      validate: {
+        isIn: {
+          args: [Object.values(FriendshipStatus)],
+          msg: 'Invalid friendship status'
+        }
+      }
+    },
+    actionUserId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
+    acceptedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      validate: {
+        isDate: true
+      }
+    },
+    coolingPeriod: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+      validate: {
+        isDate: true
+      }
+    },
+    requestCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+      validate: {
+        min: 1
+      }
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
-  ],
-  hooks: {
-    beforeUpdate: async (friendship) => {
-      if (friendship.changed('status')) {
-        if (friendship.status === 'accepted') {
-          friendship.acceptedAt = new Date();
-          friendship.coolingPeriod = null; // Reset cooling period if accepted
-        } else if (friendship.status === 'rejected') {
-          // Set 1 week cooldown period after rejection
-          friendship.coolingPeriod = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          friendship.requestCount += 1; // Increment request count
-        } else if (friendship.status === 'pending' && friendship.previous('status') === 'rejected') {
-          // Reset cooling period if user resends request after rejection
-          friendship.coolingPeriod = null;
+  },
+  {
+    sequelize,
+    modelName: 'Friendship',
+    tableName: 'friendships',
+    timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['userId', 'friendId'],
+        name: 'friendship_unique_pair'
+      },
+      {
+        fields: ['userId', 'status'],
+        name: 'friendship_user_status'
+      },
+      {
+        fields: ['friendId', 'status'],
+        name: 'friendship_friend_status'
+      },
+      {
+        fields: ['status'],
+        name: 'friendship_status'
+      }
+    ],
+    hooks: {
+      beforeValidate: (friendship) => {
+        if (friendship.userId === friendship.friendId) {
+          throw new Error('Cannot create friendship with yourself');
+        }
+      },
+      beforeUpdate: async (friendship) => {
+        if (friendship.changed('status')) {
+          const now = new Date();
+
+          switch (friendship.status) {
+            case FriendshipStatus.ACCEPTED:
+              friendship.acceptedAt = now;
+              friendship.coolingPeriod = null;
+              break;
+
+            case FriendshipStatus.REJECTED:
+              friendship.coolingPeriod = new Date(
+                now.getTime() + COOLING_PERIOD_DAYS * 24 * 60 * 60 * 1000
+              );
+              friendship.requestCount += 1;
+              break;
+
+            case FriendshipStatus.PENDING:
+              if (friendship.previous('status') === FriendshipStatus.REJECTED) {
+                friendship.coolingPeriod = null;
+              }
+              break;
+
+            case FriendshipStatus.BLOCKED:
+              friendship.coolingPeriod = null;
+              break;
+          }
         }
       }
     }
   }
-});
-
-// Custom method to check if friendship request can be resent
-Friendship.prototype.canResendRequest = function() {
-  return !this.coolingPeriod || new Date() > this.coolingPeriod;
-};
+);
 
 module.exports = Friendship;
+module.exports.FriendshipStatus = FriendshipStatus;
 
 
 
 
 
-// old
+//! old
+// models/friendshipModel.js
+// const { Model, DataTypes } = require('sequelize');
+// const sequelize = require('../config/database');
+
+// class Friendship extends Model {
+//   static associate(models) {
+//     Friendship.belongsTo(models.User, {
+//       foreignKey: 'userId',
+//       as: 'requester',
+//       onDelete: 'CASCADE',
+//     });
+
+//     Friendship.belongsTo(models.User, {
+//       foreignKey: 'friendId',
+//       as: 'receiver',
+//       onDelete: 'CASCADE',
+//     });
+
+//     Friendship.belongsTo(models.User, {
+//       foreignKey: 'actionUserId',
+//       as: 'actionUser',
+//       onDelete: 'SET NULL',
+//     });
+//   }
+
+//   canResendRequest() {
+//     return !this.coolingPeriod || new Date() > this.coolingPeriod;
+//   }
+// }
+
+// Friendship.init({
+//   id: {
+//     type: DataTypes.INTEGER,
+//     autoIncrement: true,
+//     primaryKey: true,
+//   },
+//   userId: {
+//     type: DataTypes.INTEGER,
+//     allowNull: false,
+//   },
+//   friendId: {
+//     type: DataTypes.INTEGER,
+//     allowNull: false,
+//   },
+//   status: {
+//     type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'),
+//     defaultValue: 'pending',
+//   },
+//   actionUserId: {
+//     type: DataTypes.INTEGER,
+//     allowNull: true,
+//   },
+//   acceptedAt: {
+//     type: DataTypes.DATE,
+//     allowNull: true,
+//   },
+//   coolingPeriod: {
+//     type: DataTypes.DATE,
+//     allowNull: true,
+//     defaultValue: null,
+//   },
+//   requestCount: {
+//     type: DataTypes.INTEGER,
+//     defaultValue: 1,
+//   },
+// }, {
+//   sequelize,
+//   modelName: 'Friendship',
+//   tableName: 'friendships',
+//   timestamps: true,
+//   indexes: [
+//     { unique: true, fields: ['userId', 'friendId'] },
+//     { fields: ['userId', 'status'] },
+//     { fields: ['friendId', 'status'] },
+//   ],
+//   hooks: {
+//     beforeUpdate: async (friendship) => {
+//       if (friendship.changed('status')) {
+//         const now = new Date();
+
+//         if (friendship.status === 'accepted') {
+//           friendship.acceptedAt = now;
+//           friendship.coolingPeriod = null;
+
+//         } else if (friendship.status === 'rejected') {
+//           friendship.coolingPeriod = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // +7 days
+//           friendship.requestCount += 1;
+
+//         } else if (
+//           friendship.status === 'pending' &&
+//           friendship.previous('status') === 'rejected'
+//         ) {
+//           friendship.coolingPeriod = null;
+//         }
+//       }
+//     }
+//   }
+// });
+
+// module.exports = Friendship;
+
+
+
+
+
+
+
+
+
+
 //! src/models/friendshipModel
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
@@ -102,16 +331,25 @@ module.exports = Friendship;
 //     allowNull: false
 //   },
 //   status: {
-//     type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'), // ✅ Added more status options for flexibility
+//     type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'blocked'),
 //     defaultValue: 'pending'
 //   },
 //   actionUserId: {
 //     type: DataTypes.INTEGER,
-//     allowNull: true // ✅ Optional - Who acted last (used for UI/UX insights)
+//     allowNull: true
 //   },
 //   acceptedAt: {
 //     type: DataTypes.DATE,
-//     allowNull: true // ✅ Timestamp for when the friendship was accepted
+//     allowNull: true
+//   },
+//   coolingPeriod: {
+//     type: DataTypes.DATE,
+//     allowNull: true,
+//     defaultValue: null
+//   },
+//   requestCount: {
+//     type: DataTypes.INTEGER,
+//     defaultValue: 1
 //   }
 // }, {
 //   tableName: 'friendships',
@@ -119,7 +357,7 @@ module.exports = Friendship;
 //   indexes: [
 //     {
 //       unique: true,
-//       fields: ['userId', 'friendId'] // ✅ Ensures no duplicate friendships
+//       fields: ['userId', 'friendId']
 //     },
 //     {
 //       fields: ['userId', 'status']
@@ -130,12 +368,32 @@ module.exports = Friendship;
 //   ],
 //   hooks: {
 //     beforeUpdate: async (friendship) => {
-//       // ✅ Automatically set acceptedAt when friendship is accepted
-//       if (friendship.changed('status') && friendship.status === 'accepted') {
-//         friendship.acceptedAt = new Date();
+//       if (friendship.changed('status')) {
+//         if (friendship.status === 'accepted') {
+//           friendship.acceptedAt = new Date();
+//           friendship.coolingPeriod = null; // Reset cooling period if accepted
+//         } else if (friendship.status === 'rejected') {
+//           // Set 1 week cooldown period after rejection
+//           friendship.coolingPeriod = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+//           friendship.requestCount += 1; // Increment request count
+//         } else if (friendship.status === 'pending' && friendship.previous('status') === 'rejected') {
+//           // Reset cooling period if user resends request after rejection
+//           friendship.coolingPeriod = null;
+//         }
 //       }
 //     }
 //   }
 // });
 
+// // Custom method to check if friendship request can be resent
+// Friendship.prototype.canResendRequest = function() {
+//   return !this.coolingPeriod || new Date() > this.coolingPeriod;
+// };
+
 // module.exports = Friendship;
+
+
+
+
+
+

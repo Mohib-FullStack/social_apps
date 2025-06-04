@@ -1,3 +1,4 @@
+// services/notificationServices
 class NotificationService {
   static async createFriendRequestNotification(senderId, recipientId, friendshipId) {
     const notification = await Notification.create({

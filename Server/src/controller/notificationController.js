@@ -1,117 +1,131 @@
-const { Notification, User } = require('../models');
 const { Op } = require('sequelize');
+const Notification = require('../models/notificationModel');
+const User = require('../models/userModel');
 const { getPagination, getPagingData } = require('../helper/pagination');
 const { redisConfig } = require('../secret');
+const formatResponse = require('../helper/formatResponse'); // make sure this exists
+
+const getCacheKey = (userId) => `user:${userId}:unread_notifications`;
 
 /**
- * @desc    Get all notifications for authenticated user
- * @route   GET /api/notifications
- * @access  Private
+ * @desc Get all notifications for authenticated user
+ * @route GET /api/notifications
+ * @access Private
  */
-const getUserNotifications = async (req, res, next) => {
-  try {
-    const { page = 1, size = 20, type } = req.query;
-    const { limit, offset } = getPagination(page, size);
-    
-    const whereClause = { 
-      userId: req.user.id 
-    };
-    
-    if (type) {
-      whereClause.type = type;
-    }
+const getNotifications = async (req, res) => {
+  const userId = req.user.id; // 👈 this might be undefined if JWT is not verified
+  const { page = 1, size = 20 } = req.query;
 
-    const result = await Notification.findAndCountAll({
-      where: whereClause,
-      include: [{
-        model: User,
-        as: 'sender',
-        attributes: ['id', 'firstName', 'lastName', 'profileImage']
-      }],
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset
+  try {
+    const notifications = await Notification.findAndCountAll({
+      where: { userId },
+      limit: size,
+      offset: (page - 1) * size,
+      order: [['createdAt', 'DESC']]
     });
 
-    const response = getPagingData(result, page, limit);
-    res.status(200).json(response);
-  } catch (error) {
-    next(error);
+    return res.status(200).json({
+      notifications: notifications.rows,
+      total: notifications.count
+    });
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
+
 /**
- * @desc    Get unread notifications count
- * @route   GET /api/notifications/unread-count
- * @access  Private
+ * @desc Get unread notifications count (with Redis cache)
+ * @route GET /api/notifications/unread-count
+ * @access Private
  */
-const getUnreadCount = async (req, res, next) => {
+const getUnreadCount = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      console.error('No user found in request');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const count = await Notification.getUnreadCount(req.user.id);
-    res.status(200).json({ count });
+    res.json({ count });
   } catch (error) {
-    next(error);
+    console.error('Get unread count error:', error.message, error.stack);
+    res.status(500).json({ error: 'Server error while counting unread notifications' });
   }
 };
 
+
 /**
- * @desc    Mark notifications as read
- * @route   PATCH /api/notifications/mark-as-read
- * @access  Private
+ * @desc Mark specific or all notifications as read
+ * @route PATCH /api/notifications/mark-as-read
+ * @access Private
  */
-const markNotificationsAsRead = async (req, res, next) => {
+const markAsRead = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json(formatResponse(false, null, 'Unauthorized'));
+    }
+
     const { notificationIds } = req.body;
-    
-    if (notificationIds && notificationIds.length > 0) {
-      // Mark specific notifications as read
+
+    if (Array.isArray(notificationIds) && notificationIds.length > 0) {
       await Notification.update(
         { isRead: true },
-        { 
-          where: { 
+        {
+          where: {
             id: { [Op.in]: notificationIds },
-            userId: req.user.id 
-          } 
+            userId: req.user.id
+          }
         }
       );
     } else {
-      // Mark all notifications as read
-      await Notification.markAsRead(req.user.id);
+      // Ensure this method exists or use the alternative:
+      await Notification.update(
+        { isRead: true },
+        { where: { userId: req.user.id } }
+      );
     }
 
-    res.status(200).json({ message: 'Notifications marked as read' });
+    try {
+      await redisConfig.del(getCacheKey(req.user.id));
+    } catch (redisError) {
+      console.error('Redis deletion error:', redisError.message);
+    }
+
+    return res.status(200).json(formatResponse(true, null, 'Notifications marked as read'));
   } catch (error) {
-    next(error);
+    console.error('markAsRead error:', error);
+    return next(error);
   }
 };
 
+
 /**
- * @desc    Mark all notifications as read
- * @route   PATCH /api/notifications/mark-all-as-read
- * @access  Private
+ * @desc Mark all notifications as read
+ * @route PATCH /api/notifications/mark-all-as-read
+ * @access Private
  */
 const markAllAsRead = async (req, res, next) => {
   try {
     await Notification.markAsRead(req.user.id);
-    
-    // Clear unread count cache
-    await redisConfig.del(`user:${req.user.id}:unread_notifications`);
-    
-    res.status(200).json(formatResponse(true, null, 'All notifications marked as read'));
+    await redisConfig.del(getCacheKey(req.user.id));
+
+    return res.status(200).json(formatResponse(true, null, 'All notifications marked as read'));
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
 /**
- * @desc    Delete a notification
- * @route   DELETE /api/notifications/:notificationId
- * @access  Private
+ * @desc Delete a notification
+ * @route DELETE /api/notifications/:notificationId
+ * @access Private
  */
 const deleteNotification = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
-    
+
     const notification = await Notification.findOne({
       where: {
         id: notificationId,
@@ -120,21 +134,23 @@ const deleteNotification = async (req, res, next) => {
     });
 
     if (!notification) {
-      return res.status(404).json({ error: 'Notification not found' });
+      return res.status(404).json(formatResponse(false, null, 'Notification not found'));
     }
 
     await notification.destroy();
-    res.status(200).json({ message: 'Notification deleted successfully' });
+    await redisConfig.del(getCacheKey(req.user.id));
+
+    return res.status(200).json(formatResponse(true, null, 'Notification deleted successfully'));
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
 module.exports = {
-  getUserNotifications,
-  markNotificationsAsRead,
-  markAllAsRead,
+  getNotifications,
   getUnreadCount,
+  markAsRead,
+  markAllAsRead,
   deleteNotification
 };
 
@@ -147,37 +163,13 @@ module.exports = {
 
 
 
-
-
-
-// const { Notification, User } = require('../models/associations');
+//! old
 // const { Op } = require('sequelize');
 // const { getPagination, getPagingData } = require('../helper/pagination');
 // const { redisConfig } = require('../secret');
-// const { emitNotification } = require('../config/socket.io');
+// const Notification = require('../models/notificationModel');
+// const User = require('../models/userModel');
 
-// // Enhanced response formatter with status codes
-// const formatResponse = (success, data = null, message = '', statusCode = 200) => {
-//   return {
-//     statusCode,
-//     response: {
-//       success,
-//       data,
-//       message,
-//       timestamp: new Date().toISOString()
-//     }
-//   };
-// };
-
-// // Helper to clear cache and emit socket events
-// const updateNotificationState = async (userId, notification = null) => {
-//   const cacheKey = `user:${userId}:unread_notifications`;
-//   await redisConfig.del(cacheKey);
-  
-//   if (notification) {
-//     emitNotification(io, userId, notification);
-//   }
-// };
 
 // /**
 //  * @desc    Get all notifications for authenticated user
@@ -186,36 +178,44 @@ module.exports = {
 //  */
 // const getUserNotifications = async (req, res, next) => {
 //   try {
-//     const { page = 1, size = 20, type, isRead } = req.query;
+//     const { page = 1, size = 20, type } = req.query;
 //     const { limit, offset } = getPagination(page, size);
     
-//     const whereClause = { 
-//       userId: req.user.id 
-//     };
-    
+//     const whereClause = { userId: req.user.id };
 //     if (type) whereClause.type = type;
-//     if (isRead) whereClause.isRead = isRead === 'true';
 
 //     const result = await Notification.findAndCountAll({
 //       where: whereClause,
 //       include: [{
 //         model: User,
 //         as: 'sender',
-//         attributes: ['id', 'firstName', 'lastName', 'profileImage']
+//         attributes: ['id', 'firstName', 'lastName', 'profileImage'],
+//         required: false // Make this a left join
 //       }],
 //       order: [['createdAt', 'DESC']],
 //       limit,
 //       offset
 //     });
 
-//     const response = getPagingData(result, page, limit);
-//     const { statusCode, response: formattedResponse } = formatResponse(true, response);
-//     res.status(statusCode).json(formattedResponse);
+//     // Ensure we always return consistent structure
+//     const notifications = result.rows || [];
+//     const count = result.count || 0;
+
+//     res.status(200).json({
+//       success: true,
+//       notifications,
+//       pagination: {
+//         currentPage: parseInt(page),
+//         totalPages: Math.ceil(count / limit),
+//         totalItems: count,
+//         itemsPerPage: parseInt(size)
+//       }
+//     });
 //   } catch (error) {
+//     console.error('Error fetching notifications:', error);
 //     next(error);
 //   }
 // };
-
 
 // /**
 //  * @desc    Get unread notifications count
@@ -224,24 +224,13 @@ module.exports = {
 //  */
 // const getUnreadCount = async (req, res, next) => {
 //   try {
-//     const cacheKey = `user:${req.user.id}:unread_notifications`;
-    
-//     // Try to get from cache first
-//     const cachedCount = await redisConfig.get(cacheKey);
-//     if (cachedCount) {
-//       return res.status(200).json(formatResponse(true, { count: parseInt(cachedCount) }));
-//     }
-
 //     const count = await Notification.getUnreadCount(req.user.id);
-    
-//     // Cache the result for 5 minutes
-//     await redisConfig.set(cacheKey, count, { EX: 300 });
-    
-//     res.status(200).json(formatResponse(true, { count }));
+//     res.status(200).json({ count });
 //   } catch (error) {
 //     next(error);
 //   }
 // };
+
 
 // /**
 //  * @desc    Mark notifications as read
@@ -264,14 +253,11 @@ module.exports = {
 //         }
 //       );
 //     } else {
-//       // Fallback to marking all as read if no IDs provided
+//       // Mark all notifications as read
 //       await Notification.markAsRead(req.user.id);
 //     }
 
-//     // Clear unread count cache
-//     await redisConfig.del(`user:${req.user.id}:unread_notifications`);
-    
-//     res.status(200).json(formatResponse(true, null, 'Notifications marked as read'));
+//     res.status(200).json({ message: 'Notifications marked as read' });
 //   } catch (error) {
 //     next(error);
 //   }
@@ -312,17 +298,11 @@ module.exports = {
 //     });
 
 //     if (!notification) {
-//       return res.status(404).json(formatResponse(false, null, 'Notification not found'));
+//       return res.status(404).json({ error: 'Notification not found' });
 //     }
 
 //     await notification.destroy();
-    
-//     // Clear unread count cache if the deleted notification was unread
-//     if (!notification.isRead) {
-//       await redisConfig.del(`user:${req.user.id}:unread_notifications`);
-//     }
-    
-//     res.status(200).json(formatResponse(true, null, 'Notification deleted successfully'));
+//     res.status(200).json({ message: 'Notification deleted successfully' });
 //   } catch (error) {
 //     next(error);
 //   }
@@ -335,6 +315,19 @@ module.exports = {
 //   getUnreadCount,
 //   deleteNotification
 // };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -52,7 +52,7 @@ const Navbar = () => {
   
   // Redux state
   const { profile, loggedIn, isAdmin } = useSelector((state) => state.user);
-  const { unreadCount } = useSelector(state => state.notification);
+  const { unreadCount } = useSelector(state => state.notifications);
   const pendingRequestsCount = useSelector(state => state.friendship.pendingRequests?.length || 0);
 
   // Local state
