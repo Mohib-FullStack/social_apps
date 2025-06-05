@@ -50,32 +50,6 @@ export default SendFriendRequest;
 
 
 
-// import { useDispatch } from 'react-redux';
-// import { acceptFriendRequest, sendFriendRequest } from '../../features/friendship/friendshipSlice';
-
-// const FriendRequest = ({ userId, friendId, isReceivedRequest }) => {
-//   const dispatch = useDispatch();
-
-//   const handleSend = () => {
-//     dispatch(sendFriendRequest({ userId, friendId }));
-//   };
-
-//   const handleAccept = () => {
-//     dispatch(acceptFriendRequest({ userId, friendId }));
-//   };
-
-//   return (
-//     <div>
-//       {isReceivedRequest ? (
-//         <button onClick={handleAccept}>Accept Request</button>
-//       ) : (
-//         <button onClick={handleSend}>Send Friend Request</button>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default FriendRequest;
 
 
 

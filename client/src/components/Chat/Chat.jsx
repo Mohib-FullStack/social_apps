@@ -4,10 +4,9 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 // import { fetchFriendships } from '../../features/friendship/friendshipSlice';
 import theme from '../../theme';
-import SendFriendRequest from '../FriendsListPage/SendFriendRequest';
-import AcceptFriendRequest from '../FriendsListPage/AcceptFriendRequests';
+import SendFriendRequest from '../Friends/SendFriendRequest';
 import { getSentRequests } from '../../features/friendship/friendshipSlice';
-import FriendsPage from '../FriendsListPage/FriendsPage';
+import FriendsPage from '../Friends/FriendsPage';
 
 
 

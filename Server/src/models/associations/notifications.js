@@ -1,4 +1,4 @@
-// src/models/associations/notifications.js
+ // src/models/associations/notifications.js
 module.exports = (db, CASCADE, SET_NULL) => {
   const { Notification, User, Friendship, Post, Comment, Group, Chat, Message } = db;
 

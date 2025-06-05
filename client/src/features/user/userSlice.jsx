@@ -1253,26 +1253,27 @@ const userSlice = createSlice({
       })
 
       // Refresh Access Token
-      // .addCase(refreshAccessToken.fulfilled, (state, action) => {
-      //   state.loggedIn = true;
-      //   if (action.payload.user) {
-      //     state.user = action.payload.user;
-      //     state.isAdmin = action.payload.user?.isAdmin || false;
-      //   }
-      // })
       .addCase(refreshAccessToken.fulfilled, (state, action) => {
-  state.loggedIn = true;
-  if (action.payload.user) {
-    state.user = action.payload.user;
-    state.profile = action.payload.user; // Update profile
-    state.isAdmin = action.payload.user?.isAdmin || false;
-  }
-})
-      .addCase(refreshAccessToken.rejected, (state) => {
-        state.loggedIn = false;
-        state.user = null;
-        state.isAdmin = false;
+        state.loggedIn = true;
+        if (action.payload.user) {
+          state.user = action.payload.user;
+          state.isAdmin = action.payload.user?.isAdmin || false;
+        }
       })
+
+//       .addCase(refreshAccessToken.fulfilled, (state, action) => {
+//   state.loggedIn = true;
+//   if (action.payload.user) {
+//     state.user = action.payload.user;
+//     state.profile = action.payload.user; // Update profile
+//     state.isAdmin = action.payload.user?.isAdmin || false;
+//   }
+// })
+//       .addCase(refreshAccessToken.rejected, (state) => {
+//         state.loggedIn = false;
+//         state.user = null;
+//         state.isAdmin = false;
+//       })
 
       // Register User
       .addCase(registerUser.pending, (state) => {

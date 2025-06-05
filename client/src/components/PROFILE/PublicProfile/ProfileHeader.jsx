@@ -8,7 +8,7 @@ import {
   styled
 } from '@mui/material';
 import { CameraAlt } from '@mui/icons-material';
-import FriendRequestButton from '../../FriendsListPage/FriendRequestButton';
+import FriendRequestButton from '../../Friends/FriendRequestButton';
 
 import PropTypes from 'prop-types';
 

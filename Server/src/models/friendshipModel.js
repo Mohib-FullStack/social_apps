@@ -105,6 +105,15 @@ Friendship.init(
         isDate: true
       }
     },
+
+    rejectedAt: {
+  type: DataTypes.DATE,
+  allowNull: true,
+  validate: {
+    isDate: true
+  }
+},
+
     coolingPeriod: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -171,13 +180,14 @@ Friendship.init(
               friendship.coolingPeriod = null;
               break;
 
-            case FriendshipStatus.REJECTED:
-              friendship.coolingPeriod = new Date(
-                now.getTime() + COOLING_PERIOD_DAYS * 24 * 60 * 60 * 1000
-              );
-              friendship.requestCount += 1;
-              break;
-
+              case FriendshipStatus.REJECTED:
+  friendship.rejectedAt = now;
+  friendship.coolingPeriod = new Date(
+    now.getTime() + COOLING_PERIOD_DAYS * 24 * 60 * 60 * 1000
+  );
+  friendship.requestCount += 1;
+  break;
+       
             case FriendshipStatus.PENDING:
               if (friendship.previous('status') === FriendshipStatus.REJECTED) {
                 friendship.coolingPeriod = null;
