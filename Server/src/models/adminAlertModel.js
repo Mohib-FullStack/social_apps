@@ -1,9 +1,26 @@
-// src/models/adminAlertModel.js
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 class AdminAlert extends Model {
-  // You can add instance or static methods here if needed
+  static associate(models) {
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'affectedUser',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.User, {
+      foreignKey: 'reviewedBy',
+      as: 'reviewingAdmin',
+      onDelete: 'SET NULL'
+    });
+    
+    this.hasOne(models.PendingGenderChange, {
+      foreignKey: 'adminAlertId',
+      as: 'genderChangeRequest',
+      onDelete: 'SET NULL'
+    });
+  }
 }
 
 AdminAlert.init({
@@ -12,7 +29,6 @@ AdminAlert.init({
     autoIncrement: true,
     primaryKey: true,
   },
-
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -22,7 +38,6 @@ AdminAlert.init({
     },
     onDelete: 'CASCADE',
   },
-
   type: {
     type: DataTypes.ENUM('gender_change', 'birthdate_change', 'suspicious_activity'),
     allowNull: false,
@@ -32,7 +47,6 @@ AdminAlert.init({
       }
     }
   },
-
   details: {
     type: DataTypes.JSONB,
     allowNull: false,
@@ -57,7 +71,6 @@ AdminAlert.init({
       }
     }
   },
-
   status: {
     type: DataTypes.ENUM('pending', 'in_review', 'resolved', 'rejected', 'flagged'),
     defaultValue: 'pending',
@@ -68,7 +81,6 @@ AdminAlert.init({
       }
     }
   },
-
   reviewedBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -78,12 +90,10 @@ AdminAlert.init({
     },
     onDelete: 'SET NULL',
   },
-
   reviewedAt: {
     type: DataTypes.DATE,
     allowNull: true,
   },
-
   reviewNotes: {
     type: DataTypes.TEXT,
     allowNull: true,
@@ -94,7 +104,6 @@ AdminAlert.init({
       }
     }
   }
-
 }, {
   sequelize,
   modelName: 'AdminAlert',
@@ -132,7 +141,7 @@ module.exports = AdminAlert;
 
 
 
-//! function
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

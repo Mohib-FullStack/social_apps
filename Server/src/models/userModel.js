@@ -1,4 +1,3 @@
-// models/userModel.js
 const bcrypt = require('bcrypt');
 const { Model, DataTypes, Op } = require('sequelize');
 const sequelize = require('../config/database');
@@ -45,12 +44,69 @@ class User extends Model {
     return this.username ? `/@${this.username}` : `/profile/${this.profileSlug}`;
   }
 
-  // ===== Static association method for future use =====
+  // ===== Static association method =====
   static associate(models) {
-    // Example:
-    // this.hasMany(models.Friendship, { foreignKey: 'userId', as: 'friends' });
-    User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
-
+    // Posts
+    this.hasMany(models.Post, { foreignKey: 'userId', as: 'posts' });
+    
+    // Comments
+    this.hasMany(models.Comment, { foreignKey: 'userId', as: 'comments' });
+    
+    // Likes
+    this.hasMany(models.Like, { foreignKey: 'userId', as: 'likes' });
+    
+    // Media
+    this.hasMany(models.Media, { foreignKey: 'userId', as: 'media' });
+    
+    // Friendships
+    this.hasMany(models.Friendship, { foreignKey: 'userId', as: 'sentFriendRequests' });
+    this.hasMany(models.Friendship, { foreignKey: 'friendId', as: 'receivedFriendRequests' });
+    this.hasMany(models.Friendship, { foreignKey: 'actionUserId', as: 'friendshipActions' });
+    
+    // Follows
+    this.belongsToMany(models.User, {
+      through: models.UserFollows,
+      as: 'following',
+      foreignKey: 'followerId',
+      otherKey: 'followingId'
+    });
+    this.belongsToMany(models.User, {
+      through: models.UserFollows,
+      as: 'followers',
+      foreignKey: 'followingId',
+      otherKey: 'followerId'
+    });
+    
+    // Groups
+    this.hasMany(models.Group, { foreignKey: 'creatorId', as: 'createdGroups' });
+    this.belongsToMany(models.Group, {
+      through: models.GroupMember,
+      as: 'groups',
+      foreignKey: 'userId'
+    });
+    
+    // Verification
+    this.hasMany(models.VerificationDocument, { foreignKey: 'userId', as: 'submittedDocuments' });
+    this.hasMany(models.TempPhoneUpdate, { foreignKey: 'userId', as: 'phoneUpdateRequests' });
+    this.hasMany(models.PendingGenderChange, { foreignKey: 'userId', as: 'genderChangeRequests' });
+    this.hasMany(models.TempGenderVerification, { foreignKey: 'userId', as: 'genderVerificationOTPs' });
+    
+    // Admin
+    this.hasMany(models.AdminAlert, { foreignKey: 'userId', as: 'alerts' });
+    this.hasMany(models.AdminAlert, { foreignKey: 'reviewedBy', as: 'reviewedAlerts' });
+    
+    // Notifications
+    this.hasMany(models.Notification, { foreignKey: 'userId', as: 'receivedNotifications' });
+    this.hasMany(models.Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
+    
+    // Messaging
+    this.hasMany(models.Message, { foreignKey: 'senderId', as: 'sentMessages' });
+    this.hasMany(models.Message, { foreignKey: 'receiverId', as: 'receivedMessages' });
+    this.belongsToMany(models.Chat, {
+      through: models.ChatParticipant,
+      as: 'chats',
+      foreignKey: 'userId'
+    });
   }
 }
 
@@ -275,7 +331,6 @@ User.init({
       }
     },
 
-  
     beforeUpdate: async (user) => {
       if (user.changed('username') && user.username) {
         const exists = await User.findOne({
@@ -287,14 +342,313 @@ User.init({
         if (exists) throw new Error('Username already taken');
       }
     }
-
-    }
+  }
 });
 
-
-
-
 module.exports = User;
+
+
+
+
+
+
+
+//! previous
+// models/userModel.js
+// const bcrypt = require('bcrypt');
+// const { Model, DataTypes, Op } = require('sequelize');
+// const sequelize = require('../config/database');
+
+// class User extends Model {
+//   // ===== Instance Methods =====
+//   getFullName() {
+//     return `${this.firstName} ${this.lastName}`;
+//   }
+
+//   async isPasswordCorrect(candidatePassword) {
+//     return await bcrypt.compare(candidatePassword, this.password);
+//   }
+
+//   comparePassword = this.isPasswordCorrect;
+
+//   changedPasswordAfter(JWTTimestamp) {
+//     if (!this.passwordChangedAt) return false;
+//     const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
+//     return JWTTimestamp < changedTimestamp;
+//   }
+
+//   canChangeGender() {
+//     return (this.genderChangeCount || 0) < 2;
+//   }
+
+//   getCoverImageUrl(size = 'original') {
+//     if (!this.coverImage) return null;
+
+//     if (this.coverImage.includes('res.cloudinary.com')) {
+//       const [base, rest] = this.coverImage.split('/upload/');
+//       const transformations = {
+//         thumbnail: 'c_fill,h_150,w_500',
+//         medium: 'c_fill,h_300,w_1000'
+//       };
+//       const transform = transformations[size] || '';
+//       return `${base}/upload/${transform}/${rest}`;
+//     }
+
+//     return this.coverImage;
+//   }
+
+//   getProfileUrl() {
+//     return this.username ? `/@${this.username}` : `/profile/${this.profileSlug}`;
+//   }
+
+//   // ===== Static association method for future use =====
+//   static associate(models) {
+//     // Example:
+//     // this.hasMany(models.Friendship, { foreignKey: 'userId', as: 'friends' });
+//     User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+
+//   }
+// }
+
+// User.init({
+//   id: {
+//     type: DataTypes.INTEGER,
+//     autoIncrement: true,
+//     primaryKey: true
+//   },
+//   firstName: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     validate: { notEmpty: true, len: [2, 50] }
+//   },
+//   lastName: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     validate: { notEmpty: true, len: [2, 50] }
+//   },
+//   profileSlug: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     unique: true
+//   },
+//   username: {
+//     type: DataTypes.STRING,
+//     allowNull: true,
+//     unique: true,
+//     validate: {
+//       is: /^[a-z0-9_.]+$/i,
+//       len: [3, 30]
+//     }
+//   },
+//   email: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     unique: true,
+//     validate: { isEmail: true }
+//   },
+//   password: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     validate: { len: [8, 128] }
+//   },
+//   phone: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     unique: true,
+//     validate: { is: /^\+?[\d\s-]+$/ }
+//   },
+//   originalPhone: {
+//     type: DataTypes.STRING,
+//     allowNull: true,
+//     validate: { is: /^\+?[\d\s-]+$/ }
+//   },
+//   profileImage: {
+//     type: DataTypes.STRING,
+//     allowNull: true,
+//     validate: { isUrl: true }
+//   },
+//   coverImage: {
+//     type: DataTypes.STRING,
+//     allowNull: true,
+//     validate: { isUrl: true }
+//   },
+//   bio: {
+//     type: DataTypes.TEXT,
+//     allowNull: true,
+//     validate: { len: [0, 500] }
+//   },
+//   website: {
+//     type: DataTypes.STRING,
+//     allowNull: true,
+//     validate: { isUrl: true }
+//   },
+//   gender: {
+//     type: DataTypes.ENUM('male', 'female', 'other'),
+//     allowNull: false
+//   },
+//   originalGender: {
+//     type: DataTypes.ENUM('male', 'female', 'other'),
+//     allowNull: true
+//   },
+//   birthDate: {
+//     type: DataTypes.DATEONLY,
+//     allowNull: false,
+//     validate: { isDate: true }
+//   },
+//   originalBirthDate: {
+//     type: DataTypes.DATEONLY,
+//     allowNull: true
+//   },
+//   lastGenderChange: {
+//     type: DataTypes.DATE,
+//     allowNull: true
+//   },
+//   genderChangeCount: {
+//     type: DataTypes.INTEGER,
+//     defaultValue: 0,
+//     validate: { min: 0, max: 2 }
+//   },
+//   phoneVerified: {
+//     type: DataTypes.BOOLEAN,
+//     defaultValue: false
+//   },
+//   verificationDocuments: {
+//     type: DataTypes.JSON,
+//     defaultValue: null
+//   },
+//   lastActive: {
+//     type: DataTypes.DATE,
+//     allowNull: true
+//   },
+//   isAdmin: {
+//     type: DataTypes.BOOLEAN,
+//     defaultValue: false
+//   },
+//   isVerified: {
+//     type: DataTypes.BOOLEAN,
+//     defaultValue: false
+//   },
+//   isBanned: {
+//     type: DataTypes.BOOLEAN,
+//     defaultValue: false
+//   },
+//   privacySettings: {
+//     type: DataTypes.JSON,
+//     defaultValue: {
+//       profileVisibility: 'public',
+//       emailVisibility: 'friends',
+//       phoneVisibility: 'private',
+//       birthDateVisibility: 'friends',
+//       lastActiveVisibility: 'private'
+//     },
+//     validate: {
+//       isValidSettings(value) {
+//         if (!value || typeof value !== 'object') throw new Error('Privacy settings must be an object');
+//         const allowed = ['public', 'friends', 'private'];
+//         for (const key in value) {
+//           if (!allowed.includes(value[key])) {
+//             throw new Error(`Invalid privacy setting for ${key}`);
+//           }
+//         }
+//       }
+//     }
+//   },
+//   passwordChangedAt: DataTypes.DATE,
+//   passwordResetToken: DataTypes.STRING,
+//   passwordResetExpires: DataTypes.DATE,
+//   emailVerifyToken: DataTypes.STRING,
+//   deletedAt: DataTypes.DATE
+// }, {
+//   sequelize,
+//   modelName: 'User',
+//   tableName: 'users',
+//   timestamps: true,
+//   createdAt: 'joinedAt',
+//   updatedAt: 'lastUpdatedAt',
+//   paranoid: true,
+//   defaultScope: {
+//     attributes: {
+//       exclude: [
+//         'password',
+//         'passwordResetToken',
+//         'passwordResetExpires',
+//         'emailVerifyToken',
+//         'verificationDocuments'
+//       ]
+//     }
+//   },
+//   scopes: {
+//     withSensitive: {
+//       attributes: {
+//         include: ['password', 'passwordResetToken', 'verificationDocuments']
+//       }
+//     },
+//     publicProfile: {
+//       attributes: [
+//         'id', 'firstName', 'lastName', 'profileSlug', 'username',
+//         'profileImage', 'coverImage', 'bio', 'website', 'gender',
+//         'isVerified', 'joinedAt'
+//       ]
+//     }
+//   },
+//   hooks: {
+//     beforeCreate: async (user) => {
+//       // Profile Slug Generation
+//       if (!user.profileSlug) {
+//         const baseSlug = `${user.firstName.toLowerCase()}.${user.lastName.toLowerCase()}`;
+//         let slug = baseSlug;
+//         let count = 1;
+//         while (await User.findOne({ where: { profileSlug: slug } })) {
+//           slug = `${baseSlug}.${count++}`;
+//         }
+//         user.profileSlug = slug;
+//       }
+
+//       // Hash Password
+//       if (user.password && !user.password.startsWith('$2b$')) {
+//         user.password = await bcrypt.hash(user.password, 12);
+//         user.passwordChangedAt = Date.now() - 1000;
+//       }
+
+//       // Track originals
+//       if (user.isNewRecord) {
+//         user.originalBirthDate = user.birthDate;
+//         user.originalPhone = user.phone;
+//         user.originalGender = user.gender;
+//       }
+//     },
+
+//     beforeSave: async (user) => {
+//       if (user.changed('password') && !user.password.startsWith('$2b$')) {
+//         user.password = await bcrypt.hash(user.password, 12);
+//         user.passwordChangedAt = Date.now() - 1000;
+//       }
+
+//       if (user.changed('gender') && !user.isNewRecord) {
+//         if (user.genderChangeCount >= 2) throw new Error('Maximum gender changes reached');
+//         user.lastGenderChange = new Date();
+//         user.genderChangeCount = (user.genderChangeCount || 0) + 1;
+//       }
+//     },
+
+  
+//     beforeUpdate: async (user) => {
+//       if (user.changed('username') && user.username) {
+//         const exists = await User.findOne({
+//           where: {
+//             username: user.username,
+//             id: { [Op.ne]: user.id }
+//           }
+//         });
+//         if (exists) throw new Error('Username already taken');
+//       }
+//     }
+
+//     }
+// });
+
+
+// module.exports = User;
 
 
 

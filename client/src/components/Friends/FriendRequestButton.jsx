@@ -1,317 +1,155 @@
-// src/components/FriendRequestButton.jsx
-
+// src/components/Friends/FriendRequestButton.jsx
 import {
+  PersonAddAlt1 as AcceptIcon, // Changed from PersonCheck to PersonAddAlt1
   PersonAdd as AddFriendIcon,
-  Schedule as PendingIcon
+  Check as FriendsIcon,
+  Schedule as PendingIcon,
 } from '@mui/icons-material';
 import { Button, CircularProgress, Tooltip } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { cancelFriendRequest, checkFriendshipStatus, sendFriendRequest } from '../../features/friendship/friendshipSlice';
+import {
+  acceptFriendRequest,
+  checkFriendshipStatus,
+  sendFriendRequest,
+} from '../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
 
-
-const FriendRequestButton = ({ targetUserId }) => {
+const FriendRequestButton = ({ friendId }) => {
   const dispatch = useDispatch();
   const currentUserId = useSelector((state) => state.user.profile?.id);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('none');       // 'none' | 'pending' | 'accepted'
-  const [friendshipId, setFriendshipId] = useState(null);
+  const friendship = useSelector(
+    (state) => state.friendship.friendshipStatus[friendId] || { status: 'none' }
+  );
+  const isLoading = useSelector(
+    (state) => state.friendship.status === 'loading'
+  );
 
-  // 1) Check friendship status on mount (or when targetUserId changes)
   useEffect(() => {
-    if (targetUserId && currentUserId && targetUserId !== currentUserId) {
-      dispatch(checkFriendshipStatus(targetUserId))
-        .then((action) => {
-          setStatus(action.payload.status);
-          setFriendshipId(action.payload.friendship?.id);
-        });
+    if (friendId && currentUserId && friendId !== currentUserId) {
+      dispatch(checkFriendshipStatus(Number(friendId)));
     }
-  }, [targetUserId, currentUserId, dispatch]);
+  }, [dispatch, friendId, currentUserId]);
 
-  // 2) Send friend request
+  const handleAction = async () => {
+    try {
+      if (friendship.status === 'none') {
+        await handleSendRequest();
+      } else if (friendship.status === 'pending_received') {
+        await handleAcceptRequest(friendship.requestId);
+      }
+    } catch (error) {
+      // Error handling is done in the individual functions
+    }
+  };
+
   const handleSendRequest = async () => {
-    if (!targetUserId || targetUserId === currentUserId) return;
-    setLoading(true);
     try {
-      const result = await dispatch(sendFriendRequest({ targetUserId })).unwrap();
-      setStatus('pending');
-      setFriendshipId(result.id);
+      if (Number(friendId) === currentUserId) {
+        throw new Error("You can't send a friend request to yourself");
+      }
+
+      const result = await dispatch(
+        sendFriendRequest(Number(friendId))
+      ).unwrap();
+
       dispatch(
         showSnackbar({
-          message: 'Friend request sent!',
-          severity: 'success'
+          message: result.message || 'Friend request sent successfully!',
+          severity: 'success',
         })
       );
     } catch (error) {
       dispatch(
         showSnackbar({
-          message: error || 'Failed to send friend request',
-          severity: 'error'
+          message: error.message || 'Failed to send friend request',
+          severity: 'error',
         })
       );
-    } finally {
-      setLoading(false);
     }
   };
 
-  // 3) Cancel friend request
-  const handleCancelRequest = async () => {
-    if (!friendshipId) return;
-    setLoading(true);
+  const handleAcceptRequest = async (requestId) => {
     try {
-      await dispatch(cancelFriendRequest(friendshipId)).unwrap();
-      setStatus('none');
+      const result = await dispatch(
+        acceptFriendRequest(Number(requestId))
+      ).unwrap();
+
       dispatch(
         showSnackbar({
-          message: 'Friend request cancelled',
-          severity: 'info'
+          message: result.message || 'Friend request accepted!',
+          severity: 'success',
         })
       );
     } catch (error) {
       dispatch(
         showSnackbar({
-          message: error || 'Failed to cancel request',
-          severity: 'error'
+          message: error.message || 'Failed to accept friend request',
+          severity: 'error',
         })
       );
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (!targetUserId || targetUserId === currentUserId) {
-    return null;
-  }
+  if (!friendId || friendId === currentUserId) return null;
 
-  if (loading) {
-    return (
-      <Button variant="outlined" size="small" disabled>
-        <CircularProgress size={20} />
+  const getButtonProps = () => {
+    switch (friendship.status) {
+      case 'pending_sent':
+        return {
+          label: 'Request Sent',
+          icon: <PendingIcon />,
+          color: 'secondary',
+          variant: 'outlined',
+          disabled: true,
+        };
+      case 'pending_received':
+        return {
+          label: 'Accept Request',
+          icon: <AcceptIcon />,
+          color: 'primary',
+          variant: 'contained',
+          disabled: false,
+        };
+      case 'accepted':
+        return {
+          label: 'Friends',
+          icon: <FriendsIcon />,
+          color: 'success',
+          variant: 'outlined',
+          disabled: true,
+        };
+      default:
+        return {
+          label: 'Add Friend',
+          icon: <AddFriendIcon />,
+          color: 'primary',
+          variant: 'contained',
+          disabled: false,
+        };
+    }
+  };
+
+  const { label, icon, color, variant, disabled } = getButtonProps();
+
+  return (
+    <Tooltip title={label} arrow>
+      <Button
+        variant={variant}
+        color={color}
+        size="small"
+        startIcon={isLoading ? <CircularProgress size={20} /> : icon}
+        onClick={handleAction}
+        disabled={disabled || isLoading}
+        sx={{
+          textTransform: 'none',
+          minWidth: '120px',
+        }}
+      >
+        {label}
       </Button>
-    );
-  }
-
-  switch (status) {
-    case 'none':
-      return (
-        <Tooltip title="Add friend" arrow>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            startIcon={<AddFriendIcon />}
-            onClick={handleSendRequest}
-            sx={{ textTransform: 'none' }}
-          >
-            Add Friend
-          </Button>
-        </Tooltip>
-      );
-
-    case 'pending':
-      return (
-        <Tooltip title="Cancel friend request" arrow>
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="small"
-            startIcon={<PendingIcon />}
-            onClick={handleCancelRequest}
-            sx={{ textTransform: 'none' }}
-          >
-            Request Sent
-          </Button>
-        </Tooltip>
-      );
-
-    case 'accepted':
-      return (
-        <Button
-          variant="outlined"
-          color="success"
-          size="small"
-          disabled
-          sx={{ textTransform: 'none' }}
-        >
-          Friends
-        </Button>
-      );
-
-    default:
-      return (
-        <Button
-          variant="contained"
-          color="primary"
-          size="small"
-          startIcon={<AddFriendIcon />}
-          onClick={handleSendRequest}
-          sx={{ textTransform: 'none' }}
-        >
-          Add Friend
-        </Button>
-      );
-  }
+    </Tooltip>
+  );
 };
 
 export default FriendRequestButton;
-
-
-
-
-
-
-
-//! running
-// import {
-//   PersonAdd as AddFriendIcon,
-//   Schedule as PendingIcon
-// } from '@mui/icons-material';
-// import { Button, CircularProgress, Tooltip } from '@mui/material';
-// import { useEffect, useState } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import {
-//   cancelFriendRequest,
-//   checkFriendshipStatus,
-//   sendFriendRequest
-// } from '../../features/friendship/friendshipSlice';
-// import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-
-// const FriendRequestButton = ({ targetUserId }) => {
-//   const dispatch = useDispatch();
-//   const currentUserId = useSelector(state => state.user.profile?.id);
-//   const [loading, setLoading] = useState(false);
-//   const [status, setStatus] = useState(null);
-//   const [friendshipId, setFriendshipId] = useState(null);
-
-//   // Check friendship status on mount
-//   useEffect(() => {
-//     if (targetUserId && currentUserId && targetUserId !== currentUserId) {
-//       dispatch(checkFriendshipStatus(targetUserId))
-//         .then((action) => {
-//           setStatus(action.payload.status);
-//           setFriendshipId(action.payload.friendship?.id);
-//         });
-//     }
-//   }, [targetUserId, currentUserId, dispatch]);
-
-//   const handleSendRequest = async () => {
-//     if (!targetUserId || targetUserId === currentUserId) return;
-    
-//     setLoading(true);
-//     try {
-//       const result = await dispatch(sendFriendRequest({ targetUserId })).unwrap();
-//       setStatus('pending');
-//       setFriendshipId(result.id);
-      
-//       dispatch(showSnackbar({
-//         message: 'Friend request sent!',
-//         severity: 'success'
-//       }));
-//     } catch (error) {
-//       dispatch(showSnackbar({
-//         message: error || 'Failed to send friend request',
-//         severity: 'error'
-//       }));
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleCancelRequest = async () => {
-//     if (!friendshipId) return;
-    
-//     setLoading(true);
-//     try {
-//       await dispatch(cancelFriendRequest(friendshipId)).unwrap();
-//       setStatus('none');
-      
-//       dispatch(showSnackbar({
-//         message: 'Friend request cancelled',
-//         severity: 'info'
-//       }));
-//     } catch (error) {
-//       dispatch(showSnackbar({
-//         message: error || 'Failed to cancel request',
-//         severity: 'error'
-//       }));
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   if (!targetUserId || targetUserId === currentUserId) {
-//     return null;
-//   }
-
-//   if (loading) {
-//     return (
-//       <Button variant="outlined" size="small" disabled>
-//         <CircularProgress size={20} />
-//       </Button>
-//     );
-//   }
-
-//   switch (status) {
-//     case 'none':
-//       return (
-//         <Tooltip title="Add friend" arrow>
-//           <Button 
-//             variant="contained" 
-//             color="primary" 
-//             size="small"
-//             startIcon={<AddFriendIcon />}
-//             onClick={handleSendRequest}
-//             sx={{ textTransform: 'none' }}
-//           >
-//             Add Friend
-//           </Button>
-//         </Tooltip>
-//       );
-      
-//     case 'pending':
-//       return (
-//         <Tooltip title="Cancel friend request" arrow>
-//           <Button 
-//             variant="outlined" 
-//             color="secondary" 
-//             size="small"
-//             startIcon={<PendingIcon />}
-//             onClick={handleCancelRequest}
-//             sx={{ textTransform: 'none' }}
-//           >
-//             Request Sent
-//           </Button>
-//         </Tooltip>
-//       );
-      
-//     case 'accepted':
-//       return (
-//         <Button 
-//           variant="outlined" 
-//           color="success" 
-//           size="small"
-//           disabled
-//           sx={{ textTransform: 'none' }}
-//         >
-//           Friends
-//         </Button>
-//       );
-      
-//     default:
-//       return (
-//         <Button 
-//           variant="contained" 
-//           color="primary" 
-//           size="small"
-//           startIcon={<AddFriendIcon />}
-//           onClick={handleSendRequest}
-//           sx={{ textTransform: 'none' }}
-//         >
-//           Add Friend
-//         </Button>
-//       );
-//   }
-// };
-
-// export default FriendRequestButton;

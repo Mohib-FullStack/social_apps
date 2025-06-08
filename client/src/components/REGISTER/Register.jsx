@@ -1,3 +1,4 @@
+//! main
 import {
   Cake,
   Email,
@@ -749,39 +750,74 @@ const RegisterForm = () => {
                     },
                   }}
                   render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label="Birth Date"
-                      maxDate={
-                        new Date(
-                          new Date().setFullYear(new Date().getFullYear() - 13)
-                        )
-                      }
-                      minDate={
-                        new Date(
-                          new Date().setFullYear(new Date().getFullYear() - 120)
-                        )
-                      }
-                      openTo="year"
-                      views={['year', 'month', 'day']}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          fullWidth
-                          margin="normal"
-                          error={!!errors.birthDate}
-                          helperText={errors.birthDate?.message}
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Cake />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      )}
-                    />
+                  //   <DatePicker
+                  //     {...field}
+                  //     label="Birth Date"
+                  //     maxDate={
+                  //       new Date(
+                  //         new Date().setFullYear(new Date().getFullYear() - 13)
+                  //       )
+                  //     }
+                  //     minDate={
+                  //       new Date(
+                  //         new Date().setFullYear(new Date().getFullYear() - 120)
+                  //       )
+                  //     }
+                  //     openTo="year"
+                  //     views={['year', 'month', 'day']}
+                  //     renderInput={(params) => (
+                  //       <TextField
+                  //         {...params}
+                  //         fullWidth
+                  //         margin="normal"
+                  //         error={!!errors.birthDate}
+                  //         helperText={errors.birthDate?.message}
+                  //         InputProps={{
+                  //           ...params.InputProps,
+                  //           startAdornment: (
+                  //             <InputAdornment position="start">
+                  //               <Cake />
+                  //             </InputAdornment>
+                  //           ),
+                  //         }}
+                  //       />
+                  //     )}
+                  //   />
+
+                  <DatePicker
+  {...field}
+  label="Birth Date"
+  maxDate={
+    new Date(
+      new Date().setFullYear(new Date().getFullYear() - 13)
+    )
+  }
+  minDate={
+    new Date(
+      new Date().setFullYear(new Date().getFullYear() - 120)
+    )
+  }
+  openTo="year"
+  views={['year', 'month', 'day']}
+  slots={{
+    textField: TextField
+  }}
+  slotProps={{
+    textField: {
+      fullWidth: true,
+      margin: 'normal',
+      error: !!errors.birthDate,
+      helperText: errors.birthDate?.message,
+      InputProps: {
+        startAdornment: (
+          <InputAdornment position="start">
+            <Cake />
+          </InputAdornment>
+        ),
+      },
+    }
+  }}
+/>
                   )}
                 />
               </Grid>

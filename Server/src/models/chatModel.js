@@ -1,8 +1,22 @@
-// src/models/chatModel.js
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class Chat extends Model {}
+class Chat extends Model {
+  static associate(models) {
+    this.hasMany(models.Message, {
+      foreignKey: 'chatId',
+      as: 'messages',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsToMany(models.User, {
+      through: models.ChatParticipant,
+      as: 'participants',
+      foreignKey: 'chatId',
+      onDelete: 'CASCADE'
+    });
+  }
+}
 
 Chat.init({
   id: {
@@ -21,10 +35,11 @@ Chat.init({
 }, {
   sequelize,
   modelName: 'Chat',
-  tableName: 'Chats',
+  tableName: 'chats',
   timestamps: true,
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  indexes: [
+    { fields: ['lastMessageAt'] }
+  ]
 });
 
 module.exports = Chat;
@@ -34,8 +49,7 @@ module.exports = Chat;
 
 
 
-
-
+//! with function
 // // src/models/chatModel.js
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');

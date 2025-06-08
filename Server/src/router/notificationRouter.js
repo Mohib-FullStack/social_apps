@@ -4,11 +4,14 @@ const { isLoggedIn } = require('../middleware/authMiddleware');
 const {
   getNotifications,
   markAsRead,
-     markAllAsRead,
   getUnreadCount,
   deleteNotification,
+  markAllAsRead,
 
 } = require('../controller/notificationController');
+
+// Add notifications
+notificationRouter.post('/', isLoggedIn,getNotifications);
 
 // Get all notifications for user
 notificationRouter.get('/', isLoggedIn, getNotifications);
@@ -17,10 +20,10 @@ notificationRouter.get('/', isLoggedIn, getNotifications);
 notificationRouter.get('/unread-count', isLoggedIn, getUnreadCount);
 
 // Mark notifications as read
-notificationRouter.patch('/mark-as-read', isLoggedIn, markAsRead);
+notificationRouter.put('/mark-as-read', isLoggedIn, markAsRead);
 
-// Mark all notifications as read
-notificationRouter.patch('/mark-all-as-read', isLoggedIn, markAllAsRead);
+// Mark notifications as read
+notificationRouter.put('/mark-all-as-read', isLoggedIn, markAllAsRead);
 
 // Delete a notification
 notificationRouter.delete('/:notificationId', isLoggedIn, deleteNotification);

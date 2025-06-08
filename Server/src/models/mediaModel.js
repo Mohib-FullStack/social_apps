@@ -1,7 +1,21 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class Media extends Model {}
+class Media extends Model {
+  static associate(models) {
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.Post, {
+      foreignKey: 'postId',
+      as: 'post',
+      onDelete: 'CASCADE'
+    });
+  }
+}
 
 Media.init({
   id: {
@@ -63,7 +77,7 @@ module.exports = Media;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

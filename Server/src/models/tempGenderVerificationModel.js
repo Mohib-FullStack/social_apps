@@ -98,7 +98,7 @@ module.exports = TempGenderVerification;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

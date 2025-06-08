@@ -1,13 +1,13 @@
+// components/NotificationPanel.jsx
 import {
-  Clear,
+  Check,
+  Close,
   Comment as CommentIcon,
   Done,
   Notifications as NotificationsIcon,
   Person,
   PersonAdd,
-  ThumbUp,
-  Check,
-  Close
+  ThumbUp
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -22,238 +22,175 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Snackbar,
   Tab,
   Tabs,
-  Typography
+  Typography,
+  useTheme
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { showSnackbar } from '../snackbar/snackbarSlice';
+import PropTypes from 'prop-types';
 import {
-  acceptFriendRequest,
   fetchNotifications,
   markAllAsRead,
-  markAsRead,
-  rejectFriendRequest
+  markAsRead
 } from './notificationSlice';
+import {
+  acceptFriendRequest,
+  rejectFriendRequest
+} from '../friendship/friendshipSlice';
 
 const TAB_ALL = 0;
 const TAB_UNREAD = 1;
 
-export default function NotificationPanel({ open, onClose }) {
+const NotificationPanel = ({ open, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
-  const { items: allNotifications = [], status } = useSelector(
-    (state) => state.notifications
-  );
+  const { items = [], status } = useSelector((state) => state.notifications);
   const [tabIndex, setTabIndex] = useState(TAB_ALL);
+  const [snack, setSnack] = useState({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     if (open) {
       dispatch(fetchNotifications({ page: 1, size: 50 }))
         .unwrap()
-        .catch(() => {
-          dispatch(
-            showSnackbar({
-              message: 'Failed to load notifications',
-              severity: 'error'
-            })
-          );
-        });
+        .catch(() => showSnackbar('Failed to load notifications', 'error'));
     }
-  }, [dispatch, open]);
+  }, [open, dispatch]);
 
-  const groupNotifications = (notifications) => {
-    const newNotifications = notifications.filter(n => 
-      !n.isRead && new Date(n.createdAt) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-    );
-    const olderNotifications = notifications.filter(n => 
-      !newNotifications.includes(n)
-    );
-    return { new: newNotifications, older: olderNotifications };
+  const showSnackbar = (message, severity = 'info') => {
+    setSnack({ open: true, message, severity });
   };
 
-  const { new: newNotifications, older: olderNotifications } = 
-    groupNotifications(tabIndex === TAB_UNREAD 
-      ? allNotifications.filter(n => !n.isRead) 
-      : allNotifications);
+  const groupedNotifications = useMemo(() => {
+    const filterBase = tabIndex === TAB_UNREAD ? items.filter(n => !n.isRead) : items;
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const newItems = filterBase.filter(n => !n.isRead && new Date(n.createdAt) > now - oneDay);
+    const oldItems = filterBase.filter(n => !newItems.includes(n));
+    return { newItems, oldItems };
+  }, [tabIndex, items]);
 
   const renderIconByType = (type) => {
-    switch (type) {
-      case 'friend_request': return <PersonAdd fontSize="small" sx={{ color: '#1976d2' }} />;
-      case 'post_like': return <ThumbUp fontSize="small" sx={{ color: '#d32f2f' }} />;
-      case 'follow': return <Person fontSize="small" sx={{ color: '#388e3c' }} />;
-      case 'comment': return <CommentIcon fontSize="small" sx={{ color: '#6a1b9a' }} />;
-      default: return <NotificationsIcon fontSize="small" sx={{ color: '#757575' }} />;
-    }
+    const iconMap = {
+      friend_request: <PersonAdd />,
+      post_like: <ThumbUp />,
+      follow: <Person />,
+      comment: <CommentIcon />,
+      default: <NotificationsIcon />
+    };
+
+    const colorMap = {
+      friend_request: theme.palette.primary.main,
+      post_like: theme.palette.error.main,
+      follow: theme.palette.success.main,
+      comment: theme.palette.secondary.main,
+      default: theme.palette.text.disabled
+    };
+
+    return {
+      ...iconMap[type] || iconMap.default,
+      props: { sx: { color: colorMap[type] || colorMap.default }, fontSize: 'small' }
+    };
   };
 
-  const handleMarkAsRead = async (notificationId) => {
+  const handleMarkAsRead = async (id) => {
     try {
-      await dispatch(markAsRead(notificationId)).unwrap();
+      await dispatch(markAsRead(id)).unwrap();
     } catch {
-      dispatch(showSnackbar({ message: 'Failed to mark as read', severity: 'error' }));
+      showSnackbar('Failed to mark as read', 'error');
     }
   };
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAll = async () => {
     try {
       await dispatch(markAllAsRead()).unwrap();
-      dispatch(showSnackbar({ message: 'All notifications marked as read', severity: 'success' }));
+      showSnackbar('All notifications marked as read', 'success');
     } catch {
-      dispatch(showSnackbar({ message: 'Failed to mark all as read', severity: 'error' }));
+      showSnackbar('Failed to mark all as read', 'error');
     }
   };
 
-  const handleAccept = async (notification) => {
-    const { id: notificationId, metadata } = notification;
-    const { friendshipId, senderId } = metadata || {};
+  const handleFriendRequest = async (notification, actionType) => {
+    const { metadata: { friendshipId } = {} } = notification;
     if (!friendshipId) return;
-    
     try {
-      await dispatch(acceptFriendRequest({ notificationId, friendshipId, senderId })).unwrap();
-      dispatch(showSnackbar({ message: 'Friend request accepted', severity: 'success' }));
+      const action = actionType === 'accept' ? acceptFriendRequest : rejectFriendRequest;
+      await dispatch(action(friendshipId)).unwrap();
+      showSnackbar(`Friend request ${actionType}ed`, 'success');
     } catch {
-      dispatch(showSnackbar({ message: 'Failed to accept friend request', severity: 'error' }));
+      showSnackbar(`Failed to ${actionType} request`, 'error');
     }
   };
 
-  const handleReject = async (notification) => {
-    const { id: notificationId, metadata } = notification;
-    const { friendshipId, senderId } = metadata || {};
-    if (!friendshipId) return;
-    
-    try {
-      await dispatch(rejectFriendRequest({ notificationId, friendshipId, senderId })).unwrap();
-      dispatch(showSnackbar({ message: 'Friend request rejected', severity: 'info' }));
-    } catch {
-      dispatch(showSnackbar({ message: 'Failed to reject friend request', severity: 'error' }));
-    }
-  };
-
-  const renderNotificationItem = (notification) => {
+  const renderNotification = (notification) => {
     const {
       id,
       type,
-      metadata: { senderName, avatarUrl, message, senderId },
       isRead,
-      createdAt
+      createdAt,
+      metadata: { senderId, senderName, avatarUrl, message } = {}
     } = notification;
 
+    const icon = renderIconByType(type);
+
     return (
-      <motion.div
-        key={id}
-        whileHover={{ scale: 1.02 }}
-        style={{ originZ: 0 }}
-      >
-        <ListItem
-          alignItems="flex-start"
-          sx={{
-            p: 1.5,
-            mb: 1,
-            bgcolor: isRead ? 'background.paper' : 'action.selected',
-            borderRadius: 1,
-            mx: 1,
-            '&:hover': {
-              bgcolor: isRead ? 'action.hover' : 'action.selected'
-            }
-          }}
-        >
+      <motion.div key={id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
+        <ListItem sx={{
+          p: 1.5,
+          mb: 1,
+          bgcolor: isRead ? 'background.paper' : 'action.selected',
+          borderRadius: 2,
+          mx: 1
+        }}>
           <ListItemAvatar>
-            <Badge
-              color="primary"
-              overlap="circular"
-              variant={isRead ? undefined : 'dot'}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-              <Avatar 
-                src={avatarUrl || '/default-avatar.png'} 
+            <Badge color="primary" variant={isRead ? undefined : 'dot'} overlap="circular">
+              <Avatar
+                src={avatarUrl || '/default-avatar.png'}
                 alt={senderName}
                 component={Link}
                 to={`/profile/${senderId}`}
-                sx={{ 
-                  width: 48, 
-                  height: 48,
-                  textDecoration: 'none'
-                }}
+                sx={{ width: 48, height: 48 }}
               />
             </Badge>
           </ListItemAvatar>
 
           <ListItemText
             primary={
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {renderIconByType(type)}
-                <Typography 
-                  variant="body1" 
-                  component={Link} 
+              <Box display="flex" alignItems="center">
+                {icon}
+                <Typography
+                  component={Link}
                   to={`/profile/${senderId}`}
-                  sx={{ 
-                    ml: 1, 
+                  variant="body1"
+                  sx={{
+                    ml: 1,
                     fontWeight: isRead ? 400 : 600,
                     textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      textDecoration: 'underline'
-                    }
+                    color: 'inherit'
                   }}
                 >
                   {senderName} {message}
                 </Typography>
               </Box>
             }
-            secondary={
-              <Typography variant="caption" color="text.secondary">
-                {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                {' • '}
-                {new Date(createdAt).toLocaleDateString()}
-              </Typography>
-            }
+            secondary={<Typography variant="caption" color="text.secondary">{new Date(createdAt).toLocaleString()}</Typography>}
             sx={{ ml: 1 }}
           />
 
           {!isRead && type !== 'friend_request' && (
-            <IconButton
-              onClick={() => handleMarkAsRead(id)}
-              title="Mark as read"
-              size="small"
-              sx={{ mr: 1 }}
-            >
+            <IconButton size="small" onClick={() => handleMarkAsRead(id)} title="Mark as read">
               <Done fontSize="small" />
             </IconButton>
           )}
 
           {type === 'friend_request' && (
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Button
-                size="small"
-                color="success"
-                variant="contained"
-                startIcon={<Check />}
-                onClick={() => handleAccept(notification)}
-                sx={{
-                  minWidth: 0,
-                  px: 1,
-                  textTransform: 'none'
-                }}
-              >
-                Accept
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                variant="outlined"
-                startIcon={<Close />}
-                onClick={() => handleReject(notification)}
-                sx={{
-                  minWidth: 0,
-                  px: 1,
-                  textTransform: 'none'
-                }}
-              >
-                Reject
-              </Button>
+            <Box display="flex" gap={1}>
+              <Button size="small" variant="contained" color="success" startIcon={<Check />} onClick={() => handleFriendRequest(notification, 'accept')}>Accept</Button>
+              <Button size="small" variant="outlined" color="error" startIcon={<Close />} onClick={() => handleFriendRequest(notification, 'reject')}>Reject</Button>
             </Box>
           )}
         </ListItem>
@@ -263,161 +200,764 @@ export default function NotificationPanel({ open, onClose }) {
   };
 
   return (
-    <Drawer 
-      anchor="right" 
-      open={open} 
+    <Drawer
+      anchor="right"
+      open={open}
       onClose={onClose}
-      sx={{
-        '& .MuiDrawer-paper': {
-          width: { xs: '100%', sm: 400 },
-          top: '56px',
-          height: 'calc(100vh - 56px)',
-          borderLeft: '1px solid rgba(0, 0, 0, 0.12)',
-          position: 'fixed',
-          zIndex: 1200
-        }
-      }}
+      sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 400 }, top: '56px', height: 'calc(100vh - 56px)' } }}
     >
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        height: '100%',
-        bgcolor: 'background.paper'
-      }}>
-        <Box sx={{ 
-          p: 2, 
-          borderBottom: '1px solid #eee',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Notifications</Typography>
-          <Button 
+      <Box display="flex" flexDirection="column" height="100%" bgcolor="background.paper">
+        {/* Header */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" p={2} borderBottom="1px solid #eee">
+          <Typography variant="h6" fontWeight="bold">Notifications</Typography>
+          <Button
             size="small"
-            onClick={handleMarkAllAsRead}
-            disabled={allNotifications.every(n => n.isRead)}
+            onClick={handleMarkAll}
+            disabled={items.every(n => n.isRead)}
             startIcon={<Done />}
-            sx={{ textTransform: 'none' }}
           >
             Mark all as read
           </Button>
         </Box>
 
-        <Tabs
-          value={tabIndex}
-          onChange={(e, newValue) => setTabIndex(newValue)}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
-          sx={{ borderBottom: '1px solid #eee' }}
-        >
+        {/* Tabs */}
+        <Tabs value={tabIndex} onChange={(e, newIndex) => setTabIndex(newIndex)} variant="fullWidth">
           <Tab label="All" />
-          <Tab label={`Unread (${allNotifications.filter(n => !n.isRead).length})`} />
+          <Tab label={`Unread (${items.filter(n => !n.isRead).length})`} />
         </Tabs>
 
+        {/* Content */}
         {status === 'loading' ? (
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          }}>
+          <Box flex={1} display="flex" alignItems="center" justifyContent="center">
             <CircularProgress />
           </Box>
         ) : (
-          <Box sx={{ 
-            flex: 1, 
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': { width: '6px' },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              borderRadius: '3px'
-            }
-          }}>
-            {newNotifications.length > 0 && (
+          <Box flex={1} overflow="auto" sx={{ '&::-webkit-scrollbar': { width: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.2)' } }}>
+            {groupedNotifications.newItems.length > 0 && (
               <>
-                <Box sx={{ 
-                  px: 2, 
-                  py: 1, 
-                  bgcolor: 'action.hover',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1
-                }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                    New
-                  </Typography>
-                </Box>
-                <List>
-                  {newNotifications.map(renderNotificationItem)}
-                </List>
+                <StickySection title="New" />
+                <List>{groupedNotifications.newItems.map(renderNotification)}</List>
               </>
             )}
-
-            {olderNotifications.length > 0 && (
+            {groupedNotifications.oldItems.length > 0 && (
               <>
-                <Box sx={{ 
-                  px: 2, 
-                  py: 1, 
-                  bgcolor: 'action.hover',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1
-                }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                    Earlier
-                  </Typography>
-                </Box>
-                <List>
-                  {olderNotifications.map(renderNotificationItem)}
-                </List>
+                <StickySection title="Earlier" />
+                <List>{groupedNotifications.oldItems.map(renderNotification)}</List>
               </>
             )}
-
-            {newNotifications.length === 0 && olderNotifications.length === 0 && (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                height: '100%',
-                p: 4,
-                textAlign: 'center'
-              }}>
-                <NotificationsIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" sx={{ mb: 1 }}>
-                  No notifications
-                </Typography>
+            {groupedNotifications.newItems.length === 0 && groupedNotifications.oldItems.length === 0 && (
+              <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%" p={4}>
+                <NotificationsIcon sx={{ fontSize: 60, color: 'text.disabled' }} />
+                <Typography variant="h6" mt={2}>No notifications</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {tabIndex === TAB_UNREAD 
-                    ? "You're all caught up!" 
-                    : "You'll see notifications here when you get them."}
+                  {tabIndex === TAB_UNREAD ? "You're all caught up!" : "You'll see notifications here when they arrive."}
                 </Typography>
               </Box>
             )}
           </Box>
         )}
-
-        <Box sx={{ 
-          p: 2, 
-          borderTop: '1px solid #eee',
-          textAlign: 'center'
-        }}>
-          <Button 
-            variant="text" 
-            color="primary"
-            component={Link}
-            to="/notifications"
-            onClick={onClose}
-            sx={{ textTransform: 'none' }}
-          >
-            See All Notifications
-          </Button>
-        </Box>
       </Box>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snack.open}
+        onClose={() => setSnack({ ...snack, open: false })}
+        message={snack.message}
+        autoHideDuration={3000}
+      />
     </Drawer>
   );
-}
+};
+
+NotificationPanel.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired
+};
+
+const StickySection = ({ title }) => (
+  <Box sx={{ px: 2, py: 1, bgcolor: 'action.hover', position: 'sticky', top: 0, zIndex: 1 }}>
+    <Typography variant="subtitle2" fontWeight="bold">{title}</Typography>
+  </Box>
+);
+
+StickySection.propTypes = {
+  title: PropTypes.string.isRequired
+};
+
+export default NotificationPanel;
+
+
+
+//! previous
+// ✅ Enhanced NotificationPanel with MUI Theme, Animations, Snackbar, Suggested UX
+// Features: Grouped Notifications, Better Color Coding, Friend Actions, Carousel & Marketplace Ready UI
+
+// import {
+//   Check,
+//   Close,
+//   Comment as CommentIcon,
+//   Done,
+//   Notifications as NotificationsIcon,
+//   Person,
+//   PersonAdd,
+//   ThumbUp
+// } from '@mui/icons-material';
+// import {
+//   Avatar,
+//   Badge,
+//   Box,
+//   Button,
+//   CircularProgress,
+//   Divider,
+//   Drawer,
+//   IconButton,
+//   List,
+//   ListItem,
+//   ListItemAvatar,
+//   ListItemText,
+//   Snackbar,
+//   Tab,
+//   Tabs,
+//   Typography,
+//   useTheme
+// } from '@mui/material';
+// import { motion } from 'framer-motion';
+// import { useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { Link } from 'react-router-dom';
+// import { acceptFriendRequest, rejectFriendRequest } from '../friendship/friendshipSlice';
+// import {
+//   //  acceptFriendRequest,
+//   fetchNotifications,
+//   markAllAsRead,
+//   markAsRead,
+// } from './notificationSlice';
+
+// const TAB_ALL = 0;
+// const TAB_UNREAD = 1;
+
+// export default function NotificationPanel({ open, onClose }) {
+//   const dispatch = useDispatch();
+//   const theme = useTheme();
+//   const { items: allNotifications = [], status } = useSelector((state) => state.notifications);
+//   const [tabIndex, setTabIndex] = useState(TAB_ALL);
+//   const [snack, setSnack] = useState({ open: false, message: '', severity: 'info' });
+
+//   useEffect(() => {
+//     if (open) {
+//       dispatch(fetchNotifications({ page: 1, size: 50 }))
+//         .unwrap()
+//         .catch(() => handleShowSnackbar('Failed to load notifications', 'error'));
+//     }
+//   }, [dispatch, open]);
+
+//   const handleShowSnackbar = (message, severity) => setSnack({ open: true, message, severity });
+
+//   const groupNotifications = (notifications) => {
+//     const newNotifications = notifications.filter(n => !n.isRead && new Date(n.createdAt) > Date.now() - 24 * 60 * 60 * 1000);
+//     const olderNotifications = notifications.filter(n => !newNotifications.includes(n));
+//     return { new: newNotifications, older: olderNotifications };
+//   };
+
+//   const { new: newNotifications, older: olderNotifications } = groupNotifications(
+//     tabIndex === TAB_UNREAD ? allNotifications.filter(n => !n.isRead) : allNotifications
+//   );
+
+//   const renderIconByType = (type) => {
+//     const colorMap = {
+//       friend_request: theme.palette.primary.main,
+//       post_like: theme.palette.error.main,
+//       follow: theme.palette.success.main,
+//       comment: theme.palette.secondary.main,
+//       default: theme.palette.text.disabled
+//     };
+
+//     const color = colorMap[type] || colorMap.default;
+//     const iconProps = { fontSize: 'small', sx: { color } };
+
+//     switch (type) {
+//       case 'friend_request': return <PersonAdd {...iconProps} />;
+//       case 'post_like': return <ThumbUp {...iconProps} />;
+//       case 'follow': return <Person {...iconProps} />;
+//       case 'comment': return <CommentIcon {...iconProps} />;
+//       default: return <NotificationsIcon {...iconProps} />;
+//     }
+//   };
+
+//   const handleMarkAsRead = async (notificationId) => {
+//     try {
+//       await dispatch(markAsRead(notificationId)).unwrap();
+//     } catch {
+//       handleShowSnackbar('Failed to mark as read', 'error');
+//     }
+//   };
+
+//   const handleMarkAllAsRead = async () => {
+//     try {
+//       await dispatch(markAllAsRead()).unwrap();
+//       handleShowSnackbar('All notifications marked as read', 'success');
+//     } catch {
+//       handleShowSnackbar('Failed to mark all as read', 'error');
+//     }
+//   };
+
+//   const handleAccept = async (notification) => {
+//     const { id, metadata } = notification;
+//     const { friendshipId, senderId } = metadata || {};
+//     if (!friendshipId) return;
+//     try {
+//       // await dispatch(acceptFriendRequest({ notificationId: id, friendshipId, senderId })).unwrap();
+//       await dispatch(acceptFriendRequest(friendshipId)).unwrap();
+
+//       handleShowSnackbar('Friend request accepted', 'success');
+//     } catch {
+//       handleShowSnackbar('Failed to accept request', 'error');
+//     }
+//   };
+
+//   const handleReject = async (notification) => {
+//     const { id, metadata } = notification;
+//     const { friendshipId, senderId } = metadata || {};
+//     if (!friendshipId) return;
+//     try {
+//       // await dispatch(rejectFriendRequest({ notificationId: id, friendshipId, senderId })).unwrap();
+
+//       await dispatch(rejectFriendRequest(friendshipId)).unwrap();
+
+//       handleShowSnackbar('Friend request rejected', 'info');
+//     } catch {
+//       handleShowSnackbar('Failed to reject request', 'error');
+//     }
+//   };
+
+//   const renderNotificationItem = (notification) => {
+//     const { id, type, metadata: { senderName, avatarUrl, message, senderId }, isRead, createdAt } = notification;
+
+//     return (
+//       <motion.div key={id} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
+//         <ListItem alignItems="flex-start" sx={{ p: 1.5, mb: 1, bgcolor: isRead ? 'background.paper' : 'action.selected', borderRadius: 2, mx: 1 }}>
+//           <ListItemAvatar>
+//             <Badge color="primary" overlap="circular" variant={isRead ? undefined : 'dot'}>
+//               <Avatar src={avatarUrl || '/default-avatar.png'} alt={senderName} component={Link} to={`/profile/${senderId}`} sx={{ width: 48, height: 48 }} />
+//             </Badge>
+//           </ListItemAvatar>
+
+//           <ListItemText
+//             primary={
+//               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+//                 {renderIconByType(type)}
+//                 <Typography variant="body1" component={Link} to={`/profile/${senderId}`} sx={{ ml: 1, fontWeight: isRead ? 400 : 600, textDecoration: 'none', color: 'inherit' }}>
+//                   {senderName} {message}
+//                 </Typography>
+//               </Box>
+//             }
+//             secondary={<Typography variant="caption" color="text.secondary">{new Date(createdAt).toLocaleString()}</Typography>}
+//             sx={{ ml: 1 }}
+//           />
+
+//           {!isRead && type !== 'friend_request' && (
+//             <IconButton onClick={() => handleMarkAsRead(id)} size="small" title="Mark as read">
+//               <Done fontSize="small" />
+//             </IconButton>
+//           )}
+
+//           {type === 'friend_request' && (
+//             <Box sx={{ display: 'flex', gap: 1 }}>
+//               <Button size="small" variant="contained" color="success" startIcon={<Check />} onClick={() => handleAccept(notification)} sx={{ textTransform: 'none' }}>Accept</Button>
+//               <Button size="small" variant="outlined" color="error" startIcon={<Close />} onClick={() => handleReject(notification)} sx={{ textTransform: 'none' }}>Reject</Button>
+//             </Box>
+//           )}
+//         </ListItem>
+//         <Divider component="li" />
+//       </motion.div>
+//     );
+//   };
+
+//   return (
+//     <Drawer anchor="right" open={open} onClose={onClose} sx={{ '& .MuiDrawer-paper': { width: { xs: '100%', sm: 400 }, top: '56px', height: 'calc(100vh - 56px)', borderLeft: '1px solid #eee' } }}>
+//       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.paper' }}>
+//         <Box sx={{ p: 2, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+//           <Typography variant="h6" fontWeight="bold">Notifications</Typography>
+//           <Button size="small" onClick={handleMarkAllAsRead} disabled={allNotifications.every(n => n.isRead)} startIcon={<Done />} sx={{ textTransform: 'none' }}>Mark all as read</Button>
+//         </Box>
+
+//         <Tabs value={tabIndex} onChange={(e, newVal) => setTabIndex(newVal)} indicatorColor="primary" textColor="primary" variant="fullWidth">
+//           <Tab label="All" />
+//           <Tab label={`Unread (${allNotifications.filter(n => !n.isRead).length})`} />
+//         </Tabs>
+
+//         {status === 'loading' ? (
+//           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+//             <CircularProgress />
+//           </Box>
+//         ) : (
+//           <Box sx={{ flex: 1, overflowY: 'auto', '&::-webkit-scrollbar': { width: '6px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.2)' } }}>
+//             {newNotifications.length > 0 && (
+//               <>
+//                 <Box sx={{ px: 2, py: 1, bgcolor: 'action.hover', position: 'sticky', top: 0, zIndex: 1 }}>
+//                   <Typography variant="subtitle2" fontWeight="bold">New</Typography>
+//                 </Box>
+//                 <List>{newNotifications.map(renderNotificationItem)}</List>
+//               </>
+//             )}
+//             {olderNotifications.length > 0 && (
+//               <>
+//                 <Box sx={{ px: 2, py: 1, bgcolor: 'action.hover', position: 'sticky', top: 0, zIndex: 1 }}>
+//                   <Typography variant="subtitle2" fontWeight="bold">Earlier</Typography>
+//                 </Box>
+//                 <List>{olderNotifications.map(renderNotificationItem)}</List>
+//               </>
+//             )}
+//             {newNotifications.length === 0 && olderNotifications.length === 0 && (
+//               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+//                 <NotificationsIcon sx={{ fontSize: 60, color: 'text.disabled' }} />
+//                 <Typography variant="h6" mt={2}>No notifications</Typography>
+//                 <Typography variant="body2" color="text.secondary">{tabIndex === TAB_UNREAD ? "You're all caught up!" : "You'll see notifications here when you get them."}</Typography>
+//               </Box>
+//             )}
+//           </Box>
+//         )}
+
+//         <Box sx={{ p: 2, borderTop: '1px solid #eee', textAlign: 'center' }}>
+//           <Button variant="text" color="primary" component={Link} to="/notifications" onClick={onClose} sx={{ textTransform: 'none' }}>See All Notifications</Button>
+//         </Box>
+//       </Box>
+
+//       <Snackbar
+//         open={snack.open}
+//         autoHideDuration={3000}
+//         onClose={() => setSnack({ ...snack, open: false })}
+//         message={snack.message}
+//       />
+//     </Drawer>
+//   );
+// }
+
+
+
+
+
+
+// ! final
+// import {
+//   Check,
+//   Close,
+//   Comment as CommentIcon,
+//   Done,
+//   Notifications as NotificationsIcon,
+//   Person,
+//   PersonAdd,
+//   ThumbUp
+// } from '@mui/icons-material';
+// import {
+//   Avatar,
+//   Badge,
+//   Box,
+//   Button,
+//   CircularProgress,
+//   Divider,
+//   Drawer,
+//   IconButton,
+//   List,
+//   ListItem,
+//   ListItemAvatar,
+//   ListItemText,
+//   Tab,
+//   Tabs,
+//   Typography
+// } from '@mui/material';
+// import { motion } from 'framer-motion';
+// import { useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { Link } from 'react-router-dom';
+// import { showSnackbar } from '../snackbar/snackbarSlice';
+// import {
+//   acceptFriendRequest,
+//   fetchNotifications,
+//   markAllAsRead,
+//   markAsRead,
+//   rejectFriendRequest
+// } from './notificationSlice';
+
+// const TAB_ALL = 0;
+// const TAB_UNREAD = 1;
+
+// export default function NotificationPanel({ open, onClose }) {
+//   const dispatch = useDispatch();
+//   const { items: allNotifications = [], status } = useSelector(
+//     (state) => state.notifications
+//   );
+//   const [tabIndex, setTabIndex] = useState(TAB_ALL);
+
+//   useEffect(() => {
+//     if (open) {
+//       dispatch(fetchNotifications({ page: 1, size: 50 }))
+//         .unwrap()
+//         .catch(() => {
+//           dispatch(
+//             showSnackbar({
+//               message: 'Failed to load notifications',
+//               severity: 'error'
+//             })
+//           );
+//         });
+//     }
+//   }, [dispatch, open]);
+
+//   const groupNotifications = (notifications) => {
+//     const newNotifications = notifications.filter(n => 
+//       !n.isRead && new Date(n.createdAt) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+//     );
+//     const olderNotifications = notifications.filter(n => 
+//       !newNotifications.includes(n)
+//     );
+//     return { new: newNotifications, older: olderNotifications };
+//   };
+
+//   const { new: newNotifications, older: olderNotifications } = 
+//     groupNotifications(tabIndex === TAB_UNREAD 
+//       ? allNotifications.filter(n => !n.isRead) 
+//       : allNotifications);
+
+//   const renderIconByType = (type) => {
+//     switch (type) {
+//       case 'friend_request': return <PersonAdd fontSize="small" sx={{ color: '#1976d2' }} />;
+//       case 'post_like': return <ThumbUp fontSize="small" sx={{ color: '#d32f2f' }} />;
+//       case 'follow': return <Person fontSize="small" sx={{ color: '#388e3c' }} />;
+//       case 'comment': return <CommentIcon fontSize="small" sx={{ color: '#6a1b9a' }} />;
+//       default: return <NotificationsIcon fontSize="small" sx={{ color: '#757575' }} />;
+//     }
+//   };
+
+//   const handleMarkAsRead = async (notificationId) => {
+//     try {
+//       await dispatch(markAsRead(notificationId)).unwrap();
+//     } catch {
+//       dispatch(showSnackbar({ message: 'Failed to mark as read', severity: 'error' }));
+//     }
+//   };
+
+//   const handleMarkAllAsRead = async () => {
+//     try {
+//       await dispatch(markAllAsRead()).unwrap();
+//       dispatch(showSnackbar({ message: 'All notifications marked as read', severity: 'success' }));
+//     } catch {
+//       dispatch(showSnackbar({ message: 'Failed to mark all as read', severity: 'error' }));
+//     }
+//   };
+
+//   const handleAccept = async (notification) => {
+//     const { id: notificationId, metadata } = notification;
+//     const { friendshipId, senderId } = metadata || {};
+//     if (!friendshipId) return;
+    
+//     try {
+//       await dispatch(acceptFriendRequest({ notificationId, friendshipId, senderId })).unwrap();
+//       dispatch(showSnackbar({ message: 'Friend request accepted', severity: 'success' }));
+//     } catch {
+//       dispatch(showSnackbar({ message: 'Failed to accept friend request', severity: 'error' }));
+//     }
+//   };
+
+//   const handleReject = async (notification) => {
+//     const { id: notificationId, metadata } = notification;
+//     const { friendshipId, senderId } = metadata || {};
+//     if (!friendshipId) return;
+    
+//     try {
+//       await dispatch(rejectFriendRequest({ notificationId, friendshipId, senderId })).unwrap();
+//       dispatch(showSnackbar({ message: 'Friend request rejected', severity: 'info' }));
+//     } catch {
+//       dispatch(showSnackbar({ message: 'Failed to reject friend request', severity: 'error' }));
+//     }
+//   };
+
+//   const renderNotificationItem = (notification) => {
+//     const {
+//       id,
+//       type,
+//       metadata: { senderName, avatarUrl, message, senderId },
+//       isRead,
+//       createdAt
+//     } = notification;
+
+//     return (
+//       <motion.div
+//         key={id}
+//         whileHover={{ scale: 1.02 }}
+//         style={{ originZ: 0 }}
+//       >
+//         <ListItem
+//           alignItems="flex-start"
+//           sx={{
+//             p: 1.5,
+//             mb: 1,
+//             bgcolor: isRead ? 'background.paper' : 'action.selected',
+//             borderRadius: 1,
+//             mx: 1,
+//             '&:hover': {
+//               bgcolor: isRead ? 'action.hover' : 'action.selected'
+//             }
+//           }}
+//         >
+//           <ListItemAvatar>
+//             <Badge
+//               color="primary"
+//               overlap="circular"
+//               variant={isRead ? undefined : 'dot'}
+//               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+//             >
+//               <Avatar 
+//                 src={avatarUrl || '/default-avatar.png'} 
+//                 alt={senderName}
+//                 component={Link}
+//                 to={`/profile/${senderId}`}
+//                 sx={{ 
+//                   width: 48, 
+//                   height: 48,
+//                   textDecoration: 'none'
+//                 }}
+//               />
+//             </Badge>
+//           </ListItemAvatar>
+
+//           <ListItemText
+//             primary={
+//               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+//                 {renderIconByType(type)}
+//                 <Typography 
+//                   variant="body1" 
+//                   component={Link} 
+//                   to={`/profile/${senderId}`}
+//                   sx={{ 
+//                     ml: 1, 
+//                     fontWeight: isRead ? 400 : 600,
+//                     textDecoration: 'none',
+//                     color: 'inherit',
+//                     '&:hover': {
+//                       textDecoration: 'underline'
+//                     }
+//                   }}
+//                 >
+//                   {senderName} {message}
+//                 </Typography>
+//               </Box>
+//             }
+//             secondary={
+//               <Typography variant="caption" color="text.secondary">
+//                 {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+//                 {' • '}
+//                 {new Date(createdAt).toLocaleDateString()}
+//               </Typography>
+//             }
+//             sx={{ ml: 1 }}
+//           />
+
+//           {!isRead && type !== 'friend_request' && (
+//             <IconButton
+//               onClick={() => handleMarkAsRead(id)}
+//               title="Mark as read"
+//               size="small"
+//               sx={{ mr: 1 }}
+//             >
+//               <Done fontSize="small" />
+//             </IconButton>
+//           )}
+
+//           {type === 'friend_request' && (
+//             <Box sx={{ display: 'flex', gap: 0.5 }}>
+//               <Button
+//                 size="small"
+//                 color="success"
+//                 variant="contained"
+//                 startIcon={<Check />}
+//                 onClick={() => handleAccept(notification)}
+//                 sx={{
+//                   minWidth: 0,
+//                   px: 1,
+//                   textTransform: 'none'
+//                 }}
+//               >
+//                 Accept
+//               </Button>
+//               <Button
+//                 size="small"
+//                 color="error"
+//                 variant="outlined"
+//                 startIcon={<Close />}
+//                 onClick={() => handleReject(notification)}
+//                 sx={{
+//                   minWidth: 0,
+//                   px: 1,
+//                   textTransform: 'none'
+//                 }}
+//               >
+//                 Reject
+//               </Button>
+//             </Box>
+//           )}
+//         </ListItem>
+//         <Divider component="li" />
+//       </motion.div>
+//     );
+//   };
+
+//   return (
+//     <Drawer 
+//       anchor="right" 
+//       open={open} 
+//       onClose={onClose}
+//       sx={{
+//         '& .MuiDrawer-paper': {
+//           width: { xs: '100%', sm: 400 },
+//           top: '56px',
+//           height: 'calc(100vh - 56px)',
+//           borderLeft: '1px solid rgba(0, 0, 0, 0.12)',
+//           position: 'fixed',
+//           zIndex: 1200
+//         }
+//       }}
+//     >
+//       <Box sx={{ 
+//         display: 'flex', 
+//         flexDirection: 'column', 
+//         height: '100%',
+//         bgcolor: 'background.paper'
+//       }}>
+//         <Box sx={{ 
+//           p: 2, 
+//           borderBottom: '1px solid #eee',
+//           display: 'flex',
+//           justifyContent: 'space-between',
+//           alignItems: 'center'
+//         }}>
+//           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Notifications</Typography>
+//           <Button 
+//             size="small"
+//             onClick={handleMarkAllAsRead}
+//             disabled={allNotifications.every(n => n.isRead)}
+//             startIcon={<Done />}
+//             sx={{ textTransform: 'none' }}
+//           >
+//             Mark all as read
+//           </Button>
+//         </Box>
+
+//         <Tabs
+//           value={tabIndex}
+//           onChange={(e, newValue) => setTabIndex(newValue)}
+//           indicatorColor="primary"
+//           textColor="primary"
+//           variant="fullWidth"
+//           sx={{ borderBottom: '1px solid #eee' }}
+//         >
+//           <Tab label="All" />
+//           <Tab label={`Unread (${allNotifications.filter(n => !n.isRead).length})`} />
+//         </Tabs>
+
+//         {status === 'loading' ? (
+//           <Box sx={{ 
+//             flex: 1, 
+//             display: 'flex', 
+//             alignItems: 'center', 
+//             justifyContent: 'center' 
+//           }}>
+//             <CircularProgress />
+//           </Box>
+//         ) : (
+//           <Box sx={{ 
+//             flex: 1, 
+//             overflowY: 'auto',
+//             '&::-webkit-scrollbar': { width: '6px' },
+//             '&::-webkit-scrollbar-thumb': {
+//               backgroundColor: 'rgba(0,0,0,0.2)',
+//               borderRadius: '3px'
+//             }
+//           }}>
+//             {newNotifications.length > 0 && (
+//               <>
+//                 <Box sx={{ 
+//                   px: 2, 
+//                   py: 1, 
+//                   bgcolor: 'action.hover',
+//                   position: 'sticky',
+//                   top: 0,
+//                   zIndex: 1
+//                 }}>
+//                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+//                     New
+//                   </Typography>
+//                 </Box>
+//                 <List>
+//                   {newNotifications.map(renderNotificationItem)}
+//                 </List>
+//               </>
+//             )}
+
+//             {olderNotifications.length > 0 && (
+//               <>
+//                 <Box sx={{ 
+//                   px: 2, 
+//                   py: 1, 
+//                   bgcolor: 'action.hover',
+//                   position: 'sticky',
+//                   top: 0,
+//                   zIndex: 1
+//                 }}>
+//                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+//                     Earlier
+//                   </Typography>
+//                 </Box>
+//                 <List>
+//                   {olderNotifications.map(renderNotificationItem)}
+//                 </List>
+//               </>
+//             )}
+
+//             {newNotifications.length === 0 && olderNotifications.length === 0 && (
+//               <Box sx={{ 
+//                 display: 'flex', 
+//                 flexDirection: 'column', 
+//                 alignItems: 'center', 
+//                 justifyContent: 'center', 
+//                 height: '100%',
+//                 p: 4,
+//                 textAlign: 'center'
+//               }}>
+//                 <NotificationsIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+//                 <Typography variant="h6" sx={{ mb: 1 }}>
+//                   No notifications
+//                 </Typography>
+//                 <Typography variant="body2" color="text.secondary">
+//                   {tabIndex === TAB_UNREAD 
+//                     ? "You're all caught up!" 
+//                     : "You'll see notifications here when you get them."}
+//                 </Typography>
+//               </Box>
+//             )}
+//           </Box>
+//         )}
+
+//         <Box sx={{ 
+//           p: 2, 
+//           borderTop: '1px solid #eee',
+//           textAlign: 'center'
+//         }}>
+//           <Button 
+//             variant="text" 
+//             color="primary"
+//             component={Link}
+//             to="/notifications"
+//             onClick={onClose}
+//             sx={{ textTransform: 'none' }}
+//           >
+//             See All Notifications
+//           </Button>
+//         </Box>
+//       </Box>
+//     </Drawer>
+//   );
+// }
 
 
 

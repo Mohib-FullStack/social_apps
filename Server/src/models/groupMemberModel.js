@@ -1,7 +1,21 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class GroupMember extends Model {}
+class GroupMember extends Model {
+  static associate(models) {
+    this.belongsTo(models.Group, {
+      foreignKey: 'groupId',
+      as: 'group',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'member',
+      onDelete: 'CASCADE'
+    });
+  }
+}
 
 GroupMember.init({
   id: {
@@ -63,7 +77,7 @@ module.exports = GroupMember;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

@@ -1,41 +1,37 @@
-
-//! running
-// src/pages/PublicProfilePage.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useParams, useNavigate, Navigate } from 'react-router-dom';
+// src/components/PROFILE/PublicProfile/PublicProfilePage.jsx
 import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
   Container,
   Grid,
-  Box,
+  Tooltip,
   Typography,
   useMediaQuery,
-  CircularProgress,
-  Alert,
-  Button,
-  Tooltip,
 } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import {
+  acceptFriendRequest,
+  cancelFriendRequest,
+  sendFriendRequest
+} from '../../../features/friendship/friendshipSlice';
+import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
 import {
   fetchPublicProfile,
   selectCurrentUser,
   selectPublicProfile,
-  selectPublicProfileStatus,
   selectPublicProfileError,
+  selectPublicProfileStatus,
 } from '../../../features/user/userSlice';
-import {
-  sendFriendRequest,
-  cancelFriendRequest,
-  acceptFriendRequest,
-  rejectFriendRequest,
-  unfriendUser,
-} from '../../../features/friendship/friendshipSlice';
-import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
-import ProfileHeader from './ProfileHeader';
 import AboutSection from './AboutSection';
-import TabsSection from './TabsSection';
 import PostCard from './PostCard';
+import ProfileHeader from './ProfileHeader';
+import TabsSection from './TabsSection';
 
-const FriendRequestButton = ({ targetUserId, currentStatus, disabled }) => {
+const FriendRequestButton = ({ friendId, currentStatus, disabled }) => {
   const dispatch = useDispatch();
   const [localStatus, setLocalStatus] = useState(currentStatus);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +44,7 @@ const FriendRequestButton = ({ targetUserId, currentStatus, disabled }) => {
   const handleAction = async (action, successMessage, errorMessage) => {
     setIsLoading(true);
     try {
-      await dispatch(action({ targetUserId })).unwrap();
+      await dispatch(action({ friendId })).unwrap();
       dispatch(showSnackbar({
         message: successMessage,
         severity: 'success',
@@ -75,7 +71,7 @@ const FriendRequestButton = ({ targetUserId, currentStatus, disabled }) => {
           variant: 'contained',
           tooltip: 'Click to remove this friend',
           onClick: () => handleAction(
-            unfriendUser,
+            
             'You are no longer friends',
             'Could not remove friend'
           ),
@@ -293,7 +289,7 @@ const PublicProfilePage = () => {
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3, flexWrap: 'wrap' }}>
           <FriendRequestButton
-            targetUserId={profileId}
+            friendId={profileId}
             currentStatus={friendStatus}
             disabled={isOwnProfile}
           />

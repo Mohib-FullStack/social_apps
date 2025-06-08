@@ -1,5 +1,4 @@
 // src/features/notification/notificationSlice.js
-
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axiosInstance from '../../axiosInstance';
 
@@ -62,29 +61,11 @@ export const markAllAsRead = createAsyncThunk(
   'notifications/markAllAsRead',
   async (_, { rejectWithValue }) => {
     try {
-      await axiosInstance.patch('/notifications/mark-all-as-read');
+      await axiosInstance.put('/notifications/mark-all-as-read');
       return true;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
-  }
-);
-
-// 5) Accept friend request: calls PUT /api/friendships/requests/:friendshipId/accept
-export const acceptFriendRequest = createAsyncThunk(
-  'notifications/acceptFriendRequest',
-  async ({ notificationId, friendshipId }, thunkAPI) => {
-    await axiosInstance.put(`/friendships/requests/${friendshipId}/accept`);
-    return { notificationId };
-  }
-);
-
-// 6) Reject friend request: PUT /api/friendships/requests/:friendshipId/reject
-export const rejectFriendRequest = createAsyncThunk(
-  'notifications/rejectFriendRequest',
-  async ({ notificationId, friendshipId }, thunkAPI) => {
-    await axiosInstance.put(`/friendships/requests/${friendshipId}/reject`);
-    return { notificationId };
   }
 );
 
@@ -179,25 +160,13 @@ const notificationSlice = createSlice({
         state.unreadCount = Math.max(0, state.unreadCount - ids.length);
       })
 
-      // markAllAsRead
+            // markAllAsRead
       .addCase(markAllAsRead.fulfilled, (state) => {
         state.items = state.items.map((item) => ({ ...item, isRead: true }));
         state.unreadCount = 0;
       })
 
-      // acceptFriendRequest
-      .addCase(acceptFriendRequest.fulfilled, (state, action) => {
-        const { notificationId } = action.payload;
-        state.items = state.items.filter((n) => n.id !== notificationId);
-      })
-
-      // rejectFriendRequest
-      .addCase(rejectFriendRequest.fulfilled, (state, action) => {
-        const { notificationId } = action.payload;
-        state.items = state.items.filter((n) => n.id !== notificationId);
-      })
-
-      // deleteNotification
+        // deleteNotification
       .addCase(deleteNotification.fulfilled, (state, action) => {
         const id = action.payload;
         const deleted = state.items.find((item) => item.id === id);

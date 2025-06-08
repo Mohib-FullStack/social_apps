@@ -4,24 +4,31 @@ const sequelize = require('../config/database');
 class PendingGenderChange extends Model {
   static associate(models) {
     // User who requested the change
-    PendingGenderChange.belongsTo(models.User, {
+    this.belongsTo(models.User, {
       foreignKey: 'userId',
-      as: 'user',
+      as: 'requestingUser',
       onDelete: 'CASCADE',
     });
 
     // Admin who reviewed the request
-    PendingGenderChange.belongsTo(models.User, {
+    this.belongsTo(models.User, {
       foreignKey: 'reviewedBy',
-      as: 'reviewer',
+      as: 'reviewingAdmin',
       onDelete: 'SET NULL',
     });
 
     // Related admin alert
-    PendingGenderChange.belongsTo(models.AdminAlert, {
+    this.belongsTo(models.AdminAlert, {
       foreignKey: 'adminAlertId',
       as: 'adminAlert',
       onDelete: 'SET NULL',
+    });
+
+    // OTP verification
+    this.hasOne(models.TempGenderVerification, {
+      foreignKey: 'pendingChangeId',
+      as: 'otpVerification',
+      onDelete: 'CASCADE'
     });
   }
 }
@@ -156,7 +163,7 @@ module.exports = PendingGenderChange;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

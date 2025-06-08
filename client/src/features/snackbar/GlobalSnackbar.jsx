@@ -1,7 +1,6 @@
 // src/features/snackbar/GlobalSnackbar.jsx
-import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { Snackbar, Alert } from '@mui/material'
+import { Alert, Snackbar } from '@mui/material'
+import { useDispatch, useSelector } from 'react-redux'
 import { hideSnackbar } from './snackbarSlice'
 
 const GlobalSnackbar = () => {

@@ -1,7 +1,39 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class Comment extends Model {}
+class Comment extends Model {
+  static associate(models) {
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.Post, {
+      foreignKey: 'postId',
+      as: 'post',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.Comment, {
+      foreignKey: 'parentId',
+      as: 'parentComment',
+      onDelete: 'CASCADE'
+    });
+    
+    this.hasMany(models.Comment, {
+      foreignKey: 'parentId',
+      as: 'replies',
+      onDelete: 'CASCADE'
+    });
+    
+    this.hasMany(models.Like, {
+      foreignKey: 'commentId',
+      as: 'likes',
+      onDelete: 'CASCADE'
+    });
+  }
+}
 
 Comment.init({
   id: {
@@ -81,7 +113,7 @@ module.exports = Comment;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

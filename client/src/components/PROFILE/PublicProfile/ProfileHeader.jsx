@@ -1,3 +1,4 @@
+// src/components/PROFILE/PublicProfile/ProfileHeader.jsx
 import { useState, useCallback } from 'react';
 import {
   Avatar,
@@ -8,7 +9,7 @@ import {
   styled
 } from '@mui/material';
 import { CameraAlt } from '@mui/icons-material';
-import FriendRequestButton from '../../Friends/FriendRequestButton';
+ import FriendRequestButton from '../../Friends/FriendRequestButton';
 
 import PropTypes from 'prop-types';
 

@@ -83,6 +83,15 @@ TempPhoneUpdate.init({
   ]
 });
 
+// Define associations
+TempPhoneUpdate.associate = function(models) {
+  TempPhoneUpdate.belongsTo(models.User, {
+    foreignKey: 'userId',
+    as: 'user',
+    onDelete: 'CASCADE'
+  });
+};
+
 module.exports = TempPhoneUpdate;
 
 
@@ -94,7 +103,7 @@ module.exports = TempPhoneUpdate;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 

@@ -96,6 +96,21 @@ const VerificationDocument = sequelize.define('VerificationDocument', {
   }
 });
 
+// Define associations
+VerificationDocument.associate = function(models) {
+  VerificationDocument.belongsTo(models.User, {
+    foreignKey: 'userId',
+    as: 'submitter',
+    onDelete: 'CASCADE'
+  });
+  
+  VerificationDocument.belongsTo(models.User, {
+    foreignKey: 'reviewedBy',
+    as: 'reviewer',
+    onDelete: 'SET NULL'
+  });
+};
+
 module.exports = VerificationDocument;
 
 
@@ -105,7 +120,7 @@ module.exports = VerificationDocument;
 
 
 
-
+//! with function
 
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');

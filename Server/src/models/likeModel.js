@@ -1,7 +1,27 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class Like extends Model {}
+class Like extends Model {
+  static associate(models) {
+    this.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.Post, {
+      foreignKey: 'postId',
+      as: 'post',
+      onDelete: 'CASCADE'
+    });
+    
+    this.belongsTo(models.Comment, {
+      foreignKey: 'commentId',
+      as: 'comment',
+      onDelete: 'CASCADE'
+    });
+  }
+}
 
 Like.init({
   id: {
@@ -65,7 +85,7 @@ module.exports = Like;
 
 
 
-
+//! with function
 // const { DataTypes } = require('sequelize');
 // const sequelize = require('../config/database');
 
