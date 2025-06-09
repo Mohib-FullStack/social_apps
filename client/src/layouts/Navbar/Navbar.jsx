@@ -1,6 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  Mail as FriendRequestsIcon,
+  Group,
+  Home,
+  Login,
+  Menu as MenuIcon,
+  Notifications as NotificationsIcon,
+  People,
+  Search as SearchIcon,
+  Store
+} from '@mui/icons-material';
 import {
   AppBar,
   Avatar,
@@ -9,33 +17,25 @@ import {
   Button,
   Drawer,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
   Toolbar,
   Typography,
-  useMediaQuery,
-  MenuItem,
-  ListItemIcon,
-  ListItemText
+  useMediaQuery
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Home,
-  People,
-  Group,
-  Store,
-  Search as SearchIcon,
-  Login,
-  Mail as FriendRequestsIcon,
-  Notifications as NotificationsIcon
-} from '@mui/icons-material';
-import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-import { fetchUserProfile, logoutUser, logout, refreshAccessToken, fetchAllUsers } from '../../features/user/userSlice';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
+import NotificationPanel from '../../features/notification/NotificationPanel';
 import { fetchUnreadCount } from '../../features/notification/notificationSlice';
+import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+import { fetchAllUsers, fetchUserProfile, logoutUser } from '../../features/user/userSlice';
 import DesktopSearch from './DesktopSearch';
+import DrawerContent from './DrawerContent';
 import MobileSearch from './MobileSearch';
 import NavItems from './NavItems';
 import UserMenu from './UserMenu';
-import DrawerContent from './DrawerContent';
-import NotificationPanel from '../../features/notification/NotificationPanel';
 
 const NAV_ITEMS = [
   { name: 'Home', icon: Home, path: '/', color: '#1877F2' },

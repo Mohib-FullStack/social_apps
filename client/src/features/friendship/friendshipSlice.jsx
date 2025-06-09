@@ -5,14 +5,20 @@ import axiosInstance from '../../axiosInstance';
 const FRIENDS_PER_PAGE = 10;
 const SUGGESTIONS_LIMIT = 20;
 
-// Thunks =========================================================
+// Helper: default pagination state
+const createPaginatedState = () => ({
+  data: [],
+  pagination: { currentPage: 1, totalPages: 1, totalItems: 0 },
+  status: 'idle',
+  error: null,
+});
 
-// Friend Requests Management
+// Thunks
 export const sendFriendRequest = createAsyncThunk(
   'friendship/sendFriendRequest',
   async ({ friendId }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post('/friendships/requests', { friendId: friendId });
+      const res = await axiosInstance.post('/friendships/requests', { friendId });
       return {
         ...res.data.friendship,
         to: res.data.friendship.friendId,
@@ -23,14 +29,12 @@ export const sendFriendRequest = createAsyncThunk(
   }
 );
 
-
-
 export const cancelFriendRequest = createAsyncThunk(
   'friendship/cancelFriendRequest',
-  async (requestId, { rejectWithValue }) => {
+  async (friendshipId, { rejectWithValue }) => {
     try {
-      await axiosInstance.delete(`/friendships/requests/${requestId}`);
-      return requestId;
+      await axiosInstance.delete(`/friendships/requests/${friendshipId}`);
+      return friendshipId;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to cancel request');
     }
@@ -39,21 +43,24 @@ export const cancelFriendRequest = createAsyncThunk(
 
 export const acceptFriendRequest = createAsyncThunk(
   'friendship/acceptFriendRequest',
-  async (requestId, { rejectWithValue }) => {
+  async (friendshipId, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.put(`/friendships/requests/${requestId}/accept`);
-      return res.data.data;
+      const res = await axiosInstance.put(`/friendships/requests/${friendshipId}/accept`);
+      return res.data.data.friendship;
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to accept request');
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Accept failed',
+        friendshipId,
+      });
     }
   }
 );
 
 export const rejectFriendRequest = createAsyncThunk(
   'friendship/rejectFriendRequest',
-  async (requestId, { rejectWithValue }) => {
+  async (friendshipId, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.put(`/friendships/requests/${requestId}/reject`);
+      const res = await axiosInstance.put(`/friendships/requests/${friendshipId}/reject`);
       return res.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to reject request');
@@ -61,7 +68,6 @@ export const rejectFriendRequest = createAsyncThunk(
   }
 );
 
-// Friendship Management
 export const removeFriendship = createAsyncThunk(
   'friendship/removeFriendship',
   async (friendshipId, { rejectWithValue }) => {
@@ -86,7 +92,6 @@ export const updateFriendshipTier = createAsyncThunk(
   }
 );
 
-// Block Management
 export const blockUser = createAsyncThunk(
   'friendship/blockUser',
   async (friendId, { rejectWithValue }) => {
@@ -111,7 +116,6 @@ export const unblockUser = createAsyncThunk(
   }
 );
 
-// Query Methods
 export const getPendingRequests = createAsyncThunk(
   'friendship/getPendingRequests',
   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
@@ -119,7 +123,7 @@ export const getPendingRequests = createAsyncThunk(
       const res = await axiosInstance.get(`/friendships/requests/pending?page=${page}&size=${size}`);
       return {
         data: res.data.payload.data,
-        pagination: res.data.payload.pagination
+        pagination: res.data.payload.pagination,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to get pending requests');
@@ -134,7 +138,7 @@ export const getSentRequests = createAsyncThunk(
       const res = await axiosInstance.get(`/friendships/requests/sent?page=${page}&size=${size}`);
       return {
         data: res.data.payload.data,
-        pagination: res.data.payload.pagination
+        pagination: res.data.payload.pagination,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to get sent requests');
@@ -146,14 +150,14 @@ export const listFriends = createAsyncThunk(
   'friendship/listFriends',
   async ({ userId, page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
     try {
-      const url = userId 
+      const url = userId
         ? `/friendships/${userId}/friends?page=${page}&size=${size}`
         : `/friendships?page=${page}&size=${size}`;
       const res = await axiosInstance.get(url);
       return {
         data: res.data.payload.data,
         pagination: res.data.payload.pagination,
-        userId
+        userId,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to fetch friends');
@@ -165,13 +169,11 @@ export const getMutualFriends = createAsyncThunk(
   'friendship/getMutualFriends',
   async ({ userId, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get(
-        `/friendships/${userId}/mutual-friends?page=${page}&size=${size}`
-      );
+      const res = await axiosInstance.get(`/friendships/${userId}/mutual-friends?page=${page}&size=${size}`);
       return {
         data: res.data.payload.data,
         pagination: res.data.payload.pagination,
-        userId
+        userId,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to fetch mutual friends');
@@ -200,7 +202,7 @@ export const checkFriendshipStatus = createAsyncThunk(
         userId,
         status: res.data.status,
         direction: res.data.direction,
-        friendship: res.data.friendship
+        friendship: res.data.friendship,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to check friendship status');
@@ -212,13 +214,11 @@ export const getFriendsByTier = createAsyncThunk(
   'friendship/getFriendsByTier',
   async ({ tier, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get(
-        `/friendships/tier/${tier}?page=${page}&size=${size}`
-      );
+      const res = await axiosInstance.get(`/friendships/tier/${tier}?page=${page}&size=${size}`);
       return {
         data: res.data.payload.data,
         pagination: res.data.payload.pagination,
-        tier
+        tier,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to fetch friends by tier');
@@ -238,7 +238,6 @@ export const getAllFriendshipTiers = createAsyncThunk(
   }
 );
 
-// Maintenance Functions
 export const cleanupExpiredRequests = createAsyncThunk(
   'friendship/cleanupExpiredRequests',
   async (_, { rejectWithValue }) => {
@@ -251,174 +250,110 @@ export const cleanupExpiredRequests = createAsyncThunk(
   }
 );
 
-// Initial State ==================================================
+// Initial state
 const initialState = {
-  // Friend lists
-  friends: {
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      totalItems: 0,
-    },
-    status: 'idle',
-    error: null
-  },
-  
-  // Mutual friends
-  mutualFriends: {
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      totalItems: 0,
-    },
-    status: 'idle',
-    error: null
-  },
-  
-  // Requests
-  pendingRequests: {
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      totalItems: 0,
-    },
-    status: 'idle',
-    error: null
-  },
-  
-  sentRequests: {
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      totalItems: 0,
-    },
-    status: 'idle',
-    error: null
-  },
-  
-  // Friend suggestions
-  suggestions: {
-    data: [],
-    status: 'idle',
-    error: null
-  },
-  
-  // Friendship tiers
-  tiers: {
-    data: [],
-    status: 'idle',
-    error: null
-  },
-  
-  // Friends by tier
-  friendsByTier: {
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      totalItems: 0,
-    },
-    status: 'idle',
-    error: null
-  },
-  
-  // Friendship status lookup
+  friends: createPaginatedState(),
+  mutualFriends: createPaginatedState(),
+  pendingRequests: createPaginatedState(),
+  sentRequests: createPaginatedState(),
+  suggestions: { data: [], status: 'idle', error: null },
+  tiers: { data: [], status: 'idle', error: null },
+  friendsByTier: createPaginatedState(),
   statusLookup: {},
-  
-  // Global state
   status: 'idle',
   error: null,
-  lastAction: null
+  lastAction: null,
 };
 
-// Slice =========================================================
+// Slice
 const friendshipSlice = createSlice({
   name: 'friendship',
   initialState,
   reducers: {
-    resetStatus: (state) => {
+    resetStatus(state) {
       state.status = 'idle';
       state.error = null;
     },
-    clearFriendshipData: () => initialState,
-    updateFriendshipStatus: (state, action) => {
+    clearFriendshipData() {
+      return initialState;
+    },
+    updateFriendshipStatus(state, action) {
       const { userId, status } = action.payload;
       state.statusLookup[userId] = status;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
-           
-      // Friend requests
+      // Send friend request
       .addCase(sendFriendRequest.fulfilled, (state, action) => {
         state.sentRequests.data.unshift(action.payload);
         state.status = 'succeeded';
         state.lastAction = 'sendFriendRequest';
       })
-
-
-
+         // Cancel friend request
       .addCase(cancelFriendRequest.fulfilled, (state, action) => {
-        state.sentRequests.data = state.sentRequests.data.filter(
-          req => req.id !== action.payload
-        );
+        state.sentRequests.data = state.sentRequests.data.filter((req) => req.id !== action.payload);
         state.status = 'succeeded';
         state.lastAction = 'cancelFriendRequest';
       })
+          // Accept friend request
       .addCase(acceptFriendRequest.fulfilled, (state, action) => {
         state.pendingRequests.data = state.pendingRequests.data.filter(
-          req => req.id !== action.payload.id
+          (req) => req.id !== action.payload.id
         );
         state.friends.data.unshift(action.payload);
+        if (action.payload.friend) {
+          state.statusLookup[action.payload.friend.id] = {
+            status: 'accepted',
+            direction: 'none',
+            friendship: action.payload,
+          };
+        }
         state.status = 'succeeded';
         state.lastAction = 'acceptFriendRequest';
       })
+            // Reject friend request
       .addCase(rejectFriendRequest.fulfilled, (state, action) => {
         state.pendingRequests.data = state.pendingRequests.data.filter(
-          req => req.id !== action.payload.id
+          (req) => req.id !== action.payload.id
         );
+        if (action.payload.friend) {
+          state.statusLookup[action.payload.friend.id] = {
+            status: 'rejected',
+            direction: 'none',
+            friendship: action.payload,
+          };
+        }
         state.status = 'succeeded';
         state.lastAction = 'rejectFriendRequest';
       })
-      
-      // Friendship management
+       // Remove friendship
       .addCase(removeFriendship.fulfilled, (state, action) => {
-        state.friends.data = state.friends.data.filter(
-          friend => friend.id !== action.payload
-        );
+        state.friends.data = state.friends.data.filter((friend) => friend.id !== action.payload);
         state.status = 'succeeded';
         state.lastAction = 'removeFriendship';
       })
+       // Update friendship tier
       .addCase(updateFriendshipTier.fulfilled, (state, action) => {
-        const index = state.friends.data.findIndex(
-          f => f.id === action.payload.id
-        );
+        const index = state.friends.data.findIndex((f) => f.id === action.payload.id);
         if (index !== -1) {
           state.friends.data[index] = action.payload;
         }
         state.status = 'succeeded';
         state.lastAction = 'updateFriendshipTier';
       })
-      
-      // Block management
+    // Block user
       .addCase(blockUser.fulfilled, (state, action) => {
-        // Remove from friends if they were friends
-        state.friends.data = state.friends.data.filter(
-          friend => friend.id !== action.payload.id
-        );
+        state.friends.data = state.friends.data.filter((friend) => friend.id !== action.payload.id);
         state.status = 'succeeded';
         state.lastAction = 'blockUser';
       })
-      .addCase(unblockUser.fulfilled, (state, action) => {
+       // Unblock user
+      .addCase(unblockUser.fulfilled, (state) => {
         state.status = 'succeeded';
         state.lastAction = 'unblockUser';
       })
-      
-      // Query methods - pending/fulfilled/rejected for each
+     // Get pending requests
       .addCase(getPendingRequests.pending, (state) => {
         state.pendingRequests.status = 'loading';
       })
@@ -427,15 +362,14 @@ const friendshipSlice = createSlice({
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getPendingRequests.rejected, (state, action) => {
         state.pendingRequests.status = 'failed';
         state.pendingRequests.error = action.payload;
       })
-      
+   // Get sent requests
       .addCase(getSentRequests.pending, (state) => {
         state.sentRequests.status = 'loading';
       })
@@ -444,15 +378,14 @@ const friendshipSlice = createSlice({
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getSentRequests.rejected, (state, action) => {
         state.sentRequests.status = 'failed';
         state.sentRequests.error = action.payload;
       })
-      
+      // List friends
       .addCase(listFriends.pending, (state) => {
         state.friends.status = 'loading';
       })
@@ -461,15 +394,14 @@ const friendshipSlice = createSlice({
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(listFriends.rejected, (state, action) => {
         state.friends.status = 'failed';
         state.friends.error = action.payload;
       })
-      
+         // Get mutual friends
       .addCase(getMutualFriends.pending, (state) => {
         state.mutualFriends.status = 'loading';
       })
@@ -478,15 +410,14 @@ const friendshipSlice = createSlice({
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getMutualFriends.rejected, (state, action) => {
         state.mutualFriends.status = 'failed';
         state.mutualFriends.error = action.payload;
       })
-      
+      // Get friend suggestions
       .addCase(getFriendSuggestions.pending, (state) => {
         state.suggestions.status = 'loading';
       })
@@ -494,24 +425,19 @@ const friendshipSlice = createSlice({
         state.suggestions = {
           data: action.payload,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getFriendSuggestions.rejected, (state, action) => {
         state.suggestions.status = 'failed';
         state.suggestions.error = action.payload;
       })
-      
+    // Check friendship status
       .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
-        state.statusLookup[action.payload.userId] = {
-          status: action.payload.status,
-          direction: action.payload.direction,
-          friendship: action.payload.friendship
-        };
-        state.status = 'succeeded';
+        const { userId, status, direction, friendship } = action.payload;
+        state.statusLookup[userId] = { status, direction, friendship };
       })
-      
+     // Friends by tier
       .addCase(getFriendsByTier.pending, (state) => {
         state.friendsByTier.status = 'loading';
       })
@@ -520,15 +446,14 @@ const friendshipSlice = createSlice({
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getFriendsByTier.rejected, (state, action) => {
         state.friendsByTier.status = 'failed';
         state.friendsByTier.error = action.payload;
       })
-      
+   // Get all friendship tiers
       .addCase(getAllFriendshipTiers.pending, (state) => {
         state.tiers.status = 'loading';
       })
@@ -536,35 +461,1574 @@ const friendshipSlice = createSlice({
         state.tiers = {
           data: action.payload,
           status: 'succeeded',
-          error: null
+          error: null,
         };
-        state.status = 'succeeded';
       })
       .addCase(getAllFriendshipTiers.rejected, (state, action) => {
         state.tiers.status = 'failed';
         state.tiers.error = action.payload;
       })
-      // Global pending/rejected handlers
-      .addMatcher(
-        (action) => action.type.startsWith('friendship/') && action.type.endsWith('/pending'),
-        (state) => {
-          state.status = 'loading';
-          state.error = null;
-        }
-      )
-      .addMatcher(
-        (action) => action.type.startsWith('friendship/') && action.type.endsWith('/rejected'),
-        (state, action) => {
-          state.status = 'failed';
-          state.error = action.payload;
-          state.lastAction = action.type.replace('/rejected', '');
-        }
-      )
-  }
+    // Cleanup expired requests
+      .addCase(cleanupExpiredRequests.fulfilled, (state) => {
+        state.status = 'succeeded';
+        state.lastAction = 'cleanupExpiredRequests';
+      });
+  },
 });
 
 export const { resetStatus, clearFriendshipData, updateFriendshipStatus } = friendshipSlice.actions;
 export default friendshipSlice.reducer;
+
+
+
+
+//! refactored version
+// import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+// import axiosInstance from '../../axiosInstance';
+
+// // Constants
+// const FRIENDS_PER_PAGE = 10;
+// const SUGGESTIONS_LIMIT = 20;
+
+// // Helper: default pagination state
+// const createPaginatedState = () => ({
+//   data: [],
+//   pagination: { currentPage: 1, totalPages: 1, totalItems: 0 },
+//   status: 'idle',
+//   error: null,
+// });
+
+// // Thunks
+// export const sendFriendRequest = createAsyncThunk(
+//   'friendship/sendFriendRequest',
+//   async ({ friendId }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/requests', { friendId });
+//       return {
+//         ...res.data.friendship,
+//         to: res.data.friendship.friendId,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to send friend request');
+//     }
+//   }
+// );
+
+// export const cancelFriendRequest = createAsyncThunk(
+//   'friendship/cancelFriendRequest',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/requests/${friendshipId}`);
+//       return friendshipId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cancel request');
+//     }
+//   }
+// );
+
+// export const acceptFriendRequest = createAsyncThunk(
+//   'friendship/acceptFriendRequest',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/requests/${friendshipId}/accept`);
+//       return res.data.data.friendship;
+//     } catch (error) {
+//       return rejectWithValue({
+//         message: error.response?.data?.message || 'Accept failed',
+//         friendshipId,
+//       });
+//     }
+//   }
+// );
+
+// export const rejectFriendRequest = createAsyncThunk(
+//   'friendship/rejectFriendRequest',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/requests/${friendshipId}/reject`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to reject request');
+//     }
+//   }
+// );
+
+// export const removeFriendship = createAsyncThunk(
+//   'friendship/removeFriendship',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/${friendshipId}`);
+//       return friendshipId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to remove friendship');
+//     }
+//   }
+// );
+
+// export const updateFriendshipTier = createAsyncThunk(
+//   'friendship/updateFriendshipTier',
+//   async ({ friendshipId, tier, customLabel }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/${friendshipId}/tier`, { tier, customLabel });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to update friendship tier');
+//     }
+//   }
+// );
+
+// export const blockUser = createAsyncThunk(
+//   'friendship/blockUser',
+//   async (friendId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/block', { friendId });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to block user');
+//     }
+//   }
+// );
+
+// export const unblockUser = createAsyncThunk(
+//   'friendship/unblockUser',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/block/${userId}`);
+//       return userId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to unblock user');
+//     }
+//   }
+// );
+
+// export const getPendingRequests = createAsyncThunk(
+//   'friendship/getPendingRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/pending?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get pending requests');
+//     }
+//   }
+// );
+
+// export const getSentRequests = createAsyncThunk(
+//   'friendship/getSentRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/sent?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get sent requests');
+//     }
+//   }
+// );
+
+// export const listFriends = createAsyncThunk(
+//   'friendship/listFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const url = userId
+//         ? `/friendships/${userId}/friends?page=${page}&size=${size}`
+//         : `/friendships?page=${page}&size=${size}`;
+//       const res = await axiosInstance.get(url);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends');
+//     }
+//   }
+// );
+
+// export const getMutualFriends = createAsyncThunk(
+//   'friendship/getMutualFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/${userId}/mutual-friends?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch mutual friends');
+//     }
+//   }
+// );
+
+// export const getFriendSuggestions = createAsyncThunk(
+//   'friendship/getFriendSuggestions',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/suggestions?limit=${SUGGESTIONS_LIMIT}`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get friend suggestions');
+//     }
+//   }
+// );
+
+// export const checkFriendshipStatus = createAsyncThunk(
+//   'friendship/checkFriendshipStatus',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/status/${userId}`);
+//       return {
+//         userId,
+//         status: res.data.status,
+//         direction: res.data.direction,
+//         friendship: res.data.friendship,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to check friendship status');
+//     }
+//   }
+// );
+
+// export const getFriendsByTier = createAsyncThunk(
+//   'friendship/getFriendsByTier',
+//   async ({ tier, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/tier/${tier}?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         tier,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends by tier');
+//     }
+//   }
+// );
+
+// export const getAllFriendshipTiers = createAsyncThunk(
+//   'friendship/getAllFriendshipTiers',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get('/friendships/tiers');
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friendship tiers');
+//     }
+//   }
+// );
+
+// export const cleanupExpiredRequests = createAsyncThunk(
+//   'friendship/cleanupExpiredRequests',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.delete('/friendships/cleanup');
+//       return res.data.deletedCount;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cleanup requests');
+//     }
+//   }
+// );
+
+// // Initial state
+// const initialState = {
+//   friends: createPaginatedState(),
+//   mutualFriends: createPaginatedState(),
+//   pendingRequests: createPaginatedState(),
+//   sentRequests: createPaginatedState(),
+//   suggestions: { data: [], status: 'idle', error: null },
+//   tiers: { data: [], status: 'idle', error: null },
+//   friendsByTier: createPaginatedState(),
+//   statusLookup: {},
+//   status: 'idle',
+//   error: null,
+//   lastAction: null,
+// };
+
+// // Slice
+// const friendshipSlice = createSlice({
+//   name: 'friendship',
+//   initialState,
+//   reducers: {
+//     resetStatus(state) {
+//       state.status = 'idle';
+//       state.error = null;
+//     },
+//     clearFriendshipData() {
+//       return initialState;
+//     },
+//     updateFriendshipStatus(state, action) {
+//       const { userId, status } = action.payload;
+//       state.statusLookup[userId] = status;
+//     },
+//   },
+//   extraReducers: (builder) => {
+//     builder
+//       // Send friend request
+//       .addCase(sendFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data.unshift(action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'sendFriendRequest';
+//       })
+//       // Cancel friend request
+//       .addCase(cancelFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data = state.sentRequests.data.filter((req) => req.id !== action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'cancelFriendRequest';
+//       })
+//       // Accept friend request
+//       .addCase(acceptFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           (req) => req.id !== action.payload.id
+//         );
+//         state.friends.data.unshift(action.payload);
+//         if (action.payload.friend) {
+//           state.statusLookup[action.payload.friend.id] = {
+//             status: 'accepted',
+//             direction: 'none',
+//             friendship: action.payload,
+//           };
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'acceptFriendRequest';
+//       })
+//       // Reject friend request
+//       .addCase(rejectFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           (req) => req.id !== action.payload.id
+//         );
+//         if (action.payload.friend) {
+//           state.statusLookup[action.payload.friend.id] = {
+//             status: 'rejected',
+//             direction: 'none',
+//             friendship: action.payload,
+//           };
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'rejectFriendRequest';
+//       })
+//       // Remove friendship
+//       .addCase(removeFriendship.fulfilled, (state, action) => {
+//         state.friends.data = state.friends.data.filter((friend) => friend.id !== action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'removeFriendship';
+//       })
+//       // Update friendship tier
+//       .addCase(updateFriendshipTier.fulfilled, (state, action) => {
+//         const index = state.friends.data.findIndex((f) => f.id === action.payload.id);
+//         if (index !== -1) {
+//           state.friends.data[index] = action.payload;
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'updateFriendshipTier';
+//       })
+//       // Block user
+//       .addCase(blockUser.fulfilled, (state, action) => {
+//         state.friends.data = state.friends.data.filter((friend) => friend.id !== action.payload.id);
+//         state.status = 'succeeded';
+//         state.lastAction = 'blockUser';
+//       })
+//       // Unblock user
+//       .addCase(unblockUser.fulfilled, (state) => {
+//         state.status = 'succeeded';
+//         state.lastAction = 'unblockUser';
+//       })
+//       // Get pending requests
+//       .addCase(getPendingRequests.pending, (state) => {
+//         state.pendingRequests.status = 'loading';
+//       })
+//       .addCase(getPendingRequests.fulfilled, (state, action) => {
+//         state.pendingRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getPendingRequests.rejected, (state, action) => {
+//         state.pendingRequests.status = 'failed';
+//         state.pendingRequests.error = action.payload;
+//       })
+//       // Get sent requests
+//       .addCase(getSentRequests.pending, (state) => {
+//         state.sentRequests.status = 'loading';
+//       })
+//       .addCase(getSentRequests.fulfilled, (state, action) => {
+//         state.sentRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getSentRequests.rejected, (state, action) => {
+//         state.sentRequests.status = 'failed';
+//         state.sentRequests.error = action.payload;
+//       })
+//       // List friends
+//       .addCase(listFriends.pending, (state) => {
+//         state.friends.status = 'loading';
+//       })
+//       .addCase(listFriends.fulfilled, (state, action) => {
+//         state.friends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(listFriends.rejected, (state, action) => {
+//         state.friends.status = 'failed';
+//         state.friends.error = action.payload;
+//       })
+//       // Get mutual friends
+//       .addCase(getMutualFriends.pending, (state) => {
+//         state.mutualFriends.status = 'loading';
+//       })
+//       .addCase(getMutualFriends.fulfilled, (state, action) => {
+//         state.mutualFriends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getMutualFriends.rejected, (state, action) => {
+//         state.mutualFriends.status = 'failed';
+//         state.mutualFriends.error = action.payload;
+//       })
+//       // Get friend suggestions
+//       .addCase(getFriendSuggestions.pending, (state) => {
+//         state.suggestions.status = 'loading';
+//       })
+//       .addCase(getFriendSuggestions.fulfilled, (state, action) => {
+//         state.suggestions = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getFriendSuggestions.rejected, (state, action) => {
+//         state.suggestions.status = 'failed';
+//         state.suggestions.error = action.payload;
+//       })
+//       // Check friendship status
+//       .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
+//         const { userId, status, direction, friendship } = action.payload;
+//         state.statusLookup[userId] = { status, direction, friendship };
+//       })
+//       // Friends by tier
+//       .addCase(getFriendsByTier.pending, (state) => {
+//         state.friendsByTier.status = 'loading';
+//       })
+//       .addCase(getFriendsByTier.fulfilled, (state, action) => {
+//         state.friendsByTier = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getFriendsByTier.rejected, (state, action) => {
+//         state.friendsByTier.status = 'failed';
+//         state.friendsByTier.error = action.payload;
+//       })
+//       // Get all friendship tiers
+//       .addCase(getAllFriendshipTiers.pending, (state) => {
+//         state.tiers.status = 'loading';
+//       })
+//       .addCase(getAllFriendshipTiers.fulfilled, (state, action) => {
+//         state.tiers = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null,
+//         };
+//       })
+//       .addCase(getAllFriendshipTiers.rejected, (state, action) => {
+//         state.tiers.status = 'failed';
+//         state.tiers.error = action.payload;
+//       })
+//       // Cleanup expired requests
+//       .addCase(cleanupExpiredRequests.fulfilled, (state) => {
+//         state.status = 'succeeded';
+//         state.lastAction = 'cleanupExpiredRequests';
+//       });
+//   },
+// });
+
+// export const { resetStatus, clearFriendshipData, updateFriendshipStatus } = friendshipSlice.actions;
+// export default friendshipSlice.reducer;
+
+
+
+
+
+
+//! running
+// import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+// import axiosInstance from '../../axiosInstance';
+
+// // Constants
+// const FRIENDS_PER_PAGE = 10;
+// const SUGGESTIONS_LIMIT = 20;
+
+// // Thunks =========================================================
+// export const sendFriendRequest = createAsyncThunk(
+//   'friendship/sendFriendRequest',
+//   async ({ friendId }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/requests', { friendId });
+//       return {
+//         ...res.data.friendship,
+//         to: res.data.friendship.friendId,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to send friend request');
+//     }
+//   }
+// );
+
+// export const cancelFriendRequest = createAsyncThunk(
+//   'friendship/cancelFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/requests/${requestId}`);
+//       return requestId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cancel request');
+//     }
+//   }
+// );
+
+// export const acceptFriendRequest = createAsyncThunk(
+//   'friendship/acceptFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       console.log('Sending accept for request:', requestId); // Debug
+//       const res = await axiosInstance.put(
+//         `/friendships/requests/${requestId}/accept`
+//       );
+//       return res.data;
+//     } catch (error) {
+//       return rejectWithValue({
+//         message: error.response?.data?.message || 'Accept failed',
+//         requestId // Include for error handling
+//       });
+//     }
+//   }
+// );
+
+// // Similar update for rejectFriendRequest
+
+// export const rejectFriendRequest = createAsyncThunk(
+//   'friendship/rejectFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/requests/${requestId}/reject`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to reject request');
+//     }
+//   }
+// );
+
+// export const removeFriendship = createAsyncThunk(
+//   'friendship/removeFriendship',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/${friendshipId}`);
+//       return friendshipId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to remove friendship');
+//     }
+//   }
+// );
+
+// export const updateFriendshipTier = createAsyncThunk(
+//   'friendship/updateFriendshipTier',
+//   async ({ friendshipId, tier, customLabel }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/${friendshipId}/tier`, { tier, customLabel });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to update friendship tier');
+//     }
+//   }
+// );
+
+// export const blockUser = createAsyncThunk(
+//   'friendship/blockUser',
+//   async (friendId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/block', { friendId });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to block user');
+//     }
+//   }
+// );
+
+// export const unblockUser = createAsyncThunk(
+//   'friendship/unblockUser',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/block/${userId}`);
+//       return userId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to unblock user');
+//     }
+//   }
+// );
+
+// export const getPendingRequests = createAsyncThunk(
+//   'friendship/getPendingRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/pending?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get pending requests');
+//     }
+//   }
+// );
+
+// export const getSentRequests = createAsyncThunk(
+//   'friendship/getSentRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/sent?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get sent requests');
+//     }
+//   }
+// );
+
+// export const listFriends = createAsyncThunk(
+//   'friendship/listFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const url = userId 
+//         ? `/friendships/${userId}/friends?page=${page}&size=${size}`
+//         : `/friendships?page=${page}&size=${size}`;
+//       const res = await axiosInstance.get(url);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends');
+//     }
+//   }
+// );
+
+// export const getMutualFriends = createAsyncThunk(
+//   'friendship/getMutualFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(
+//         `/friendships/${userId}/mutual-friends?page=${page}&size=${size}`
+//       );
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch mutual friends');
+//     }
+//   }
+// );
+
+// export const getFriendSuggestions = createAsyncThunk(
+//   'friendship/getFriendSuggestions',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/suggestions?limit=${SUGGESTIONS_LIMIT}`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get friend suggestions');
+//     }
+//   }
+// );
+
+// export const checkFriendshipStatus = createAsyncThunk(
+//   'friendship/checkFriendshipStatus',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/status/${userId}`);
+//       return {
+//         userId,
+//         status: res.data.status,
+//         direction: res.data.direction,
+//         friendship: res.data.friendship
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to check friendship status');
+//     }
+//   }
+// );
+
+// export const getFriendsByTier = createAsyncThunk(
+//   'friendship/getFriendsByTier',
+//   async ({ tier, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/tier/${tier}?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         tier
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends by tier');
+//     }
+//   }
+// );
+
+// export const getAllFriendshipTiers = createAsyncThunk(
+//   'friendship/getAllFriendshipTiers',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get('/friendships/tiers');
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friendship tiers');
+//     }
+//   }
+// );
+
+// export const cleanupExpiredRequests = createAsyncThunk(
+//   'friendship/cleanupExpiredRequests',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.delete('/friendships/cleanup');
+//       return res.data.deletedCount;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cleanup requests');
+//     }
+//   }
+// );
+
+// // Initial State ==================================================
+// const initialState = {
+//   friends: { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0 }, status: 'idle', error: null },
+//   mutualFriends: { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0 }, status: 'idle', error: null },
+//   pendingRequests: { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0 }, status: 'idle', error: null },
+//   sentRequests: { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0 }, status: 'idle', error: null },
+//   suggestions: { data: [], status: 'idle', error: null },
+//   tiers: { data: [], status: 'idle', error: null },
+//   friendsByTier: { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0 }, status: 'idle', error: null },
+//   statusLookup: {},
+//   status: 'idle',
+//   error: null,
+//   lastAction: null
+// };
+
+// // Slice =========================================================
+// const friendshipSlice = createSlice({
+//   name: 'friendship',
+//   initialState,
+//   reducers: {
+//     resetStatus: (state) => {
+//       state.status = 'idle';
+//       state.error = null;
+//     },
+//     clearFriendshipData: () => initialState,
+//     updateFriendshipStatus: (state, action) => {
+//       const { userId, status } = action.payload;
+//       state.statusLookup[userId] = status;
+//     }
+//   },
+//   extraReducers: (builder) => {
+//     builder
+//       // Friend requests
+//       .addCase(sendFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data.unshift(action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'sendFriendRequest';
+//       })
+//       .addCase(cancelFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data = state.sentRequests.data.filter(req => req.id !== action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'cancelFriendRequest';
+//       })
+//       .addCase(acceptFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           req => req.id !== action.payload.id
+//         );
+//         state.friends.data.unshift(action.payload);
+//         if (action.payload.friend) {
+//           state.statusLookup[action.payload.friend.id] = {
+//             status: 'accepted',
+//             direction: 'none',
+//             friendship: action.payload
+//           };
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'acceptFriendRequest';
+//       })
+//       .addCase(rejectFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           req => req.id !== action.payload.id
+//         );
+//         if (action.payload.friend) {
+//           state.statusLookup[action.payload.friend.id] = {
+//             status: 'rejected',
+//             direction: 'none',
+//             friendship: action.payload
+//           };
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'rejectFriendRequest';
+//       })
+      
+//       // Friendship management
+//       .addCase(removeFriendship.fulfilled, (state, action) => {
+//         state.friends.data = state.friends.data.filter(friend => friend.id !== action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'removeFriendship';
+//       })
+//       .addCase(updateFriendshipTier.fulfilled, (state, action) => {
+//         const index = state.friends.data.findIndex(f => f.id === action.payload.id);
+//         if (index !== -1) state.friends.data[index] = action.payload;
+//         state.status = 'succeeded';
+//         state.lastAction = 'updateFriendshipTier';
+//       })
+      
+//       // Block management
+//       .addCase(blockUser.fulfilled, (state, action) => {
+//         state.friends.data = state.friends.data.filter(friend => friend.id !== action.payload.id);
+//         state.status = 'succeeded';
+//         state.lastAction = 'blockUser';
+//       })
+//       .addCase(unblockUser.fulfilled, (state, action) => {
+//         state.status = 'succeeded';
+//         state.lastAction = 'unblockUser';
+//       })
+      
+//       // Query methods
+//       .addCase(getPendingRequests.pending, (state) => {
+//         state.pendingRequests.status = 'loading';
+//       })
+//       .addCase(getPendingRequests.fulfilled, (state, action) => {
+//         state.pendingRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getPendingRequests.rejected, (state, action) => {
+//         state.pendingRequests.status = 'failed';
+//         state.pendingRequests.error = action.payload;
+//       })
+      
+//       .addCase(getSentRequests.pending, (state) => {
+//         state.sentRequests.status = 'loading';
+//       })
+//       .addCase(getSentRequests.fulfilled, (state, action) => {
+//         state.sentRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getSentRequests.rejected, (state, action) => {
+//         state.sentRequests.status = 'failed';
+//         state.sentRequests.error = action.payload;
+//       })
+      
+//       .addCase(listFriends.pending, (state) => {
+//         state.friends.status = 'loading';
+//       })
+//       .addCase(listFriends.fulfilled, (state, action) => {
+//         state.friends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(listFriends.rejected, (state, action) => {
+//         state.friends.status = 'failed';
+//         state.friends.error = action.payload;
+//       })
+      
+//       .addCase(getMutualFriends.pending, (state) => {
+//         state.mutualFriends.status = 'loading';
+//       })
+//       .addCase(getMutualFriends.fulfilled, (state, action) => {
+//         state.mutualFriends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getMutualFriends.rejected, (state, action) => {
+//         state.mutualFriends.status = 'failed';
+//         state.mutualFriends.error = action.payload;
+//       })
+      
+//       .addCase(getFriendSuggestions.pending, (state) => {
+//         state.suggestions.status = 'loading';
+//       })
+//       .addCase(getFriendSuggestions.fulfilled, (state, action) => {
+//         state.suggestions = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getFriendSuggestions.rejected, (state, action) => {
+//         state.suggestions.status = 'failed';
+//         state.suggestions.error = action.payload;
+//       })
+      
+//       .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
+//         state.statusLookup[action.payload.userId] = {
+//           status: action.payload.status,
+//           direction: action.payload.direction,
+//           friendship: action.payload.friendship
+//         };
+//       })
+      
+//       .addCase(getFriendsByTier.pending, (state) => {
+//         state.friendsByTier.status = 'loading';
+//       })
+//       .addCase(getFriendsByTier.fulfilled, (state, action) => {
+//         state.friendsByTier = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getFriendsByTier.rejected, (state, action) => {
+//         state.friendsByTier.status = 'failed';
+//         state.friendsByTier.error = action.payload;
+//       })
+      
+//       .addCase(getAllFriendshipTiers.pending, (state) => {
+//         state.tiers.status = 'loading';
+//       })
+//       .addCase(getAllFriendshipTiers.fulfilled, (state, action) => {
+//         state.tiers = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null
+//         };
+//       })
+//       .addCase(getAllFriendshipTiers.rejected, (state, action) => {
+//         state.tiers.status = 'failed';
+//         state.tiers.error = action.payload;
+//       })
+      
+//       // Global matchers
+//       .addMatcher(
+//         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/pending'),
+//         (state) => {
+//           state.status = 'loading';
+//           state.error = null;
+//         }
+//       )
+//       .addMatcher(
+//         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/rejected'),
+//         (state, action) => {
+//           state.status = 'failed';
+//           state.error = action.payload;
+//           state.lastAction = action.type.replace('/rejected', '');
+//         }
+//       );
+//   }
+// });
+
+// export const { resetStatus, clearFriendshipData, updateFriendshipStatus } = friendshipSlice.actions;
+// export default friendshipSlice.reducer;
+
+
+
+//! curent
+// import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+// import axiosInstance from '../../axiosInstance';
+
+// // Constants
+// const FRIENDS_PER_PAGE = 10;
+// const SUGGESTIONS_LIMIT = 20;
+
+// // Thunks =========================================================
+
+// // Friend Requests Management
+// export const sendFriendRequest = createAsyncThunk(
+//   'friendship/sendFriendRequest',
+//   async ({ friendId }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/requests', { friendId: friendId });
+//       return {
+//         ...res.data.friendship,
+//         to: res.data.friendship.friendId,
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to send friend request');
+//     }
+//   }
+// );
+
+
+
+// export const cancelFriendRequest = createAsyncThunk(
+//   'friendship/cancelFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/requests/${requestId}`);
+//       return requestId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cancel request');
+//     }
+//   }
+// );
+
+// export const acceptFriendRequest = createAsyncThunk(
+//   'friendship/acceptFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/requests/${requestId}/accept`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to accept request');
+//     }
+//   }
+// );
+
+// export const rejectFriendRequest = createAsyncThunk(
+//   'friendship/rejectFriendRequest',
+//   async (requestId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/requests/${requestId}/reject`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to reject request');
+//     }
+//   }
+// );
+
+// // Friendship Management
+// export const removeFriendship = createAsyncThunk(
+//   'friendship/removeFriendship',
+//   async (friendshipId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/${friendshipId}`);
+//       return friendshipId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to remove friendship');
+//     }
+//   }
+// );
+
+// export const updateFriendshipTier = createAsyncThunk(
+//   'friendship/updateFriendshipTier',
+//   async ({ friendshipId, tier, customLabel }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.put(`/friendships/${friendshipId}/tier`, { tier, customLabel });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to update friendship tier');
+//     }
+//   }
+// );
+
+// // Block Management
+// export const blockUser = createAsyncThunk(
+//   'friendship/blockUser',
+//   async (friendId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.post('/friendships/block', { friendId });
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to block user');
+//     }
+//   }
+// );
+
+// export const unblockUser = createAsyncThunk(
+//   'friendship/unblockUser',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       await axiosInstance.delete(`/friendships/block/${userId}`);
+//       return userId;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to unblock user');
+//     }
+//   }
+// );
+
+// // Query Methods
+// export const getPendingRequests = createAsyncThunk(
+//   'friendship/getPendingRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/pending?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get pending requests');
+//     }
+//   }
+// );
+
+// export const getSentRequests = createAsyncThunk(
+//   'friendship/getSentRequests',
+//   async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/requests/sent?page=${page}&size=${size}`);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get sent requests');
+//     }
+//   }
+// );
+
+// export const listFriends = createAsyncThunk(
+//   'friendship/listFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+//     try {
+//       const url = userId 
+//         ? `/friendships/${userId}/friends?page=${page}&size=${size}`
+//         : `/friendships?page=${page}&size=${size}`;
+//       const res = await axiosInstance.get(url);
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends');
+//     }
+//   }
+// );
+
+// export const getMutualFriends = createAsyncThunk(
+//   'friendship/getMutualFriends',
+//   async ({ userId, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(
+//         `/friendships/${userId}/mutual-friends?page=${page}&size=${size}`
+//       );
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         userId
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch mutual friends');
+//     }
+//   }
+// );
+
+// export const getFriendSuggestions = createAsyncThunk(
+//   'friendship/getFriendSuggestions',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/suggestions?limit=${SUGGESTIONS_LIMIT}`);
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to get friend suggestions');
+//     }
+//   }
+// );
+
+// export const checkFriendshipStatus = createAsyncThunk(
+//   'friendship/checkFriendshipStatus',
+//   async (userId, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(`/friendships/status/${userId}`);
+//       return {
+//         userId,
+//         status: res.data.status,
+//         direction: res.data.direction,
+//         friendship: res.data.friendship
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to check friendship status');
+//     }
+//   }
+// );
+
+// export const getFriendsByTier = createAsyncThunk(
+//   'friendship/getFriendsByTier',
+//   async ({ tier, page = 1, size = FRIENDS_PER_PAGE }, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get(
+//         `/friendships/tier/${tier}?page=${page}&size=${size}`
+//       );
+//       return {
+//         data: res.data.payload.data,
+//         pagination: res.data.payload.pagination,
+//         tier
+//       };
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friends by tier');
+//     }
+//   }
+// );
+
+// export const getAllFriendshipTiers = createAsyncThunk(
+//   'friendship/getAllFriendshipTiers',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.get('/friendships/tiers');
+//       return res.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to fetch friendship tiers');
+//     }
+//   }
+// );
+
+// // Maintenance Functions
+// export const cleanupExpiredRequests = createAsyncThunk(
+//   'friendship/cleanupExpiredRequests',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const res = await axiosInstance.delete('/friendships/cleanup');
+//       return res.data.deletedCount;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || 'Failed to cleanup requests');
+//     }
+//   }
+// );
+
+// // Initial State ==================================================
+// const initialState = {
+//   // Friend lists
+//   friends: {
+//     data: [],
+//     pagination: {
+//       currentPage: 1,
+//       totalPages: 1,
+//       totalItems: 0,
+//     },
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Mutual friends
+//   mutualFriends: {
+//     data: [],
+//     pagination: {
+//       currentPage: 1,
+//       totalPages: 1,
+//       totalItems: 0,
+//     },
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Requests
+//   pendingRequests: {
+//     data: [],
+//     pagination: {
+//       currentPage: 1,
+//       totalPages: 1,
+//       totalItems: 0,
+//     },
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   sentRequests: {
+//     data: [],
+//     pagination: {
+//       currentPage: 1,
+//       totalPages: 1,
+//       totalItems: 0,
+//     },
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Friend suggestions
+//   suggestions: {
+//     data: [],
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Friendship tiers
+//   tiers: {
+//     data: [],
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Friends by tier
+//   friendsByTier: {
+//     data: [],
+//     pagination: {
+//       currentPage: 1,
+//       totalPages: 1,
+//       totalItems: 0,
+//     },
+//     status: 'idle',
+//     error: null
+//   },
+  
+//   // Friendship status lookup
+//   statusLookup: {},
+  
+//   // Global state
+//   status: 'idle',
+//   error: null,
+//   lastAction: null
+// };
+
+// // Slice =========================================================
+// const friendshipSlice = createSlice({
+//   name: 'friendship',
+//   initialState,
+//   reducers: {
+//     resetStatus: (state) => {
+//       state.status = 'idle';
+//       state.error = null;
+//     },
+//     clearFriendshipData: () => initialState,
+//     updateFriendshipStatus: (state, action) => {
+//       const { userId, status } = action.payload;
+//       state.statusLookup[userId] = status;
+//     }
+//   },
+//   extraReducers: (builder) => {
+//     builder
+           
+//       // Friend requests
+//       .addCase(sendFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data.unshift(action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'sendFriendRequest';
+//       })
+
+
+
+//       .addCase(cancelFriendRequest.fulfilled, (state, action) => {
+//         state.sentRequests.data = state.sentRequests.data.filter(
+//           req => req.id !== action.payload
+//         );
+//         state.status = 'succeeded';
+//         state.lastAction = 'cancelFriendRequest';
+//       })
+//       .addCase(acceptFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           req => req.id !== action.payload.id
+//         );
+//         state.friends.data.unshift(action.payload);
+//         state.status = 'succeeded';
+//         state.lastAction = 'acceptFriendRequest';
+//       })
+//       .addCase(rejectFriendRequest.fulfilled, (state, action) => {
+//         state.pendingRequests.data = state.pendingRequests.data.filter(
+//           req => req.id !== action.payload.id
+//         );
+//         state.status = 'succeeded';
+//         state.lastAction = 'rejectFriendRequest';
+//       })
+      
+//       // Friendship management
+//       .addCase(removeFriendship.fulfilled, (state, action) => {
+//         state.friends.data = state.friends.data.filter(
+//           friend => friend.id !== action.payload
+//         );
+//         state.status = 'succeeded';
+//         state.lastAction = 'removeFriendship';
+//       })
+//       .addCase(updateFriendshipTier.fulfilled, (state, action) => {
+//         const index = state.friends.data.findIndex(
+//           f => f.id === action.payload.id
+//         );
+//         if (index !== -1) {
+//           state.friends.data[index] = action.payload;
+//         }
+//         state.status = 'succeeded';
+//         state.lastAction = 'updateFriendshipTier';
+//       })
+      
+//       // Block management
+//       .addCase(blockUser.fulfilled, (state, action) => {
+//         // Remove from friends if they were friends
+//         state.friends.data = state.friends.data.filter(
+//           friend => friend.id !== action.payload.id
+//         );
+//         state.status = 'succeeded';
+//         state.lastAction = 'blockUser';
+//       })
+//       .addCase(unblockUser.fulfilled, (state, action) => {
+//         state.status = 'succeeded';
+//         state.lastAction = 'unblockUser';
+//       })
+      
+//       // Query methods - pending/fulfilled/rejected for each
+//       .addCase(getPendingRequests.pending, (state) => {
+//         state.pendingRequests.status = 'loading';
+//       })
+//       .addCase(getPendingRequests.fulfilled, (state, action) => {
+//         state.pendingRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getPendingRequests.rejected, (state, action) => {
+//         state.pendingRequests.status = 'failed';
+//         state.pendingRequests.error = action.payload;
+//       })
+      
+//       .addCase(getSentRequests.pending, (state) => {
+//         state.sentRequests.status = 'loading';
+//       })
+//       .addCase(getSentRequests.fulfilled, (state, action) => {
+//         state.sentRequests = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getSentRequests.rejected, (state, action) => {
+//         state.sentRequests.status = 'failed';
+//         state.sentRequests.error = action.payload;
+//       })
+      
+//       .addCase(listFriends.pending, (state) => {
+//         state.friends.status = 'loading';
+//       })
+//       .addCase(listFriends.fulfilled, (state, action) => {
+//         state.friends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(listFriends.rejected, (state, action) => {
+//         state.friends.status = 'failed';
+//         state.friends.error = action.payload;
+//       })
+      
+//       .addCase(getMutualFriends.pending, (state) => {
+//         state.mutualFriends.status = 'loading';
+//       })
+//       .addCase(getMutualFriends.fulfilled, (state, action) => {
+//         state.mutualFriends = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getMutualFriends.rejected, (state, action) => {
+//         state.mutualFriends.status = 'failed';
+//         state.mutualFriends.error = action.payload;
+//       })
+      
+//       .addCase(getFriendSuggestions.pending, (state) => {
+//         state.suggestions.status = 'loading';
+//       })
+//       .addCase(getFriendSuggestions.fulfilled, (state, action) => {
+//         state.suggestions = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getFriendSuggestions.rejected, (state, action) => {
+//         state.suggestions.status = 'failed';
+//         state.suggestions.error = action.payload;
+//       })
+      
+//       .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
+//         state.statusLookup[action.payload.userId] = {
+//           status: action.payload.status,
+//           direction: action.payload.direction,
+//           friendship: action.payload.friendship
+//         };
+//         state.status = 'succeeded';
+//       })
+      
+//       .addCase(getFriendsByTier.pending, (state) => {
+//         state.friendsByTier.status = 'loading';
+//       })
+//       .addCase(getFriendsByTier.fulfilled, (state, action) => {
+//         state.friendsByTier = {
+//           data: action.payload.data,
+//           pagination: action.payload.pagination,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getFriendsByTier.rejected, (state, action) => {
+//         state.friendsByTier.status = 'failed';
+//         state.friendsByTier.error = action.payload;
+//       })
+      
+//       .addCase(getAllFriendshipTiers.pending, (state) => {
+//         state.tiers.status = 'loading';
+//       })
+//       .addCase(getAllFriendshipTiers.fulfilled, (state, action) => {
+//         state.tiers = {
+//           data: action.payload,
+//           status: 'succeeded',
+//           error: null
+//         };
+//         state.status = 'succeeded';
+//       })
+//       .addCase(getAllFriendshipTiers.rejected, (state, action) => {
+//         state.tiers.status = 'failed';
+//         state.tiers.error = action.payload;
+//       })
+//       // Global pending/rejected handlers
+//       .addMatcher(
+//         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/pending'),
+//         (state) => {
+//           state.status = 'loading';
+//           state.error = null;
+//         }
+//       )
+//       .addMatcher(
+//         (action) => action.type.startsWith('friendship/') && action.type.endsWith('/rejected'),
+//         (state, action) => {
+//           state.status = 'failed';
+//           state.error = action.payload;
+//           state.lastAction = action.type.replace('/rejected', '');
+//         }
+//       )
+//   }
+// });
+
+// export const { resetStatus, clearFriendshipData, updateFriendshipStatus } = friendshipSlice.actions;
+// export default friendshipSlice.reducer;
 
 
 

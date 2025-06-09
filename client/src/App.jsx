@@ -16,6 +16,7 @@ import PrivateProfileUpdate from './components/PROFILE/PrivateProfile/PrivatePro
 import PublicProfilePage from './components/PROFILE/PublicProfile/PublicProfilePage';
 import Register from './components/REGISTER/Register';
 import ResetPassword from './components/RESET-PASSWORD/ResetPassword';
+import SocketFriendshipHandler from './components/SocketHandlers/SocketFriendshipHandler';
 import UpdatePassword from './components/UPDATE-PASSWORD/UpdatePassword';
 import UpdateUserById from './components/UPDATE-USER-BY-ID/UpdateUserById';
 import UserTable from './components/USER-TABLE/UserTable';
@@ -24,7 +25,6 @@ import GlobalSnackbar from './features/snackbar/GlobalSnackbar';
 import Footer from './layouts/Footer';
 import Navbar from './layouts/Navbar/Navbar';
 import socketService from './utils/socket';
-import SocketFriendshipHandler from './components/SocketHandlers/SocketFriendshipHandler';
 
 const App = () => {
   useEffect(() => {
@@ -54,6 +54,9 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/my-profile-update" element={<PrivateProfileUpdate />} />
+
+               {/* <Route path="/friends/requests" element={<FriendRequestsPage />} /> */}
+    {/* <Route path="/friends" element={<FriendRequestsPage />} /> */}
             <Route path="/friendships" element={<FriendRequestsPage />} />
             <Route path="/update-user/:id" element={<UpdateUserById />} />
             <Route path="/user-table" element={<UserTable />} />

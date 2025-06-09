@@ -38,7 +38,7 @@
     "nodemailer": "^6.10.0",
     "path-to-regexp": "^6.3.0",
     "peer": "^1.0.2",
-    "pg": "^8.15.6",
+    "pg": "^8.16.0",
     "pg-hstore": "^2.3.4",
     "postgis": "^1.0.5",
     "postgres": "^3.4.5",
