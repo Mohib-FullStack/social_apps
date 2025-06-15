@@ -17,4 +17,3 @@ const runValidation = (req, res, next) => {
 };
 
 module.exports = runValidation;
-

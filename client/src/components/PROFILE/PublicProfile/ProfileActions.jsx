@@ -1,15 +1,15 @@
 // src/components/profile/ProfileActions.jsx
-import { Button, Box } from "@mui/material";
-import { 
-  Send as SendIcon, 
-  PersonAdd as PersonAddIcon, 
-  HourglassEmpty as HourglassEmptyIcon,
+import {
   Add as AddIcon,
-  Edit as EditIcon,
   ArrowForward as ArrowForwardIcon,
   Check as CheckIcon,
-  MoreHoriz as MoreHorizIcon
+  Edit as EditIcon,
+  HourglassEmpty as HourglassEmptyIcon,
+  MoreHoriz as MoreHorizIcon,
+  PersonAdd as PersonAddIcon,
+  Send as SendIcon
 } from "@mui/icons-material";
+import { Box, Button } from "@mui/material";
 import PropTypes from "prop-types";
 
 const ProfileActions = ({

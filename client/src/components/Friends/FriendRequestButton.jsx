@@ -1,3 +1,4 @@
+// src/components/Friends/FriendRequestButton.jsx
 import {
   PersonAddAlt1 as AcceptIcon,
   PersonAdd as AddFriendIcon,
@@ -9,10 +10,44 @@ import { Button, CircularProgress, Tooltip } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   acceptFriendRequest,
+  checkFriendshipStatus,
   rejectFriendRequest,
   sendFriendRequest
 } from '../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+import { getFriendlyErrorMessage } from '../../utils/friendshipErrors';
+
+const STATUS_MAP = {
+  pending_outgoing: {
+    label: 'Request Sent',
+    icon: <PendingIcon />,
+    color: 'secondary',
+    variant: 'outlined',
+    disabled: true
+  },
+  pending_incoming: {
+    label: 'Accept Request',
+    icon: <AcceptIcon />,
+    color: 'primary',
+    variant: 'contained',
+    action: 'accept',
+    showReject: true
+  },
+  accepted: {
+    label: 'Friends',
+    icon: <FriendsIcon />,
+    color: 'success',
+    variant: 'outlined',
+    disabled: true
+  },
+  default: {
+    label: 'Add Friend',
+    icon: <AddFriendIcon />,
+    color: 'primary',
+    variant: 'contained',
+    action: 'send'
+  }
+};
 
 const FriendRequestButton = ({ friendId }) => {
   const dispatch = useDispatch();
@@ -33,11 +68,14 @@ const FriendRequestButton = ({ friendId }) => {
           severity: 'success',
         })
       );
+      dispatch(checkFriendshipStatus(friendId));
     } catch (error) {
+      const friendlyMessage = getFriendlyErrorMessage(error.code);
       dispatch(
         showSnackbar({
-          message: error.message || 'Failed to send friend request',
+          message: friendlyMessage,
           severity: 'error',
+          autoHideDuration: error.code === 'REQUEST_ALREADY_RECEIVED' ? 6000 : 3000
         })
       );
     }
@@ -45,26 +83,38 @@ const FriendRequestButton = ({ friendId }) => {
 
   const handleAcceptRequest = async () => {
     try {
-      if (!friendship.friendship?.id) {
+      if (!friendship?.friendship?.id) {
         throw new Error('Friendship ID not available');
       }
 
-      await dispatch(acceptFriendRequest(friendship.friendship.id)).unwrap();
-      dispatch(showSnackbar({
-        message: 'Request accepted!',
-        severity: 'success'
-      }));
+      const result = await dispatch(
+        acceptFriendRequest(friendship.friendship.id)
+      ).unwrap();
+      
+      if (result?.friendship) {
+        dispatch(
+          showSnackbar({
+            message: result.message || 'Request accepted!',
+            severity: 'success'
+          })
+        );
+        dispatch(checkFriendshipStatus(friendId));
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
-      dispatch(showSnackbar({
-        message: error.message || 'Failed to accept',
-        severity: 'error'
-      }));
+      dispatch(
+        showSnackbar({
+          message: getFriendlyErrorMessage(error.code) || 'Failed to accept request',
+          severity: 'error'
+        })
+      );
     }
   };
 
   const handleRejectRequest = async () => {
     try {
-      if (!friendship.friendship?.id) {
+      if (!friendship?.friendship?.id) {
         throw new Error('Friendship ID not found');
       }
       
@@ -75,10 +125,11 @@ const FriendRequestButton = ({ friendId }) => {
           severity: 'success',
         })
       );
+      dispatch(checkFriendshipStatus(friendId));
     } catch (error) {
       dispatch(
         showSnackbar({
-          message: error.message || 'Failed to reject friend request',
+          message: getFriendlyErrorMessage(error.code) || 'Failed to reject friend request',
           severity: 'error',
         })
       );
@@ -87,46 +138,30 @@ const FriendRequestButton = ({ friendId }) => {
 
   if (!friendId || friendId === currentUserId) return null;
 
-  const getButtonProps = () => {
-    switch (friendship.status) {
-      case 'pending' && friendship.direction === 'outgoing':
-        return {
-          label: 'Request Sent',
-          icon: <PendingIcon />,
-          color: 'secondary',
-          variant: 'outlined',
-          disabled: true,
-        };
-      case 'pending' && friendship.direction === 'incoming':
-        return {
-          label: 'Accept Request',
-          icon: <AcceptIcon />,
-          color: 'primary',
-          variant: 'contained',
-          action: handleAcceptRequest,
-          secondaryAction: handleRejectRequest,
-          showReject: true
-        };
-      case 'accepted':
-        return {
-          label: 'Friends',
-          icon: <FriendsIcon />,
-          color: 'success',
-          variant: 'outlined',
-          disabled: true,
-        };
+  const statusKey = friendship.status === 'pending' 
+    ? `${friendship.status}_${friendship.direction}`
+    : friendship.status || 'default';
+
+  const {
+    label,
+    icon,
+    color,
+    variant,
+    disabled,
+    action,
+    showReject
+  } = STATUS_MAP[statusKey] || STATUS_MAP.default;
+
+  const handleAction = () => {
+    switch (action) {
+      case 'accept':
+        return handleAcceptRequest;
+      case 'send':
+        return handleSendRequest;
       default:
-        return {
-          label: 'Add Friend',
-          icon: <AddFriendIcon />,
-          color: 'primary',
-          variant: 'contained',
-          action: handleSendRequest,
-        };
+        return undefined;
     }
   };
-
-  const { label, icon, color, variant, disabled, action, secondaryAction, showReject } = getButtonProps();
 
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
@@ -136,7 +171,7 @@ const FriendRequestButton = ({ friendId }) => {
           color={color}
           size="small"
           startIcon={isLoading ? <CircularProgress size={20} /> : icon}
-          onClick={action}
+          onClick={handleAction()}
           disabled={disabled || isLoading}
           sx={{
             textTransform: 'none',
@@ -153,7 +188,7 @@ const FriendRequestButton = ({ friendId }) => {
             variant="outlined"
             color="error"
             size="small"
-            onClick={secondaryAction}
+            onClick={handleRejectRequest}
             disabled={isLoading}
             sx={{
               textTransform: 'none',
@@ -173,7 +208,11 @@ export default FriendRequestButton;
 
 
 
-//! previous
+
+
+
+//! running
+// // src/components/Friends/FriendRequestButton.jsx
 // import {
 //   PersonAddAlt1 as AcceptIcon,
 //   PersonAdd as AddFriendIcon,
@@ -185,10 +224,43 @@ export default FriendRequestButton;
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
 //   acceptFriendRequest,
+//   checkFriendshipStatus,
 //   rejectFriendRequest,
 //   sendFriendRequest
 // } from '../../features/friendship/friendshipSlice';
 // import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+
+// const STATUS_MAP = {
+//   pending_outgoing: {
+//     label: 'Request Sent',
+//     icon: <PendingIcon />,
+//     color: 'secondary',
+//     variant: 'outlined',
+//     disabled: true
+//   },
+//   pending_incoming: {
+//     label: 'Accept Request',
+//     icon: <AcceptIcon />,
+//     color: 'primary',
+//     variant: 'contained',
+//     action: 'accept',
+//     showReject: true
+//   },
+//   accepted: {
+//     label: 'Friends',
+//     icon: <FriendsIcon />,
+//     color: 'success',
+//     variant: 'outlined',
+//     disabled: true
+//   },
+//   default: {
+//     label: 'Add Friend',
+//     icon: <AddFriendIcon />,
+//     color: 'primary',
+//     variant: 'contained',
+//     action: 'send'
+//   }
+// };
 
 // const FriendRequestButton = ({ friendId }) => {
 //   const dispatch = useDispatch();
@@ -209,6 +281,7 @@ export default FriendRequestButton;
 //           severity: 'success',
 //         })
 //       );
+//       dispatch(checkFriendshipStatus(friendId));
 //     } catch (error) {
 //       dispatch(
 //         showSnackbar({
@@ -219,32 +292,43 @@ export default FriendRequestButton;
 //     }
 //   };
 
- 
 
+//   // In FriendRequestButton.jsx, update handleAcceptRequest:
 // const handleAcceptRequest = async () => {
 //   try {
-//     if (!friendship.friendship?.id) {
+//     if (!friendship?.friendship?.id) {
 //       throw new Error('Friendship ID not available');
 //     }
 
-//     await dispatch(acceptFriendRequest(friendship.friendship.id)).unwrap();
-//     dispatch(showSnackbar({
-//       message: 'Request accepted!',
-//       severity: 'success'
-//     }));
+//     const result = await dispatch(
+//       acceptFriendRequest(friendship.friendship.id)
+//     ).unwrap();
+    
+//     if (result?.friendship) {
+//       dispatch(
+//         showSnackbar({
+//           message: result.message || 'Request accepted!',
+//           severity: 'success'
+//         })
+//       );
+//       dispatch(checkFriendshipStatus(friendId));
+//     } else {
+//       throw new Error('Invalid response from server');
+//     }
 //   } catch (error) {
-//     dispatch(showSnackbar({
-//       message: error.message || 'Failed to accept',
-//       severity: 'error'
-//     }));
+//     dispatch(
+//       showSnackbar({
+//         message: error.message || 'Failed to accept request',
+//         severity: 'error'
+//       })
+//     );
 //   }
 // };
 
-
 //   const handleRejectRequest = async () => {
 //     try {
-//       if (!friendship.friendship?.id) {
-//         throw new Error('Request ID not found');
+//       if (!friendship?.friendship?.id) {
+//         throw new Error('Friendship ID not found');
 //       }
       
 //       await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
@@ -254,6 +338,7 @@ export default FriendRequestButton;
 //           severity: 'success',
 //         })
 //       );
+//       dispatch(checkFriendshipStatus(friendId));
 //     } catch (error) {
 //       dispatch(
 //         showSnackbar({
@@ -266,46 +351,26 @@ export default FriendRequestButton;
 
 //   if (!friendId || friendId === currentUserId) return null;
 
-//   const getButtonProps = () => {
-//     switch (friendship.status) {
-//       case 'pending' && friendship.direction === 'outgoing':
-//         return {
-//           label: 'Request Sent',
-//           icon: <PendingIcon />,
-//           color: 'secondary',
-//           variant: 'outlined',
-//           disabled: true,
-//         };
-//       case 'pending' && friendship.direction === 'incoming':
-//         return {
-//           label: 'Accept Request',
-//           icon: <AcceptIcon />,
-//           color: 'primary',
-//           variant: 'contained',
-//           action: handleAcceptRequest,
-//           secondaryAction: handleRejectRequest,
-//           showReject: true
-//         };
-//       case 'accepted':
-//         return {
-//           label: 'Friends',
-//           icon: <FriendsIcon />,
-//           color: 'success',
-//           variant: 'outlined',
-//           disabled: true,
-//         };
-//       default:
-//         return {
-//           label: 'Add Friend',
-//           icon: <AddFriendIcon />,
-//           color: 'primary',
-//           variant: 'contained',
-//           action: handleSendRequest,
-//         };
-//     }
-//   };
+//   // Determine status key for the map
+//   const statusKey = friendship.status === 'pending' 
+//     ? `${friendship.status}_${friendship.direction}`
+//     : friendship.status || 'default';
 
-//   const { label, icon, color, variant, disabled, action, secondaryAction, showReject } = getButtonProps();
+//   const {
+//     label,
+//     icon,
+//     color,
+//     variant,
+//     disabled,
+//     action,
+//     showReject
+//   } = STATUS_MAP[statusKey] || STATUS_MAP.default;
+
+//   const handleAction = () => {
+//     if (action === 'accept') return handleAcceptRequest;
+//     if (action === 'send') return handleSendRequest;
+//     return undefined;
+//   };
 
 //   return (
 //     <div style={{ display: 'flex', gap: '8px' }}>
@@ -315,7 +380,7 @@ export default FriendRequestButton;
 //           color={color}
 //           size="small"
 //           startIcon={isLoading ? <CircularProgress size={20} /> : icon}
-//           onClick={action}
+//           onClick={handleAction()}
 //           disabled={disabled || isLoading}
 //           sx={{
 //             textTransform: 'none',
@@ -332,7 +397,7 @@ export default FriendRequestButton;
 //             variant="outlined"
 //             color="error"
 //             size="small"
-//             onClick={secondaryAction}
+//             onClick={handleRejectRequest}
 //             disabled={isLoading}
 //             sx={{
 //               textTransform: 'none',

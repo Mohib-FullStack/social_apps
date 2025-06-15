@@ -26,4 +26,3 @@ const validateFriendshipAction = async (req, res, next) => {
 // friendshipsRouter.delete('/:id', isLoggedIn, validateFriendshipAction, removeFriendship);
 
 module.exports = validateFriendshipAction
-

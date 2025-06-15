@@ -25,6 +25,7 @@ import {
   rejectFriendRequest
 } from '../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+import { getFriendlyErrorMessage } from '../../utils/friendshipErrors';
 
 const FriendRequestsPage = () => {
   const dispatch = useDispatch();
@@ -52,13 +53,14 @@ const FriendRequestsPage = () => {
           dispatch(getPendingRequests());
         }, 1000);
       } else {
-        throw new Error(resultAction.payload?.message || 'Failed to accept');
+        const error = resultAction.payload;
+        throw new Error(error?.code || 'accept_failed');
       }
     } catch (error) {
       dispatch(showSnackbar({
-        message: error.message,
+        message: getFriendlyErrorMessage(error.message),
         severity: 'error',
-        autoHideDuration: 4000
+        autoHideDuration: error.message === 'already_friends' ? 6000 : 4000
       }));
     }
   };
@@ -78,11 +80,12 @@ const FriendRequestsPage = () => {
           dispatch(getPendingRequests());
         }, 1000);
       } else {
-        throw new Error(resultAction.payload?.message || 'Failed to reject');
+        const error = resultAction.payload;
+        throw new Error(error?.code || 'reject_failed');
       }
     } catch (error) {
       dispatch(showSnackbar({
-        message: error.message,
+        message: getFriendlyErrorMessage(error.message),
         severity: 'error',
         autoHideDuration: 4000
       }));
@@ -100,7 +103,7 @@ const FriendRequestsPage = () => {
   if (error) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Typography color="error">{error}</Typography>
+        <Typography color="error">{getFriendlyErrorMessage(error)}</Typography>
       </Container>
     );
   }
@@ -142,7 +145,11 @@ const FriendRequestsPage = () => {
                       disabled={status === 'loading'}
                       sx={{ minWidth: 110 }}
                     >
-                      Accept
+                      {status === 'loading' ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        'Accept'
+                      )}
                     </Button>
                     <Button
                       variant="outlined"
@@ -152,7 +159,11 @@ const FriendRequestsPage = () => {
                       disabled={status === 'loading'}
                       sx={{ minWidth: 110 }}
                     >
-                      Decline
+                      {status === 'loading' ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        'Decline'
+                      )}
                     </Button>
                   </Box>
                 </ListItem>
@@ -168,7 +179,7 @@ const FriendRequestsPage = () => {
 
 export default FriendRequestsPage;
 
-//! previous
+//! running
 // import {
 //   Check as AcceptIcon,
 //   Close as DeclineIcon
@@ -207,15 +218,9 @@ export default FriendRequestsPage;
 //     dispatch(getPendingRequests());
 //   }, [dispatch]);
 
-//   // Debug effect
-//   useEffect(() => {
-//     console.log('Pending requests updated:', pendingRequests);
-//   }, [pendingRequests]);
-
-//   const handleAccept = async (requestId) => {
-//     console.log('Accepting request:', requestId);
+//   const handleAccept = async (friendshipId) => {
 //     try {
-//       const resultAction = await dispatch(acceptFriendRequest(requestId));
+//       const resultAction = await dispatch(acceptFriendRequest(friendshipId));
       
 //       if (acceptFriendRequest.fulfilled.match(resultAction)) {
 //         dispatch(showSnackbar({
@@ -232,7 +237,6 @@ export default FriendRequestsPage;
 //         throw new Error(resultAction.payload?.message || 'Failed to accept');
 //       }
 //     } catch (error) {
-//       console.error('Accept error:', error);
 //       dispatch(showSnackbar({
 //         message: error.message,
 //         severity: 'error',
@@ -241,10 +245,9 @@ export default FriendRequestsPage;
 //     }
 //   };
 
-//   const handleReject = async (requestId) => {
-//     console.log('Rejecting request:', requestId);
+//   const handleReject = async (friendshipId) => {
 //     try {
-//       const resultAction = await dispatch(rejectFriendRequest(requestId));
+//       const resultAction = await dispatch(rejectFriendRequest(friendshipId));
       
 //       if (rejectFriendRequest.fulfilled.match(resultAction)) {
 //         dispatch(showSnackbar({
@@ -260,7 +263,6 @@ export default FriendRequestsPage;
 //         throw new Error(resultAction.payload?.message || 'Failed to reject');
 //       }
 //     } catch (error) {
-//       console.error('Reject error:', error);
 //       dispatch(showSnackbar({
 //         message: error.message,
 //         severity: 'error',
@@ -347,6 +349,7 @@ export default FriendRequestsPage;
 // };
 
 // export default FriendRequestsPage;
+
 
 
 

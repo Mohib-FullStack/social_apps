@@ -45,7 +45,7 @@ friendShipsRouter.delete(
 );
 
 friendShipsRouter.get('/requests/pending', isLoggedIn, getPendingRequests);
-friendShipsRouter.get('/requests/sent', isLoggedIn, getSentRequests);
+// friendShipsRouter.get('/requests/sent', isLoggedIn, getSentRequests);
 
 // Friend request responses
 friendShipsRouter.put(
@@ -59,18 +59,18 @@ friendShipsRouter.put(
 friendShipsRouter.put(
   '/requests/:friendshipId/reject',
   isLoggedIn,
-  validateRequestId,
-  runValidation,
+  // validateRequestId,
+  // runValidation,
   rejectFriendRequest
 );
 
 // Friend management
-friendShipsRouter.get('/', isLoggedIn, getFriendIds);
+// friendShipsRouter.get('/', isLoggedIn, getFriendIds);
 friendShipsRouter.get('/suggestions', isLoggedIn, getFriendSuggestions);
-friendShipsRouter.get('/:userId/friends', isLoggedIn, listFriends);
+// friendShipsRouter.get('/:userId/friends', isLoggedIn, listFriends);
 friendShipsRouter.get('/status/:userId', isLoggedIn, checkFriendshipStatus);
 friendShipsRouter.get('/:userId/mutual-friends', isLoggedIn, getMutualFriends);
-friendShipsRouter.delete('/:friendshipId', isLoggedIn, removeFriendship);
+// friendShipsRouter.delete('/:friendshipId', isLoggedIn, removeFriendship);
 
 // Block management
 friendShipsRouter.post(
@@ -102,7 +102,7 @@ friendShipsRouter.put(
 friendShipsRouter.get(
   '/tier/:tier',
   isLoggedIn,
-  getFriendsByTier
+  // getFriendsByTier
 );
 
 module.exports = friendShipsRouter;

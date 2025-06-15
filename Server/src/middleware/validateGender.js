@@ -20,4 +20,3 @@ const validateGender = (req, res, next) => {
   
 
 
-

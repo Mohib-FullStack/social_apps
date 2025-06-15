@@ -32,4 +32,3 @@ const generateOrderReceiptPDF = async (order, cartItems) => {
 
 module.exports = generateOrderReceiptPDF;
 
-

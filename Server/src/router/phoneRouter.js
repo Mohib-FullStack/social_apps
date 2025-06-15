@@ -10,4 +10,3 @@ phoneRouter.put('/phone', isLoggedIn, handleUpdatePhone);
 phoneRouter.post('/phone/verify-OTP', isLoggedIn, verifyPhoneOTP);
 
 module.exports = phoneRouter;
-
