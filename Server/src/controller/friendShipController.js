@@ -8,6 +8,11 @@ const Chat = require('../models/chatModel');
 const logger = require('../config/logger');
 const ChatParticipant = require('../models/chatParticipantModel');
 
+// Import the email helper at the top
+const sendFriendRequestAcceptedEmail = require('../helper/friendRequestAcceptedEmail');
+const sendFriendRequestRejectedEmail = require('../helper/friendRequestRejectedEmail'); // You'll create this similarly
+// const sendFriendRequestPendingEmail = require('../helper/friendRequestPendingEmail'); // You'll create this similarly
+
 // Friendship configuration constants
 const FRIENDSHIP_CONFIG = {
   REQUEST_EXPIRY_DAYS: 7,
@@ -254,27 +259,34 @@ const sendFriendRequest = async (req, res) => {
   }
 };
 
-// ! acceptFriendRequest 
+
 const acceptFriendRequest = async (req, res) => {
   const { friendshipId } = req.params;
   const currentUserId = req.user.id;
   
   try {
-    // Validate and parse friendship ID
     const numericFriendshipId = validateId(friendshipId);
     
-    // Find the pending friend request
     const request = await Friendship.findOne({
       where: { 
         id: numericFriendshipId, 
         friendId: currentUserId, 
         status: 'pending' 
       },
-      include: [{
-        model: User,
-        as: 'requester',
-        attributes: ['id', 'firstName', 'lastName', 'profileImage']
-      }]
+      include: [
+        {
+          model: User,
+          as: 'requester',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'profileImage']
+        },
+        {
+          model: User,
+          as: 'requested',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'profileImage'],
+          where: { id: currentUserId },
+          required: true
+        }
+      ]
     });
 
     if (!request) {
@@ -285,40 +297,53 @@ const acceptFriendRequest = async (req, res) => {
       });
     }
 
-    // Update friendship status (no transaction)
     const updatedRequest = await request.update({
       status: 'accepted',
       acceptedAt: new Date(),
       actionUserId: currentUserId
     });
 
-  
-    // In acceptFriendRequest:
-await Notification.create({
-  userId: request.userId,
-  type: 'friend_request_accepted',
-  senderId: currentUserId,
-  friendshipId: updatedRequest.id,
-  metadata: {
-    friendshipId: updatedRequest.id,
-    senderName: `${req.user.firstName} ${req.user.lastName}`,
-    avatarUrl: req.user.profileImage || '/default-avatar.png', // Add fallback
-    message: 'accepted your friend request'
-  },
-  read: false
-});
+    // Create notification
+    await Notification.create({
+      userId: request.requester.id,
+      type: 'friend_request_accepted',
+      senderId: currentUserId,
+      friendshipId: updatedRequest.id,
+      metadata: {
+        friendshipId: updatedRequest.id,
+        senderName: `${request.requested.firstName} ${request.requested.lastName}`,
+        avatarUrl: request.requested.profileImage || '/default-avatar.png',
+        message: 'accepted your friend request'
+      },
+      read: false
+    });
+
+    // Send acceptance email (async - don't await)
+    try {
+      await sendFriendRequestAcceptedEmail(
+        request.requester,
+        {
+          id: currentUserId,
+          firstName: request.requested.firstName,
+          lastName: request.requested.lastName,
+          profileImage: request.requested.profileImage || '/default-avatar.png'
+        }
+      );
+    } catch (emailError) {
+      logger.error('Failed to send acceptance email:', emailError);
+    }
 
     // Find or create DM chat
     const [chat] = await Chat.findOrCreate({
       where: {
         type: 'dm',
         [Op.or]: [
-          { user1Id: request.userId, user2Id: currentUserId },
-          { user1Id: currentUserId, user2Id: request.userId }
+          { user1Id: request.requester.id, user2Id: currentUserId },
+          { user1Id: currentUserId, user2Id: request.requester.id }
         ]
       },
       defaults: {
-        user1Id: request.userId,
+        user1Id: request.requester.id,
         user2Id: currentUserId,
         type: 'dm'
       }
@@ -328,7 +353,7 @@ await Notification.create({
     if (chat) {
       await Promise.all([
         ChatParticipant.findOrCreate({
-          where: { chatId: chat.id, userId: request.userId },
+          where: { chatId: chat.id, userId: request.requester.id },
           defaults: { role: 'member' }
         }),
         ChatParticipant.findOrCreate({
@@ -340,20 +365,25 @@ await Notification.create({
 
     // Emit real-time event
     if (req.io) {
-      req.io.to(`user_${request.userId}`).emit('friend_request_accepted', {
+      req.io.to(`user_${request.requester.id}`).emit('friend_request_accepted', {
         friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-        chatId: chat?.id || null
+        chatId: chat?.id || null,
+        acceptedBy: {
+          id: currentUserId,
+          name: `${request.requested.firstName} ${request.requested.lastName}`,
+          avatar: request.requested.profileImage || '/default-avatar.png'
+        }
       });
     }
 
-return res.status(200).json({
-  success: true,
-  message: 'Friend request accepted successfully',
-  data: {
-    friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-    chatId: chat?.id || null
-  }
-});
+    return res.status(200).json({
+      success: true,
+      message: 'Friend request accepted successfully',
+      data: {
+        friendship: formatFriendshipResponse(updatedRequest, currentUserId),
+        chatId: chat?.id || null
+      }
+    });
 
   } catch (error) {
     logger.error('Accept friend request error:', error);
@@ -366,8 +396,7 @@ return res.status(200).json({
         stack: error.stack 
       })
     });
-}
-
+  }
 };
 
 const rejectFriendRequest = async (req, res) => {
@@ -375,21 +404,28 @@ const rejectFriendRequest = async (req, res) => {
   const currentUserId = req.user.id;
   
   try {
-    // Validate and parse friendship ID (same as accept)
     const numericFriendshipId = validateId(friendshipId);
     
-    // Find the pending friend request (same structure as accept)
     const request = await Friendship.findOne({
       where: { 
         id: numericFriendshipId, 
         friendId: currentUserId, 
         status: 'pending' 
       },
-      include: [{
-        model: User,
-        as: 'requester',
-        attributes: ['id', 'firstName', 'lastName', 'profileImage']
-      }]
+      include: [
+        {
+          model: User,
+          as: 'requester',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'profileImage']
+        },
+        {
+          model: User,
+          as: 'requested',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'profileImage'],
+          where: { id: currentUserId },
+          required: true
+        }
+      ]
     });
 
     if (!request) {
@@ -400,36 +436,53 @@ const rejectFriendRequest = async (req, res) => {
       });
     }
 
-    // Update friendship status
     const updatedRequest = await request.update({
       status: 'rejected',
       actionUserId: currentUserId
     });
 
-    // Create notification with proper type (match your Notification model)
+    // Create notification
     await Notification.create({
-      userId: request.userId,
-      type: 'friend_request_rejected', // Ensure this matches your model enum
+      userId: request.requester.id,
+      type: 'friend_request_rejected',
       senderId: currentUserId,
       friendshipId: updatedRequest.id,
       metadata: {
         friendshipId: updatedRequest.id,
-        senderName: `${req.user.firstName} ${req.user.lastName}`,
-        avatarUrl: req.user.profileImage || '/default-avatar.png',
+        senderName: `${request.requested.firstName} ${request.requested.lastName}`,
+        avatarUrl: request.requested.profileImage || '/default-avatar.png',
         message: 'declined your friend request'
       },
       read: false
     });
 
-    // Emit real-time event with consistent structure
+    // Send rejection email (async)
+    try {
+      await sendFriendRequestRejectedEmail(
+        request.requester,
+        {
+          id: currentUserId,
+          firstName: request.requested.firstName,
+          lastName: request.requested.lastName,
+          profileImage: request.requested.profileImage || '/default-avatar.png'
+        }
+      );
+    } catch (emailError) {
+      logger.error('Failed to send rejection email:', emailError);
+    }
+
+    // Emit real-time event
     if (req.io) {
-      req.io.to(`user_${request.userId}`).emit('friend_request_rejected', {
+      req.io.to(`user_${request.requester.id}`).emit('friend_request_rejected', {
         friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-        rejectedBy: currentUserId
+        rejectedBy: {
+          id: currentUserId,
+          name: `${request.requested.firstName} ${request.requested.lastName}`,
+          avatar: request.requested.profileImage || '/default-avatar.png'
+        }
       });
     }
 
-    // Return response matching accept structure
     return res.status(200).json({
       success: true,
       message: 'Friend request declined successfully',
@@ -453,81 +506,6 @@ const rejectFriendRequest = async (req, res) => {
   }
 };
 
-// rejectFriendRequest
-// const rejectFriendRequest = async (req, res) => {
-//   try {
-//     const { friendshipId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericFriendshipId = validateId(friendshipId);
-
-//     // Find the pending friend request using simplified associations
-//     const request = await Friendship.findOne({
-//       where: { 
-//         id: numericFriendshipId, 
-//         friendId: currentUserId, 
-//         status: 'pending' 
-//       },
-//       include: [
-//         { 
-//           model: User, 
-//           as: 'requester', 
-//           attributes: ['id', 'firstName', 'lastName', 'profileImage'] 
-//         }
-//       ]
-//     });
-
-//     if (!request) {
-//       return res.status(404).json({ 
-//         success: false,
-//         code: 'NOT_FOUND', 
-//         message: 'Friend request not found or already processed' 
-//       });
-//     }
-
-//     // Update the friendship status
-//     await request.update({
-//       status: 'rejected',
-//       actionUserId: currentUserId
-//     });
-
-//        // In rejectFriendRequest:
-// await Notification.create({
-//   userId: request.userId,
-//   type: 'friend_request_rejected',
-//   senderId: currentUserId,
-//   friendshipId: request.id,
-//   metadata: {
-//     friendshipId: request.id,
-//     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     avatarUrl: req.user.profileImage || '/default-avatar.png', // Add fallback
-//     message: 'declined your friend request'
-//   },
-//   read: false
-// });
-
-//     // Emit real-time event
-//     if (req.io) {
-//       req.io.to(`user_${request.userId}`).emit('friend_request_rejected', {
-//         friendshipId: request.id,
-//         rejectedBy: currentUserId
-//       });
-//     }
-
-//     return res.status(200).json({ 
-//       success: true,
-//       message: 'Friend request declined successfully',
-//       friendshipId: request.id
-//     });
-
-//   } catch (error) {
-//     logger.error('Reject friend request error:', error);
-//     return res.status(500).json({ 
-//       success: false,
-//       code: 'SERVER_ERROR', 
-//       message: "An error occurred while processing the friend request" 
-//     });
-//   }
-// };
 
 
 const cancelFriendRequest = async (req, res) => {
