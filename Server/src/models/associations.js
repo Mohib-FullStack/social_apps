@@ -60,7 +60,7 @@ User.belongsToMany(User, {
 
 // Friendship model relationships
 Friendship.belongsTo(User, { as: 'requester', foreignKey: 'userId', ...CASCADE });
-Friendship.belongsTo(User, { as: 'recipient', foreignKey: 'friendId', ...CASCADE });
+Friendship.belongsTo(User, { as: 'requested', foreignKey: 'friendId', ...CASCADE });
 
 // ==================== 3. FOLLOW SYSTEM ====================
 

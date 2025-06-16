@@ -113,28 +113,58 @@ const FriendRequestButton = ({ friendId }) => {
   };
 
   const handleRejectRequest = async () => {
-    try {
-      if (!friendship?.friendship?.id) {
-        throw new Error('Friendship ID not found');
-      }
-      
-      await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
+  try {
+    if (!friendship?.friendship?.id) {
+      throw new Error('Friendship ID not found');
+    }
+    
+    const result = await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
+    
+    if (result?.friendship?.id) {
       dispatch(
         showSnackbar({
-          message: 'Friend request rejected',
+          message: result.message || 'Friend request rejected',
           severity: 'success',
         })
       );
       dispatch(checkFriendshipStatus(friendId));
-    } catch (error) {
-      dispatch(
-        showSnackbar({
-          message: getFriendlyErrorMessage(error.code) || 'Failed to reject friend request',
-          severity: 'error',
-        })
-      );
+    } else {
+      throw new Error('Invalid response from server');
     }
-  };
+  } catch (error) {
+    console.error('Reject error:', error);
+    dispatch(
+      showSnackbar({
+        message: getFriendlyErrorMessage(error.code) || 'Failed to reject friend request',
+        severity: 'error',
+      })
+    );
+  }
+};
+
+  // const handleRejectRequest = async () => {
+  //   try {
+  //     if (!friendship?.friendship?.id) {
+  //       throw new Error('Friendship ID not found');
+  //     }
+      
+  //     await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
+  //     dispatch(
+  //       showSnackbar({
+  //         message: 'Friend request rejected',
+  //         severity: 'success',
+  //       })
+  //     );
+  //     dispatch(checkFriendshipStatus(friendId));
+  //   } catch (error) {
+  //     dispatch(
+  //       showSnackbar({
+  //         message: getFriendlyErrorMessage(error.code) || 'Failed to reject friend request',
+  //         severity: 'error',
+  //       })
+  //     );
+  //   }
+  // };
 
   if (!friendId || friendId === currentUserId) return null;
 
