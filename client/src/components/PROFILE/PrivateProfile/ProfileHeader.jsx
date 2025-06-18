@@ -1,4 +1,3 @@
-//! Good
 import { ArrowBack, CameraAlt, PersonAdd } from '@mui/icons-material';
 import { Avatar, Badge, Box, Button, CircularProgress, IconButton } from '@mui/material';
 

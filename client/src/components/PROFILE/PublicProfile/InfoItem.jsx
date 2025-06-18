@@ -1,4 +1,4 @@
-import { Box, Typography, Link } from '@mui/material';
+import { Box, Link, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 
 const InfoItem = ({ icon, label, value, isLink = false }) => (

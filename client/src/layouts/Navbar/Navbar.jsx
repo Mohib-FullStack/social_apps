@@ -15,11 +15,16 @@ import {
   Badge,
   Box,
   Button,
+  ClickAwayListener,
+  Divider,
   Drawer,
+  Grow,
   IconButton,
   ListItemIcon,
   ListItemText,
   MenuItem,
+  Paper,
+  styled,
   Toolbar,
   Typography,
   useMediaQuery
@@ -31,6 +36,7 @@ import NotificationPanel from '../../features/notification/NotificationPanel';
 import { fetchUnreadCount } from '../../features/notification/notificationSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
 import { fetchAllUsers, fetchUserProfile, logoutUser } from '../../features/user/userSlice';
+
 import DesktopSearch from './DesktopSearch';
 import DrawerContent from './DrawerContent';
 import MobileSearch from './MobileSearch';
@@ -43,6 +49,113 @@ const NAV_ITEMS = [
   { name: 'Groups', icon: Group, path: '/groups', color: '#E44D2E' },
   { name: 'Marketplace', icon: Store, path: '/marketplace', color: '#42B72A' },
 ];
+
+const PulseBadge = styled(Badge)(({ theme }) => ({
+  '& .MuiBadge-badge': {
+    backgroundColor: '#FF4081',
+    color: 'white',
+    fontWeight: 'bold',
+    boxShadow: `0 0 8px ${theme.palette.secondary.main}`,
+    animation: 'pulse 1.5s infinite',
+    '@keyframes pulse': {
+      '0%': { boxShadow: '0 0 0 0 rgba(255, 64, 129, 0.7)' },
+      '70%': { boxShadow: '0 0 0 10px rgba(255, 64, 129, 0)' },
+      '100%': { boxShadow: '0 0 0 0 rgba(255, 64, 129, 0)' }
+    }
+  }
+}));
+
+const WhatsNewTooltip = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  top: '100%',
+  right: 0,
+  marginTop: theme.spacing(1),
+  minWidth: 200,
+  zIndex: 9999,
+  padding: theme.spacing(1),
+  background: 'linear-gradient(135deg, #FF4081 0%, #FF9100 100%)',
+  color: 'white',
+  borderRadius: '12px',
+  boxShadow: theme.shadows[6],
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: '100%',
+    right: 10,
+    borderWidth: '8px',
+    borderStyle: 'solid',
+    borderColor: 'transparent transparent #FF4081 transparent'
+  }
+}));
+
+const NotificationBadge = ({ count, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+  
+  return (
+    <Box
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      sx={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <IconButton 
+        color="inherit" 
+        onClick={onClick}
+        sx={{
+          position: 'relative',
+          transition: 'all 0.3s ease',
+          transform: hovered ? 'scale(1.1)' : 'scale(1)',
+        }}
+      >
+        <PulseBadge 
+          badgeContent={count} 
+          color="error"
+          max={99}
+          invisible={count === 0}
+        >
+          <NotificationsIcon 
+            sx={{
+              color: hovered ? '#FF4081' : 'inherit',
+              transition: 'color 0.3s ease',
+            }}
+          />
+        </PulseBadge>
+      </IconButton>
+      
+      {hovered && count > 0 && (
+        <Grow in={hovered}>
+          <WhatsNewTooltip>
+            <Typography 
+              variant="subtitle2" 
+              sx={{ 
+                fontWeight: 'bold',
+                textAlign: 'center',
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+              }}
+            >
+              {count} new {count === 1 ? 'update' : 'updates'}!
+            </Typography>
+            <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.3)' }} />
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                display: 'block',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}
+            >
+              Click to see what's new
+            </Typography>
+          </WhatsNewTooltip>
+        </Grow>
+      )}
+    </Box>
+  );
+};
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -180,20 +293,14 @@ const Navbar = () => {
   );
 
   const renderNotificationIcon = () => (
-    <IconButton 
-      color="inherit" 
-      onClick={() => setNotificationDrawerOpen(!notificationDrawerOpen)}
-      sx={{ position: 'relative' }}
-    >
-      <Badge 
-        badgeContent={unreadCount} 
-        color="error" 
-        max={9}
-        invisible={unreadCount === 0}
-      >
-        <NotificationsIcon />
-      </Badge>
-    </IconButton>
+    <ClickAwayListener onClickAway={() => {}}>
+      <Box>
+        <NotificationBadge 
+          count={unreadCount} 
+          onClick={() => setNotificationDrawerOpen(!notificationDrawerOpen)}
+        />
+      </Box>
+    </ClickAwayListener>
   );
 
   const renderAuthButtons = () => (
@@ -351,10 +458,19 @@ const Navbar = () => {
         />
       </Drawer>
 
-      {/* Notification Panel */}
       <NotificationPanel 
         open={notificationDrawerOpen}
         onClose={() => setNotificationDrawerOpen(false)}
+        sx={{
+          '& .MuiPaper-root': {
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.37)',
+            backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            overflow: 'hidden',
+          }
+        }}
       />
     </>
   );
@@ -368,10 +484,18 @@ export default Navbar;
 
 
 
-//! running
-// import { useState, useEffect, useCallback } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { Link, useNavigate } from 'react-router-dom';
+//! good
+// import {
+//   Mail as FriendRequestsIcon,
+//   Group,
+//   Home,
+//   Login,
+//   Menu as MenuIcon,
+//   Notifications as NotificationsIcon,
+//   People,
+//   Search as SearchIcon,
+//   Store
+// } from '@mui/icons-material';
 // import {
 //   AppBar,
 //   Avatar,
@@ -380,34 +504,26 @@ export default Navbar;
 //   Button,
 //   Drawer,
 //   IconButton,
+//   ListItemIcon,
+//   ListItemText,
+//   MenuItem,
 //   Toolbar,
 //   Typography,
-//   useMediaQuery,
-//   MenuItem,
-//   ListItemIcon,
-//   ListItemText
+//   useMediaQuery
 // } from '@mui/material';
-// import {
-//   Menu as MenuIcon,
-//   Home,
-//   People,
-//   Group,
-//   Store,
-//   Search as SearchIcon,
-//   Login,
-//   Mail as FriendRequestsIcon,
-//   Notifications as NotificationsIcon
-// } from '@mui/icons-material';
-// import { showSnackbar } from '../../features/snackbar/snackbarSlice';
-// import { fetchUserProfile, logoutUser, logout, refreshAccessToken, fetchAllUsers } from '../../features/user/userSlice';
+// import { useCallback, useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { Link, useNavigate } from 'react-router-dom';
+// import NotificationPanel from '../../features/notification/NotificationPanel';
 // import { fetchUnreadCount } from '../../features/notification/notificationSlice';
+// import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+// import { fetchAllUsers, fetchUserProfile, logoutUser } from '../../features/user/userSlice';
 // import DesktopSearch from './DesktopSearch';
+// import DrawerContent from './DrawerContent';
 // import MobileSearch from './MobileSearch';
 // import NavItems from './NavItems';
 // import UserMenu from './UserMenu';
-// import DrawerContent from './DrawerContent';
 
-// // Constants
 // const NAV_ITEMS = [
 //   { name: 'Home', icon: Home, path: '/', color: '#1877F2' },
 //   { name: 'Friends', icon: People, path: '/friends', color: '#1B74E4' },
@@ -416,7 +532,6 @@ export default Navbar;
 // ];
 
 // const Navbar = () => {
-//   // Hooks
 //   const dispatch = useDispatch();
 //   const navigate = useNavigate();
 //   const isMobile = useMediaQuery('(max-width:899px)');
@@ -428,13 +543,14 @@ export default Navbar;
 
 //   // Local state
 //   const [drawerOpen, setDrawerOpen] = useState(false);
+//   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
 //   const [anchorEl, setAnchorEl] = useState(null);
 //   const [searchInput, setSearchInput] = useState('');
 //   const [searchResults, setSearchResults] = useState([]);
 //   const [searchFocused, setSearchFocused] = useState(false);
 //   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
-//   // Derived state
+//   // User data
 //   const userData = {
 //     id: profile?.id || profile?.user?.id,
 //     firstName: profile?.firstName || profile?.user?.firstName || 'User',
@@ -443,7 +559,6 @@ export default Navbar;
 //     email: profile?.email || profile?.user?.email
 //   };
 
-//   // Effects
 //   useEffect(() => {
 //     const token = localStorage.getItem('accessToken');
 //     if (token && !profile) {
@@ -465,19 +580,6 @@ export default Navbar;
 //     }
 //   }, [dispatch, loggedIn]);
 
-//   useEffect(() => {
-//     const delayDebounceFn = setTimeout(() => {
-//       if (searchInput.trim()) {
-//         handleSearch(searchInput);
-//       } else {
-//         setSearchResults([]);
-//       }
-//     }, 300);
-
-//     return () => clearTimeout(delayDebounceFn);
-//   }, [searchInput]);
-
-//   // Handlers
 //   const handleSearch = useCallback(async (query) => {
 //     try {
 //       const result = await dispatch(fetchAllUsers({
@@ -506,47 +608,36 @@ export default Navbar;
 //   const handleMenuClose = () => setAnchorEl(null);
 
 //   const handleLogout = async () => {
-//   try {
-//     // Dispatch logoutUser and wait for it to complete
-//     await dispatch(logoutUser()).unwrap();
-    
-//     // Show success message
-//     dispatch(showSnackbar({ 
-//       message: 'Successfully logged out', 
-//       severity: 'success' 
-//     }));
-    
-//     // Navigate to login page
-//     navigate('/login');
-    
-//     // Force a small delay and refresh to ensure clean state
-//     setTimeout(() => {
-//       window.location.reload();
-//     }, 100);
-    
-//   } catch (error) {
-//     console.error('Logout failed:', error);
-//     dispatch(showSnackbar({
-//       message: 'Failed to logout',
-//       severity: 'error'
-//     }));
-//   } finally {
-//     handleMenuClose();
-//   }
-// };
-
-//   const handleSearchChange = (value) => setSearchInput(value);
-//   const handleSearchFocus = () => setSearchFocused(true);
-//   const handleSearchBlur = () => setTimeout(() => setSearchFocused(false), 200);
-//   const handleResultClick = () => {
-//     setSearchInput('');
-//     setSearchFocused(false);
-//     setMobileSearchOpen(false);
-//     setDrawerOpen(false);
+//     try {
+//       await dispatch(logoutUser()).unwrap();
+//       dispatch(showSnackbar({ 
+//         message: 'Successfully logged out', 
+//         severity: 'success' 
+//       }));
+//       navigate('/login');
+//       setTimeout(() => {
+//         window.location.reload();
+//       }, 100);
+//     } catch (error) {
+//       console.error('Logout failed:', error);
+//       dispatch(showSnackbar({
+//         message: 'Failed to logout',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       handleMenuClose();
+//     }
 //   };
-//   const toggleMobileSearch = () => setMobileSearchOpen(!mobileSearchOpen);
 
-//   // Render helpers
+//   const handleSearchChange = (value) => {
+//     setSearchInput(value);
+//     if (value.trim()) {
+//       handleSearch(value);
+//     } else {
+//       setSearchResults([]);
+//     }
+//   };
+
 //   const renderLogo = () => (
 //     <Typography
 //       variant="h5"
@@ -557,9 +648,7 @@ export default Navbar;
 //         color: '#1877F2',
 //         textDecoration: 'none',
 //         mr: 2,
-//         '&:hover': {
-//           opacity: 0.9
-//         }
+//         '&:hover': { opacity: 0.9 }
 //       }}
 //     >
 //       SocialApp
@@ -567,11 +656,7 @@ export default Navbar;
 //   );
 
 //   const renderFriendRequests = () => (
-//     <MenuItem 
-//       component={Link} 
-//       to="/friend-requests"
-//       onClick={handleMenuClose}
-//     >
+//     <MenuItem component={Link} to="/friend-requests" onClick={handleMenuClose}>
 //       <ListItemIcon>
 //         <Badge badgeContent={pendingRequestsCount} color="error">
 //           <FriendRequestsIcon fontSize="small" />
@@ -582,37 +667,20 @@ export default Navbar;
 //   );
 
 //   const renderNotificationIcon = () => (
-//     // <IconButton 
-//     //   color="inherit" 
-//     //   component={Link} 
-//     //   to="/notifications"
-//     //   sx={{ position: 'relative' }}
-//     // >
-//     //   <Badge 
-//     //     badgeContent={unreadCount} 
-//     //     color="error" 
-//     //     max={9}
-//     //     invisible={unreadCount === 0}
-//     //   >
-//     //     <NotificationsIcon />
-//     //   </Badge>
-//     // </IconButton>
-
-//     // Change the notification icon to toggle the drawer instead of navigating
-// <IconButton 
-//   color="inherit" 
-//   onClick={() => navigate('/notifications')}
-//   sx={{ position: 'relative' }}
-// >
-//   <Badge 
-//     badgeContent={unreadCount} 
-//     color="error" 
-//     max={9}
-//     invisible={unreadCount === 0}
-//   >
-//     <NotificationsIcon />
-//   </Badge>
-// </IconButton>
+//     <IconButton 
+//       color="inherit" 
+//       onClick={() => setNotificationDrawerOpen(!notificationDrawerOpen)}
+//       sx={{ position: 'relative' }}
+//     >
+//       <Badge 
+//         badgeContent={unreadCount} 
+//         color="error" 
+//         max={9}
+//         invisible={unreadCount === 0}
+//       >
+//         <NotificationsIcon />
+//       </Badge>
+//     </IconButton>
 //   );
 
 //   const renderAuthButtons = () => (
@@ -624,10 +692,11 @@ export default Navbar;
 //           </Typography>
 //         )}
 //         {isMobile && (
-//           <IconButton onClick={toggleMobileSearch}>
+//           <IconButton onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
 //             <SearchIcon />
 //           </IconButton>
 //         )}
+//         {renderNotificationIcon()}
 //         <IconButton onClick={handleMenuOpen} color="inherit">
 //           <Avatar 
 //             src={userData.image}
@@ -675,11 +744,16 @@ export default Navbar;
 //         searchInput={searchInput}
 //         searchResults={searchResults}
 //         searchFocused={searchFocused}
-//         toggleMobileSearch={toggleMobileSearch}
+//         toggleMobileSearch={() => setMobileSearchOpen(!mobileSearchOpen)}
 //         handleSearchChange={handleSearchChange}
-//         handleSearchFocus={handleSearchFocus}
-//         handleSearchBlur={handleSearchBlur}
-//         handleResultClick={handleResultClick}
+//         handleSearchFocus={() => setSearchFocused(true)}
+//         handleSearchBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+//         handleResultClick={() => {
+//           setSearchInput('');
+//           setSearchFocused(false);
+//           setMobileSearchOpen(false);
+//           setDrawerOpen(false);
+//         }}
 //       />
 
 //       <AppBar 
@@ -728,13 +802,14 @@ export default Navbar;
 //                 searchResults={searchResults}
 //                 searchFocused={searchFocused}
 //                 handleSearchChange={handleSearchChange}
-//                 handleSearchFocus={handleSearchFocus}
-//                 handleSearchBlur={handleSearchBlur}
-//                 handleResultClick={handleResultClick}
+//                 handleSearchFocus={() => setSearchFocused(true)}
+//                 handleSearchBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+//                 handleResultClick={() => {
+//                   setSearchInput('');
+//                   setSearchFocused(false);
+//                 }}
 //               />
 //             )}
-            
-//             {loggedIn && renderNotificationIcon()}
 //             {renderAuthButtons()}
 //           </Box>
 //         </Toolbar>
@@ -762,11 +837,25 @@ export default Navbar;
 //           pendingRequestsCount={pendingRequestsCount}
 //         />
 //       </Drawer>
+
+//       {/* Notification Panel */}
+//       <NotificationPanel 
+//         open={notificationDrawerOpen}
+//         onClose={() => setNotificationDrawerOpen(false)}
+//       />
 //     </>
 //   );
 // };
 
 // export default Navbar;
+
+
+
+
+
+
+
+
 
 
 

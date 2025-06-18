@@ -79,8 +79,8 @@ export const rejectFriendRequest = createAsyncThunk(
 
 
 
-export const removeFriendship = createAsyncThunk(
-  'friendship/removeFriendship',
+export const removeFriend = createAsyncThunk(
+  'friendship/removeFriend',
   async (friendshipId, { rejectWithValue }) => {
     try {
       await axiosInstance.delete(`/friendships/${friendshipId}`);
@@ -172,6 +172,30 @@ export const listFriends = createAsyncThunk(
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to fetch friends');
+    }
+  }
+);
+
+export const getFriends = createAsyncThunk(
+  'friendship/getFriends',
+  async ({ userId, page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+    try {
+      const url = userId
+        ? `/friendships/${userId}/friends?page=${page}&size=${size}`
+        : `/friendships?page=${page}&size=${size}`;
+      
+      const res = await axiosInstance.get(url);
+      return {
+        data: res.data.payload.data,
+        pagination: res.data.payload.pagination,
+        userId: userId || 'current' // Use 'current' as key for the logged-in user
+      };
+    } catch (error) {
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Failed to fetch friends',
+        userId,
+        code: error.response?.data?.code
+      });
     }
   }
 );
@@ -270,6 +294,7 @@ const initialState = {
   suggestions: { data: [], status: 'idle', error: null },
   tiers: { data: [], status: 'idle', error: null },
   friendsByTier: createPaginatedState(),
+  current: createPaginatedState(),
   statusLookup: {},
   status: 'idle',
   error: null,
@@ -391,17 +416,17 @@ const friendshipSlice = createSlice({
       
 
       // Remove friendship
-      .addCase(removeFriendship.pending, (state) => {
+      .addCase(removeFriend.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(removeFriendship.fulfilled, (state, action) => {
+      .addCase(removeFriend.fulfilled, (state, action) => {
         state.friends.data = state.friends.data.filter(
           friend => friend.id !== action.payload
         );
         state.status = 'succeeded';
         state.lastAction = 'removeFriendship';
       })
-      .addCase(removeFriendship.rejected, (state, action) => {
+      .addCase(removeFriend.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })
@@ -504,6 +529,28 @@ const friendshipSlice = createSlice({
         state.friends.status = 'failed';
         state.friends.error = action.payload;
       })
+
+        // Get friends (for any user)
+    .addCase(getFriends.pending, (state, action) => {
+      const userId = action.meta.arg.userId || 'current';
+      state.friendsByUser[userId] = state.friendsByUser[userId] || createPaginatedState();
+      state.friendsByUser[userId].status = 'loading';
+    })
+    .addCase(getFriends.fulfilled, (state, action) => {
+      const { data, pagination, userId = 'current' } = action.payload;
+      state.friendsByUser[userId] = {
+        data,
+        pagination,
+        status: 'succeeded',
+        error: null
+      };
+    })
+    .addCase(getFriends.rejected, (state, action) => {
+      const userId = action.meta.arg.userId || 'current';
+      state.friendsByUser[userId] = state.friendsByUser[userId] || createPaginatedState();
+      state.friendsByUser[userId].status = 'failed';
+      state.friendsByUser[userId].error = action.payload;
+    })
 
       // Get mutual friends
       .addCase(getMutualFriends.pending, (state) => {

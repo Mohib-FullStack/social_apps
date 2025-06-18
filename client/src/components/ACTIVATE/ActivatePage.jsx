@@ -1,5 +1,4 @@
 // src/components/ACTIVATE/ActivatePage.jsx
-
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import { Box, Button, CircularProgress, Paper, Typography } from '@mui/material';
 import axios from 'axios';

@@ -7,11 +7,11 @@ const Notification = require('../models/notificationModel');
 const Chat = require('../models/chatModel');
 const logger = require('../config/logger');
 const ChatParticipant = require('../models/chatParticipantModel');
+const { successResponse, errorResponse } = require('./responseController');
 
-// Import the email helper at the top
+// Import email helpers
 const sendFriendRequestAcceptedEmail = require('../helper/friendRequestAcceptedEmail');
-const sendFriendRequestRejectedEmail = require('../helper/friendRequestRejectedEmail'); // You'll create this similarly
-// const sendFriendRequestPendingEmail = require('../helper/friendRequestPendingEmail'); // You'll create this similarly
+const sendFriendRequestRejectedEmail = require('../helper/friendRequestRejectedEmail');
 
 // Friendship configuration constants
 const FRIENDSHIP_CONFIG = {
@@ -29,16 +29,14 @@ const FRIENDSHIP_CONFIG = {
   TIERS: ['regular', 'close', 'family', 'work']
 };
 
-
-
 // Helper Functions
-
 const validateFriendshipId = (friendshipId) => {
   if (isNaN(Number(friendshipId))) {
     throw new Error('Invalid friendship ID format');
   }
   return Number(friendshipId);
 };
+
 const validateUserId = (userId, currentUserId) => {
   if (!userId || isNaN(Number(userId))) {
     throw new Error('Invalid user ID format');
@@ -47,7 +45,6 @@ const validateUserId = (userId, currentUserId) => {
     throw new Error('Cannot perform this action on yourself');
   }
 };
-
 
 const formatFriendshipResponse = (friendship, currentUserId) => {
   const isRequester = friendship.userId === currentUserId;
@@ -85,40 +82,8 @@ const checkPendingRequestsLimit = async (userId) => {
   }
 };
 
-// Helper functions
-const validateId = (id) => {
-  if (!id || isNaN(Number(id))) throw new Error('Invalid ID format');
-  return Number(id);
-};
 
-const getFriendIds = async (userId) => {
-  const friendships = await Friendship.findAll({
-    where: {
-      status: 'accepted',
-      [Op.or]: [{ userId }, { friendId: userId }]
-    },
-    attributes: ['userId', 'friendId']
-  });
-  return friendships.map(f => f.userId === userId ? f.friendId : f.userId);
-};
-
-const formatFriendship = (friendship, currentUserId) => {
-  const friend = friendship.userId === currentUserId ? friendship.requested : friendship.requester;
-  return {
-    id: friendship.id,
-    status: friendship.status,
-    tier: friendship.tier,
-    customLabel: friendship.customLabel,
-    createdAt: friendship.createdAt,
-    friend: {
-      id: friend.id,
-      name: `${friend.firstName} ${friend.lastName}`,
-      profileImage: friend.profileImage
-    }
-  };
-};
-
-// Controller methods
+//! ==================== Core Controllers ====================
 const sendFriendRequest = async (req, res) => {
   try {
     const { friendId } = req.body;
@@ -130,8 +95,8 @@ const sendFriendRequest = async (req, res) => {
 
     // Validate: can't send request to self
     if (numericFriendId === numericCurrentUserId) {
-      return res.status(400).json({
-        success: false,
+      return errorResponse(res, {
+        statusCode: 400,
         code: 'SELF_ACTION',
         message: "You cannot send a friend request to yourself."
       });
@@ -143,8 +108,8 @@ const sendFriendRequest = async (req, res) => {
     });
     
     if (!friend) {
-      return res.status(404).json({
-        success: false,
+      return errorResponse(res, {
+        statusCode: 404,
         code: 'USER_NOT_FOUND',
         message: "The user you're trying to add does not exist."
       });
@@ -165,8 +130,8 @@ const sendFriendRequest = async (req, res) => {
 
       switch (status) {
         case FRIENDSHIP_CONFIG.STATUSES.PENDING:
-          return res.status(409).json({
-            success: false,
+          return errorResponse(res, {
+            statusCode: 409,
             code: actionInitiatorId === numericCurrentUserId
               ? 'REQUEST_ALREADY_SENT'
               : 'REQUEST_ALREADY_RECEIVED',
@@ -176,26 +141,28 @@ const sendFriendRequest = async (req, res) => {
           });
 
         case FRIENDSHIP_CONFIG.STATUSES.ACCEPTED:
-          return res.status(409).json({
-            success: false,
+          return errorResponse(res, {
+            statusCode: 409,
             code: 'ALREADY_FRIENDS',
             message: "You are already friends with this user."
           });
 
         case FRIENDSHIP_CONFIG.STATUSES.REJECTED:
           if (coolingPeriod && coolingPeriod > new Date()) {
-            return res.status(429).json({
-              success: false,
+            return errorResponse(res, {
+              statusCode: 429,
               code: 'COOLING_PERIOD_ACTIVE',
               message: `Try again after ${coolingPeriod.toLocaleDateString()}.`,
-              coolingPeriodEnd: coolingPeriod.toISOString()
+              payload: {
+                coolingPeriodEnd: coolingPeriod.toISOString()
+              }
             });
           }
           break;
 
         case FRIENDSHIP_CONFIG.STATUSES.BLOCKED:
-          return res.status(403).json({
-            success: false,
+          return errorResponse(res, {
+            statusCode: 403,
             code: 'USER_BLOCKED',
             message: "You cannot send a request to this user."
           });
@@ -209,15 +176,15 @@ const sendFriendRequest = async (req, res) => {
     const friendship = await Friendship.create({
       userId: numericCurrentUserId,
       friendId: numericFriendId,
+      requesterId: numericCurrentUserId,  // Add this
+      requestedId: numericFriendId,       // Add this
       status: FRIENDSHIP_CONFIG.STATUSES.PENDING,
       actionUserId: numericCurrentUserId,
-      requesterId: numericCurrentUserId,
-      requestedId: numericFriendId,
       requestCount: existing ? existing.requestCount + 1 : 1,
       expiresAt
     });
 
-    // Create notification with complete data
+    // Create notification
     await Notification.create({
       userId: numericFriendId,
       type: 'friend_request',
@@ -242,36 +209,37 @@ const sendFriendRequest = async (req, res) => {
       });
     }
 
-    return res.status(201).json({
-      success: true,
+    return successResponse(res, {
+      statusCode: 201,
       message: "Friend request sent successfully.",
-      friendship
+      payload: friendship
     });
 
   } catch (error) {
     logger.error('Friend request error:', error);
-    return res.status(500).json({
-      success: false,
+    return errorResponse(res, {
+      statusCode: 500,
       code: 'SERVER_ERROR',
       message: "Failed to send friend request",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
     });
   }
 };
-
 
 const acceptFriendRequest = async (req, res) => {
   const { friendshipId } = req.params;
   const currentUserId = req.user.id;
   
   try {
-    const numericFriendshipId = validateId(friendshipId);
+    const numericFriendshipId = validateFriendshipId(friendshipId);
     
     const request = await Friendship.findOne({
       where: { 
         id: numericFriendshipId, 
         friendId: currentUserId, 
-        status: 'pending' 
+        status: FRIENDSHIP_CONFIG.STATUSES.PENDING 
       },
       include: [
         {
@@ -298,7 +266,7 @@ const acceptFriendRequest = async (req, res) => {
     }
 
     const updatedRequest = await request.update({
-      status: 'accepted',
+      status: FRIENDSHIP_CONFIG.STATUSES.ACCEPTED,
       acceptedAt: new Date(),
       actionUserId: currentUserId
     });
@@ -318,7 +286,7 @@ const acceptFriendRequest = async (req, res) => {
       read: false
     });
 
-    // Send acceptance email (async - don't await)
+    // Send acceptance email
     try {
       await sendFriendRequestAcceptedEmail(
         request.requester,
@@ -404,13 +372,13 @@ const rejectFriendRequest = async (req, res) => {
   const currentUserId = req.user.id;
   
   try {
-    const numericFriendshipId = validateId(friendshipId);
+    const numericFriendshipId = validateFriendshipId(friendshipId);
     
     const request = await Friendship.findOne({
       where: { 
         id: numericFriendshipId, 
         friendId: currentUserId, 
-        status: 'pending' 
+        status: FRIENDSHIP_CONFIG.STATUSES.PENDING 
       },
       include: [
         {
@@ -437,7 +405,7 @@ const rejectFriendRequest = async (req, res) => {
     }
 
     const updatedRequest = await request.update({
-      status: 'rejected',
+      status: FRIENDSHIP_CONFIG.STATUSES.REJECTED,
       actionUserId: currentUserId
     });
 
@@ -456,7 +424,7 @@ const rejectFriendRequest = async (req, res) => {
       read: false
     });
 
-    // Send rejection email (async)
+    // Send rejection email
     try {
       await sendFriendRequestRejectedEmail(
         request.requester,
@@ -507,40 +475,137 @@ const rejectFriendRequest = async (req, res) => {
 };
 
 
+  // Get friend list with pagination
+const listFriends = async (req, res) => {
+  try {
+    const { page = 1, limit = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = req.query;
+    const currentUserId = req.user.id;
+    const { offset } = getPagination(page, limit);
+
+    const { count, rows } = await Friendship.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { userId: currentUserId, status: FRIENDSHIP_CONFIG.STATUSES.ACCEPTED },
+          { friendId: currentUserId, status: FRIENDSHIP_CONFIG.STATUSES.ACCEPTED }
+        ]
+      },
+      include: [
+        {
+          model: User,
+          as: 'requester',
+          attributes: ['id', 'firstName', 'lastName', 'profileImage']
+        },
+        {
+          model: User,
+          as: 'requested',
+          attributes: ['id', 'firstName', 'lastName', 'profileImage']
+        }
+      ],
+      limit,
+      offset,
+      order: [['updatedAt', 'DESC']]
+    });
+
+    const friends = rows.map(f => formatFriendshipResponse(f, currentUserId));
+    const pagingData = getPagingData(count, page, limit);
+
+    return successResponse(res, {
+      payload: friends,
+      metadata: {
+        pagination: pagingData
+      }
+    });
+
+  } catch (error) {
+    logger.error('List friends error:', error);
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to fetch friends',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
+  }
+};
+
+
+
+//! ==================== Additional Controllers ====================
 
 const cancelFriendRequest = async (req, res) => {
   try {
     const { friendshipId } = req.params;
     const currentUserId = req.user.id;
-    const numericFriendshipId = validateId(friendshipId);
+    const numericFriendshipId = validateFriendshipId(friendshipId);
 
     const request = await Friendship.findOne({
-      where: { id: numericFriendshipId, userId: currentUserId, status: 'pending' }
+      where: { 
+        id: numericFriendshipId,
+        userId: currentUserId,
+        status: 'pending'
+      },
+      include: [{
+        model: User,
+        as: 'friend',
+        attributes: ['id', 'firstName', 'lastName']
+      }]
     });
 
-    if (!request) return res.status(404).json({ code: 'NOT_FOUND', message: 'Request not found' });
-
-    await request.destroy();
-
-    if (req.io) {
-      req.io.to(`user_${request.friendId}`).emit('friend_request_cancelled', {
-        friendshipId: request.id
+    if (!request) {
+      return errorResponse(res, {
+        statusCode: 404,
+        code: 'REQUEST_NOT_FOUND',
+        message: 'Friend request not found or already processed'
       });
     }
 
-    return res.status(200).json({ message: 'Request cancelled' });
+    await request.destroy();
+
+    // Notification
+    await Notification.create({
+      userId: request.friendId,
+      type: 'friend_request_cancelled',
+      senderId: currentUserId,
+      metadata: {
+        friendshipId: request.id,
+        senderName: `${req.user.firstName} ${req.user.lastName}`,
+        message: 'cancelled your friend request'
+      }
+    });
+
+    // Real-time update
+    if (req.io) {
+      req.io.to(`user_${request.friendId}`).emit('friend_request_cancelled', {
+        friendshipId: request.id,
+        cancelledBy: {
+          id: currentUserId,
+          name: `${req.user.firstName} ${req.user.lastName}`
+        }
+      });
+    }
+
+    return successResponse(res, {
+      message: 'Friend request cancelled successfully',
+      payload: { friendshipId: request.id }
+    });
 
   } catch (error) {
-    logger.error('Cancel request error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to cancel request" });
+    logger.error('Cancel friend request error:', error);
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to cancel friend request'
+    });
   }
 };
 
 const removeFriend = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { friendshipId } = req.params;
     const currentUserId = req.user.id;
-    const numericFriendshipId = validateId(friendshipId);
+    const numericFriendshipId = validateFriendshipId(friendshipId);
 
     const friendship = await Friendship.findOne({
       where: {
@@ -550,82 +615,196 @@ const removeFriend = async (req, res) => {
           { userId: currentUserId },
           { friendId: currentUserId }
         ]
-      }
+      },
+      transaction
     });
 
-    if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Friendship not found' });
+    if (!friendship) {
+      await transaction.rollback();
+      return errorResponse(res, {
+        statusCode: 404,
+        code: 'FRIENDSHIP_NOT_FOUND',
+        message: 'Friendship not found'
+      });
+    }
 
-    const otherUserId = friendship.userId === currentUserId ? friendship.friendId : friendship.userId;
+    const otherUserId = friendship.userId === currentUserId ? 
+      friendship.friendId : friendship.userId;
 
-    await friendship.destroy();
+    // 1. Delete friendship
+    await friendship.destroy({ transaction });
 
+    // 2. Clean up DM chat
     await Chat.destroy({
       where: {
+        type: 'dm',
         [Op.or]: [
           { user1Id: currentUserId, user2Id: otherUserId },
           { user1Id: otherUserId, user2Id: currentUserId }
         ]
-      }
+      },
+      transaction
     });
 
+    // 3. Create notification
+    await Notification.create({
+      userId: otherUserId,
+      type: 'friend_removed',
+      senderId: currentUserId,
+      metadata: {
+        friendshipId: friendship.id,
+        senderName: `${req.user.firstName} ${req.user.lastName}`,
+        message: 'removed you from friends'
+      }
+    }, { transaction });
+
+    // Commit transaction
+    await transaction.commit();
+
+    // Real-time update
     if (req.io) {
       req.io.to(`user_${otherUserId}`).emit('friend_removed', {
-        friendshipId: friendship.id
+        friendshipId: friendship.id,
+        removedBy: {
+          id: currentUserId,
+          name: `${req.user.firstName} ${req.user.lastName}`
+        }
       });
     }
 
-    return res.status(200).json({ message: 'Friend removed' });
+    return successResponse(res, {
+      message: 'Friend removed successfully',
+      payload: { friendshipId: friendship.id }
+    });
 
   } catch (error) {
+    await transaction.rollback();
     logger.error('Remove friend error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to remove friend" });
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to remove friend'
+    });
   }
 };
 
+
+
+//! ==================== Block/Unblock Controllers ====================
+
 const blockUser = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { friendId } = req.body;
     const currentUserId = req.user.id;
-    const numericFriendId = validateId(friendId);
+    validateUserId(friendId, currentUserId);
 
-    if (numericFriendId === currentUserId) {
-      return res.status(400).json({ code: 'SELF_ACTION', message: "Cannot block yourself" });
+    // 1. Check if already blocked
+    const existingBlock = await Friendship.findOne({
+      where: {
+        userId: currentUserId,
+        friendId,
+        status: 'blocked'
+      },
+      transaction
+    });
+
+    if (existingBlock) {
+      await transaction.rollback();
+      return errorResponse(res, {
+        statusCode: 409,
+        code: 'ALREADY_BLOCKED',
+        message: 'User is already blocked'
+      });
     }
 
-    const [friendship] = await Friendship.findOrCreate({
+    // 2. Update or create block relationship
+    const [block] = await Friendship.findOrCreate({
       where: {
         [Op.or]: [
-          { userId: currentUserId, friendId: numericFriendId },
-          { userId: numericFriendId, friendId: currentUserId }
+          { userId: currentUserId, friendId },
+          { userId: friendId, friendId: currentUserId }
         ]
       },
       defaults: {
         userId: currentUserId,
-        friendId: numericFriendId,
+        friendId,
         status: 'blocked',
         actionUserId: currentUserId
-      }
+      },
+      transaction
     });
 
-    await friendship.update({
-      status: 'blocked',
-      actionUserId: currentUserId
-    });
+    // If existing relationship wasn't blocked, update it
+    if (block.status !== 'blocked') {
+      await block.update({
+        status: 'blocked',
+        actionUserId: currentUserId
+      }, { transaction });
+    }
 
-    await Chat.destroy({
+    // 3. Remove any existing friendship
+    await Friendship.destroy({
       where: {
+        status: 'accepted',
         [Op.or]: [
-          { user1Id: currentUserId, user2Id: numericFriendId },
-          { user1Id: numericFriendId, user2Id: currentUserId }
+          { userId: currentUserId, friendId },
+          { userId: friendId, friendId: currentUserId }
         ]
-      }
+      },
+      transaction
     });
 
-    return res.status(200).json({ message: 'User blocked' });
+    // 4. Create notification (unless blocking a non-friend)
+    const wasFriend = await Friendship.findOne({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { userId: currentUserId, friendId },
+          { userId: friendId, friendId: currentUserId }
+        ]
+      },
+      paranoid: false, // Include soft-deleted records
+      transaction
+    });
+
+    if (wasFriend) {
+      await Notification.create({
+        userId: friendId,
+        type: 'user_blocked',
+        senderId: currentUserId,
+        metadata: {
+          senderName: `${req.user.firstName} ${req.user.lastName}`,
+          message: 'blocked you'
+        }
+      }, { transaction });
+    }
+
+    await transaction.commit();
+
+    // Real-time update
+    if (req.io) {
+      req.io.to(`user_${friendId}`).emit('user_blocked', {
+        blockedBy: {
+          id: currentUserId,
+          name: `${req.user.firstName} ${req.user.lastName}`
+        }
+      });
+    }
+
+    return successResponse(res, {
+      message: 'User blocked successfully',
+      payload: { friendshipId: block.id }
+    });
 
   } catch (error) {
+    await transaction.rollback();
     logger.error('Block user error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to block user" });
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to block user'
+    });
   }
 };
 
@@ -633,35 +812,54 @@ const unblockUser = async (req, res) => {
   try {
     const { userId } = req.params;
     const currentUserId = req.user.id;
-    const numericUserId = validateId(userId);
+    validateUserId(userId, currentUserId);
 
     const friendship = await Friendship.findOne({
       where: {
         userId: currentUserId,
-        friendId: numericUserId,
+        friendId: userId,
         status: 'blocked'
       }
     });
 
-    if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Block not found' });
+    if (!friendship) {
+      return res.status(404).json({
+        success: false,
+        code: 'BLOCK_NOT_FOUND',
+        message: 'Block relationship not found'
+      });
+    }
 
     await friendship.destroy();
-    return res.status(200).json({ message: 'User unblocked' });
+    return res.status(200).json({
+      success: true,
+      message: 'User unblocked successfully'
+    });
 
   } catch (error) {
     logger.error('Unblock user error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to unblock user" });
+    return res.status(500).json({
+      success: false,
+      code: 'SERVER_ERROR',
+      message: 'Failed to unblock user',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
   }
 };
 
+
+
 const getPendingRequests = async (req, res) => {
   try {
-    const { page = 1, size = 10 } = req.query;
-    const { limit, offset } = getPagination(page, size);
+    const { page = 1, limit = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = req.query;
     const currentUserId = req.user.id;
+    const { offset } = getPagination(page, limit);
 
-    const result = await Friendship.findAndCountAll({
-      where: { friendId: currentUserId, status: 'pending' },
+    const { count, rows } = await Friendship.findAndCountAll({
+      where: { 
+        friendId: currentUserId, 
+        status: FRIENDSHIP_CONFIG.STATUSES.PENDING 
+      },
       include: [
         { 
           model: User, 
@@ -674,42 +872,82 @@ const getPendingRequests = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    const formatted = result.rows.map(f => formatFriendship(f, currentUserId));
-    return res.status(200).json(getPagingData({ count: result.count, rows: formatted }, page, limit));
+    const pendingRequests = rows.map(f => formatFriendshipResponse(f, currentUserId));
+    const pagingData = getPagingData(count, page, limit);
+
+    return successResponse(res, {
+      payload: pendingRequests,
+      metadata: {
+        pagination: pagingData
+      }
+    });
 
   } catch (error) {
     logger.error('Get pending requests error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get requests" });
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to get pending requests',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
 const getFriends = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page = 1, size = 10 } = req.query;
-    const { limit, offset } = getPagination(page, size);
-    const targetUserId = userId || req.user.id;
+    const { page = 1, limit = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = req.query;
+    const currentUserId = req.user.id;
+    const targetUserId = userId || currentUserId;
+    const { offset } = getPagination(page, limit);
 
-    const result = await Friendship.findAndCountAll({
+    const { count, rows } = await Friendship.findAndCountAll({
       where: {
-        status: 'accepted',
-        [Op.or]: [{ userId: targetUserId }, { friendId: targetUserId }]
+        status: FRIENDSHIP_CONFIG.STATUSES.ACCEPTED,
+        [Op.or]: [
+          { userId: targetUserId },
+          { friendId: targetUserId }
+        ]
       },
       include: [
-        { model: User, as: 'requester' },
-        { model: User, as: 'requested' }
+        { 
+          model: User, 
+          as: 'requester',
+          attributes: ['id', 'firstName', 'lastName', 'profileImage']
+        },
+        { 
+          model: User, 
+          as: 'requested',
+          attributes: ['id', 'firstName', 'lastName', 'profileImage']
+        }
       ],
       limit,
       offset,
       order: [['acceptedAt', 'DESC']]
     });
 
-    const formatted = result.rows.map(f => formatFriendship(f, targetUserId));
-    return res.status(200).json(getPagingData({ count: result.count, rows: formatted }, page, limit));
+    const friends = rows.map(f => formatFriendshipResponse(f, targetUserId));
+    const pagingData = getPagingData(count, page, limit);
+
+    return successResponse(res, {
+      payload: friends,
+      metadata: {
+        pagination: pagingData
+      }
+    });
 
   } catch (error) {
     logger.error('Get friends error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get friends" });
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to get friends',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
@@ -729,21 +967,30 @@ const checkFriendshipStatus = async (req, res) => {
     });
 
     const status = friendship ? friendship.status : 'none';
-    return res.status(200).json({ status });
+    return successResponse(res, {
+      payload: { status }
+    });
 
   } catch (error) {
-    logger.error('Check status error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to check status" });
+    logger.error('Check friendship status error:', error);
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to check friendship status',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
 const getMutualFriends = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page = 1, size = 10 } = req.query;
-    const { limit, offset } = getPagination(page, size);
+    const { page = 1, limit = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = req.query;
     const currentUserId = req.user.id;
     const numericUserId = validateId(userId);
+    const { offset } = getPagination(page, limit);
 
     const [currentFriends, targetFriends] = await Promise.all([
       getFriendIds(currentUserId),
@@ -758,11 +1005,25 @@ const getMutualFriends = async (req, res) => {
       offset
     });
 
-    return res.status(200).json(getPagingData({ count, rows }, page, limit));
+    const pagingData = getPagingData(count, page, limit);
+
+    return successResponse(res, {
+      payload: rows,
+      metadata: {
+        pagination: pagingData
+      }
+    });
 
   } catch (error) {
     logger.error('Get mutual friends error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get mutual friends" });
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to get mutual friends',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
@@ -790,15 +1051,24 @@ const getFriendSuggestions = async (req, res) => {
           )`)
         }
       },
-      limit: 20,
+      limit: FRIENDSHIP_CONFIG.SUGGESTIONS_LIMIT,
       attributes: ['id', 'firstName', 'lastName', 'profileImage']
     });
 
-    return res.status(200).json({ data: suggestions });
+    return successResponse(res, {
+      payload: suggestions
+    });
 
   } catch (error) {
-    logger.error('Get suggestions error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get suggestions" });
+    logger.error('Get friend suggestions error:', error);
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to get friend suggestions',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
@@ -807,19 +1077,20 @@ const updateFriendshipTier = async (req, res) => {
     const { friendshipId } = req.params;
     const { tier, customLabel } = req.body;
     const currentUserId = req.user.id;
-    const numericFriendshipId = validateId(friendshipId);
+    const numericFriendshipId = validateFriendshipId(friendshipId);
 
-    if (!Friendship.TIERS.includes(tier)) {
-      return res.status(400).json({ 
-        code: 'INVALID_TIER', 
-        message: `Valid tiers: ${Friendship.TIERS.join(', ')}` 
+    if (!FRIENDSHIP_CONFIG.TIERS.includes(tier)) {
+      return errorResponse(res, {
+        statusCode: 400,
+        code: 'INVALID_TIER',
+        message: `Valid tiers are: ${FRIENDSHIP_CONFIG.TIERS.join(', ')}`
       });
     }
 
     const friendship = await Friendship.findOne({
       where: {
         id: numericFriendshipId,
-        status: 'accepted',
+        status: FRIENDSHIP_CONFIG.STATUSES.ACCEPTED,
         [Op.or]: [
           { userId: currentUserId },
           { friendId: currentUserId }
@@ -827,14 +1098,30 @@ const updateFriendshipTier = async (req, res) => {
       }
     });
 
-    if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Friendship not found' });
+    if (!friendship) {
+      return errorResponse(res, {
+        statusCode: 404,
+        code: 'FRIENDSHIP_NOT_FOUND',
+        message: 'Friendship not found'
+      });
+    }
 
     await friendship.update({ tier, customLabel });
-    return res.status(200).json({ message: 'Tier updated' });
+    return successResponse(res, {
+      message: 'Friendship tier updated successfully',
+      payload: friendship
+    });
 
   } catch (error) {
-    logger.error('Update tier error:', error);
-    return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to update tier" });
+    logger.error('Update friendship tier error:', error);
+    return errorResponse(res, {
+      statusCode: 500,
+      code: 'SERVER_ERROR',
+      message: 'Failed to update friendship tier',
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message
+      })
+    });
   }
 };
 
@@ -842,32 +1129,63 @@ const cleanupExpiredRequests = async () => {
   try {
     const result = await Friendship.destroy({
       where: {
-        status: 'pending',
+        status: FRIENDSHIP_CONFIG.STATUSES.PENDING,
         expiresAt: { [Op.lt]: new Date() }
       }
     });
-    logger.info(`Cleaned ${result} expired requests`);
+    logger.info(`Cleaned ${result} expired friend requests`);
     return result;
   } catch (error) {
-    logger.error('Cleanup error:', error);
+    logger.error('Cleanup expired requests error:', error);
     throw error;
   }
 };
 
+
 module.exports = {
+  // Send a new friend request to another user
   sendFriendRequest,
+  
+  // Accept an incoming friend request from another user
   acceptFriendRequest,
+  
+  // Reject/decline an incoming friend request
   rejectFriendRequest,
+  
+  // List all friends with pagination support (for current user)
+  listFriends,
+  
+  // Cancel a friend request you previously sent
   cancelFriendRequest,
+  
+  // Remove an existing friend from your friends list
   removeFriend,
+  
+  // Block another user (prevents all interactions)
   blockUser,
+  
+  // Unblock a previously blocked user
   unblockUser,
+  
+  // Get all pending friend requests you've received
   getPendingRequests,
+  
+  // Get friends list for any user (defaults to current user)
   getFriends,
+  
+  // Check the friendship status between current user and another user
   checkFriendshipStatus,
+  
+  // Get mutual friends between current user and another user
   getMutualFriends,
+  
+  // Get suggested friends based on your existing friendships
   getFriendSuggestions,
+  
+  // Update friendship tier/level (close friend, family, etc.)
   updateFriendshipTier,
+  
+  // Background task to clean up expired friend requests (cron job)
   cleanupExpiredRequests
 };
 
@@ -880,998 +1198,10 @@ module.exports = {
 
 
 
-//! original
-// const { Op } = require('sequelize');
-// const { sequelize } = require('../config/database');
-// const { getPagination, getPagingData } = require('../helper/pagination');
-// const Friendship = require('../models/friendshipModel');
-// const User = require('../models/userModel');
-// const Notification = require('../models/notificationModel');
-// const Chat = require('../models/chatModel');
-// const logger = require('../config/logger');
-// const ChatParticipant = require('../models/chatParticipantModel');
 
-// // Friendship configuration constants
-// const FRIENDSHIP_CONFIG = {
-//   REQUEST_EXPIRY_DAYS: 7,
-//   MAX_PENDING_REQUESTS: 500,
-//   COOLING_PERIOD_DAYS: 7,
-//   FRIENDS_PER_PAGE: 10,
-//   SUGGESTIONS_LIMIT: 20,
-//   STATUSES: {
-//     PENDING: 'pending',
-//     ACCEPTED: 'accepted',
-//     REJECTED: 'rejected',
-//     BLOCKED: 'blocked'
-//   },
-//   TIERS: ['regular', 'close', 'family', 'work']
-// };
 
 
 
-// // Helper Functions
-
-// const validateFriendshipId = (friendshipId) => {
-//   if (isNaN(Number(friendshipId))) {
-//     throw new Error('Invalid friendship ID format');
-//   }
-//   return Number(friendshipId);
-// };
-// const validateUserId = (userId, currentUserId) => {
-//   if (!userId || isNaN(Number(userId))) {
-//     throw new Error('Invalid user ID format');
-//   }
-//   if (Number(userId) === Number(currentUserId)) {
-//     throw new Error('Cannot perform this action on yourself');
-//   }
-// };
-
-
-// const formatFriendshipResponse = (friendship, currentUserId) => {
-//   const isRequester = friendship.userId === currentUserId;
-//   return {
-//     id: friendship.id,
-//     status: friendship.status,
-//     createdAt: friendship.createdAt,
-//     acceptedAt: friendship.acceptedAt,
-//     user: isRequester ? friendship.friend : friendship.requester,
-//     actionUserId: friendship.actionUserId
-//   };
-// };
-
-// const findFriendshipBetweenUsers = async (userId1, userId2) => {
-//   return Friendship.findOne({
-//     where: {
-//       [Op.or]: [
-//         { userId: userId1, friendId: userId2 },
-//         { userId: userId2, friendId: userId1 },
-//       ],
-//     },
-//   });
-// };
-
-// const checkPendingRequestsLimit = async (userId) => {
-//   const count = await Friendship.count({
-//     where: {
-//       userId,
-//       status: 'pending',
-//     },
-//   });
-
-//   if (count >= FRIENDSHIP_CONFIG.MAX_PENDING_REQUESTS) {
-//     throw new Error('Maximum pending friend requests limit reached');
-//   }
-// };
-
-// // Helper functions
-// const validateId = (id) => {
-//   if (!id || isNaN(Number(id))) throw new Error('Invalid ID format');
-//   return Number(id);
-// };
-
-// const getFriendIds = async (userId) => {
-//   const friendships = await Friendship.findAll({
-//     where: {
-//       status: 'accepted',
-//       [Op.or]: [{ userId }, { friendId: userId }]
-//     },
-//     attributes: ['userId', 'friendId']
-//   });
-//   return friendships.map(f => f.userId === userId ? f.friendId : f.userId);
-// };
-
-// const formatFriendship = (friendship, currentUserId) => {
-//   const friend = friendship.userId === currentUserId ? friendship.requested : friendship.requester;
-//   return {
-//     id: friendship.id,
-//     status: friendship.status,
-//     tier: friendship.tier,
-//     customLabel: friendship.customLabel,
-//     createdAt: friendship.createdAt,
-//     friend: {
-//       id: friend.id,
-//       name: `${friend.firstName} ${friend.lastName}`,
-//       profileImage: friend.profileImage
-//     }
-//   };
-// };
-
-// // Controller methods
-// const sendFriendRequest = async (req, res) => {
-//   try {
-//     const { friendId } = req.body;
-//     const currentUserId = req.user.id;
-
-//     // Convert to numbers for safety
-//     const numericFriendId = Number(friendId);
-//     const numericCurrentUserId = Number(currentUserId);
-
-//     // Validate: can't send request to self
-//     if (numericFriendId === numericCurrentUserId) {
-//       return res.status(400).json({
-//         success: false,
-//         code: 'SELF_ACTION',
-//         message: "You cannot send a friend request to yourself."
-//       });
-//     }
-
-//     // Check if friend exists
-//     const friend = await User.findByPk(numericFriendId);
-//     if (!friend) {
-//       return res.status(404).json({
-//         success: false,
-//         code: 'USER_NOT_FOUND',
-//         message: "The user you're trying to add does not exist."
-//       });
-//     }
-
-//     // Check if any friendship already exists
-//     const existing = await Friendship.findOne({
-//       where: {
-//         [Op.or]: [
-//           { userId: numericCurrentUserId, friendId: numericFriendId },
-//           { userId: numericFriendId, friendId: numericCurrentUserId }
-//         ]
-//       }
-//     });
-
-//     if (existing) {
-//       const { status, userId: actionInitiatorId, coolingPeriod } = existing;
-
-//       switch (status) {
-//         case FRIENDSHIP_CONFIG.STATUSES.PENDING:
-//           return res.status(409).json({
-//             success: false,
-//             code: actionInitiatorId === numericCurrentUserId
-//               ? 'REQUEST_ALREADY_SENT'
-//               : 'REQUEST_ALREADY_RECEIVED',
-//             message: actionInitiatorId === numericCurrentUserId
-//               ? "You've already sent a friend request to this user."
-//               : "This user already sent you a friend request."
-//           });
-
-//         case FRIENDSHIP_CONFIG.STATUSES.ACCEPTED:
-//           return res.status(409).json({
-//             success: false,
-//             code: 'ALREADY_FRIENDS',
-//             message: "You are already friends with this user."
-//           });
-
-//         case FRIENDSHIP_CONFIG.STATUSES.REJECTED:
-//           if (coolingPeriod && coolingPeriod > new Date()) {
-//             return res.status(429).json({
-//               success: false,
-//               code: 'COOLING_PERIOD_ACTIVE',
-//               message: `Try again after ${coolingPeriod.toLocaleDateString()}.`,
-//               coolingPeriodEnd: coolingPeriod.toISOString()
-//             });
-//           }
-//           break;
-
-//         case FRIENDSHIP_CONFIG.STATUSES.BLOCKED:
-//           return res.status(403).json({
-//             success: false,
-//             code: 'USER_BLOCKED',
-//             message: "You cannot send a request to this user."
-//           });
-//       }
-//     }
-
-//     // Create new friend request
-//     const expiresAt = new Date();
-//     expiresAt.setDate(expiresAt.getDate() + FRIENDSHIP_CONFIG.REQUEST_EXPIRY_DAYS);
-
-//     const friendship = await Friendship.create({
-//       userId: numericCurrentUserId,
-//       friendId: numericFriendId,
-//       status: FRIENDSHIP_CONFIG.STATUSES.PENDING,
-//       actionUserId: numericCurrentUserId,
-//       requesterId: numericCurrentUserId, // Added for consistency
-//       requestedId: numericFriendId,     // Added for consistency
-//       requestCount: existing ? existing.requestCount + 1 : 1,
-//       expiresAt
-//     });
-
-//     // Create notification
-//     // await Notification.create({
-//     //   userId: numericFriendId,
-//     //   type: 'friend_request',
-//     //   senderId: numericCurrentUserId,
-//     //   metadata: {
-//     //     friendshipId: friendship.id,
-//     //     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     //     avatarUrl: req.user.profileImage
-//     //   }
-//     // });
-
-//     // In sendFriendRequest:
-// await Notification.create({
-//   userId: numericFriendId,
-//   type: 'friend_request',
-//   senderId: numericCurrentUserId,
-//   metadata: {
-//     friendshipId: friendship.id,
-//     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     avatarUrl: req.user.profileImage || '/default-avatar.png', // Add fallback
-//     message: 'sent you a friend request'
-//   },
-//   read: false
-// });
-
-
-//     // Emit real-time event
-//     if (req.io) {
-//       req.io.to(`user_${numericFriendId}`).emit('friend_request', {
-//         from: numericCurrentUserId,
-//         friendshipId: friendship.id
-//       });
-//     }
-
-//     return res.status(201).json({
-//       message: "Friend request sent successfully.",
-//       friendship
-//     });
-
-
-
-
-//   } catch (error) {
-//     logger.error('Friend request error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       code: 'SERVER_ERROR',
-//       message: "Failed to send friend request",
-//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-//     });
-//   }
-// };
-
-// // ! acceptFriendRequest 
-// const acceptFriendRequest = async (req, res) => {
-//   const { friendshipId } = req.params;
-//   const currentUserId = req.user.id;
-  
-//   try {
-//     // Validate and parse friendship ID
-//     const numericFriendshipId = validateId(friendshipId);
-    
-//     // Find the pending friend request
-//     const request = await Friendship.findOne({
-//       where: { 
-//         id: numericFriendshipId, 
-//         friendId: currentUserId, 
-//         status: 'pending' 
-//       },
-//       include: [{
-//         model: User,
-//         as: 'requester',
-//         attributes: ['id', 'firstName', 'lastName', 'profileImage']
-//       }]
-//     });
-
-//     if (!request) {
-//       return res.status(404).json({
-//         success: false,
-//         code: 'FRIEND_REQUEST_NOT_FOUND',
-//         message: 'Friend request not found or already processed'
-//       });
-//     }
-
-//     // Update friendship status (no transaction)
-//     const updatedRequest = await request.update({
-//       status: 'accepted',
-//       acceptedAt: new Date(),
-//       actionUserId: currentUserId
-//     });
-
-//     // Create notification
-//     // await Notification.create({
-//     //   userId: request.userId,
-//     //   type: 'friend_request_accepted',
-//     //   senderId: currentUserId,
-//     //   friendshipId: updatedRequest.id,
-//     //   metadata: {
-//     //     friendshipId: updatedRequest.id,
-//     //     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     //     avatarUrl: req.user.profileImage,
-//     //     message: 'accepted your friend request'
-//     //   },
-//     //   read: false
-//     // });
-
-//     // In acceptFriendRequest:
-// await Notification.create({
-//   userId: request.userId,
-//   type: 'friend_request_accepted',
-//   senderId: currentUserId,
-//   friendshipId: updatedRequest.id,
-//   metadata: {
-//     friendshipId: updatedRequest.id,
-//     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     avatarUrl: req.user.profileImage || '/default-avatar.png', // Add fallback
-//     message: 'accepted your friend request'
-//   },
-//   read: false
-// });
-
-//     // Find or create DM chat
-//     const [chat] = await Chat.findOrCreate({
-//       where: {
-//         type: 'dm',
-//         [Op.or]: [
-//           { user1Id: request.userId, user2Id: currentUserId },
-//           { user1Id: currentUserId, user2Id: request.userId }
-//         ]
-//       },
-//       defaults: {
-//         user1Id: request.userId,
-//         user2Id: currentUserId,
-//         type: 'dm'
-//       }
-//     });
-
-//     // Add participants if needed
-//     if (chat) {
-//       await Promise.all([
-//         ChatParticipant.findOrCreate({
-//           where: { chatId: chat.id, userId: request.userId },
-//           defaults: { role: 'member' }
-//         }),
-//         ChatParticipant.findOrCreate({
-//           where: { chatId: chat.id, userId: currentUserId },
-//           defaults: { role: 'member' }
-//         })
-//       ]);
-//     }
-
-//     // Emit real-time event
-//     if (req.io) {
-//       req.io.to(`user_${request.userId}`).emit('friend_request_accepted', {
-//         friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-//         chatId: chat?.id || null
-//       });
-//     }
-
-// return res.status(200).json({
-//   success: true,
-//   message: 'Friend request accepted successfully',
-//   data: {
-//     friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-//     chatId: chat?.id || null
-//   }
-// });
-
-//   } catch (error) {
-//     logger.error('Accept friend request error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       code: 'SERVER_ERROR',
-//       message: error.message || 'Failed to accept friend request',
-//       ...(process.env.NODE_ENV === 'development' && { 
-//         error: error.message,
-//         stack: error.stack 
-//       })
-//     });
-// }
-
-// };
-
-// //! new with email
-// // const acceptFriendRequest = async (req, res) => {
-// //   const { friendshipId } = req.params;
-// //   const currentUserId = req.user.id;
-  
-// //   try {
-// //     // Validate and parse friendship ID
-// //     const numericFriendshipId = validateId(friendshipId);
-    
-// //     // Find the pending friend request with requester details
-// //     const request = await Friendship.findOne({
-// //       where: { 
-// //         id: numericFriendshipId, 
-// //         friendId: currentUserId, 
-// //         status: 'pending' 
-// //       },
-// //       include: [
-// //         {
-// //           model: User,
-// //           as: 'requester',
-// //           attributes: ['id', 'firstName', 'lastName', 'email', 'profileImage']
-// //         },
-// //         {
-// //           model: User,
-// //           as: 'requested',
-// //           attributes: ['id', 'firstName', 'lastName', 'profileImage']
-// //         }
-// //       ]
-// //     });
-
-// //     if (!request) {
-// //       return res.status(404).json({
-// //         success: false,
-// //         code: 'FRIEND_REQUEST_NOT_FOUND',
-// //         message: 'Friend request not found or already processed'
-// //       });
-// //     }
-
-// //     // Update friendship status
-// //     const updatedRequest = await request.update({
-// //       status: 'accepted',
-// //       acceptedAt: new Date(),
-// //       actionUserId: currentUserId
-// //     });
-
-// //     // Create notification
-// //     await Notification.create({
-// //       userId: request.userId,
-// //       type: 'friend_request_accepted',
-// //       senderId: currentUserId,
-// //       friendshipId: updatedRequest.id,
-// //       metadata: {
-// //         friendshipId: updatedRequest.id,
-// //         senderName: `${req.user.firstName} ${req.user.lastName}`,
-// //         avatarUrl: req.user.profileImage,
-// //         message: 'accepted your friend request'
-// //       },
-// //       read: false
-// //     });
-
-// //     // Find or create DM chat
-// //     const [chat] = await Chat.findOrCreate({
-// //       where: {
-// //         type: 'dm',
-// //         [Op.or]: [
-// //           { user1Id: request.userId, user2Id: currentUserId },
-// //           { user1Id: currentUserId, user2Id: request.userId }
-// //         ]
-// //       },
-// //       defaults: {
-// //         user1Id: request.userId,
-// //         user2Id: currentUserId,
-// //         type: 'dm'
-// //       }
-// //     });
-
-// //     // Add participants if needed
-// //     if (chat) {
-// //       await Promise.all([
-// //         ChatParticipant.findOrCreate({
-// //           where: { chatId: chat.id, userId: request.userId },
-// //           defaults: { role: 'member' }
-// //         }),
-// //         ChatParticipant.findOrCreate({
-// //           where: { chatId: chat.id, userId: currentUserId },
-// //           defaults: { role: 'member' }
-// //         })
-// //       ]);
-// //     }
-
-// //     // Send email notification (async - don't block response)
-// //     try {
-// //       await sendFriendRequestAcceptedEmail({
-// //         requester: {
-// //           firstName: request.requester.firstName,
-// //           lastName: request.requester.lastName,
-// //           email: request.requester.email
-// //         },
-// //         recipient: {
-// //           firstName: req.user.firstName,
-// //           lastName: req.user.lastName,
-// //           profileImage: req.user.profileImage
-// //         },
-// //         chatId: chat.id
-// //       });
-// //     } catch (emailError) {
-// //       logger.error('Failed to send acceptance email:', emailError);
-// //       // Continue even if email fails
-// //     }
-
-// //     // Emit real-time event
-// //     if (req.io) {
-// //       req.io.to(`user_${request.userId}`).emit('friend_request_accepted', {
-// //         friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-// //         chatId: chat?.id || null
-// //       });
-// //     }
-
-// //     return res.status(200).json({
-// //       success: true,
-// //       message: 'Friend request accepted successfully',
-// //       data: {
-// //         friendship: formatFriendshipResponse(updatedRequest, currentUserId),
-// //         chatId: chat?.id || null
-// //       }
-// //     });
-
-// //   } catch (error) {
-// //     logger.error('Accept friend request error:', error);
-// //     return res.status(500).json({
-// //       success: false,
-// //       code: 'SERVER_ERROR',
-// //       message: error.message || 'Failed to accept friend request',
-// //       ...(process.env.NODE_ENV === 'development' && { 
-// //         error: error.message,
-// //         stack: error.stack 
-// //       })
-// //     });
-// //   }
-// // };
-
-
-// // rejectFriendRequest
-// const rejectFriendRequest = async (req, res) => {
-//   try {
-//     const { friendshipId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericFriendshipId = validateId(friendshipId);
-
-//     // Find the pending friend request using simplified associations
-//     const request = await Friendship.findOne({
-//       where: { 
-//         id: numericFriendshipId, 
-//         friendId: currentUserId, 
-//         status: 'pending' 
-//       },
-//       include: [
-//         { 
-//           model: User, 
-//           as: 'requester', 
-//           attributes: ['id', 'firstName', 'lastName', 'profileImage'] 
-//         }
-//       ]
-//     });
-
-//     if (!request) {
-//       return res.status(404).json({ 
-//         success: false,
-//         code: 'NOT_FOUND', 
-//         message: 'Friend request not found or already processed' 
-//       });
-//     }
-
-//     // Update the friendship status
-//     await request.update({
-//       status: 'rejected',
-//       actionUserId: currentUserId
-//     });
-
-//     // Create notification for the requester
-//     // await Notification.create({
-//     //   userId: request.userId,
-//     //   type: 'friend_request_rejected',
-//     //   senderId: currentUserId,
-//     //   friendshipId: request.id,
-//     //   metadata: {
-//     //     friendshipId: request.id,
-//     //     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     //     avatarUrl: req.user.profileImage,
-//     //     message: 'declined your friend request'
-//     //   },
-//     //   read: false
-//     // });
-
-//     // In rejectFriendRequest:
-// await Notification.create({
-//   userId: request.userId,
-//   type: 'friend_request_rejected',
-//   senderId: currentUserId,
-//   friendshipId: request.id,
-//   metadata: {
-//     friendshipId: request.id,
-//     senderName: `${req.user.firstName} ${req.user.lastName}`,
-//     avatarUrl: req.user.profileImage || '/default-avatar.png', // Add fallback
-//     message: 'declined your friend request'
-//   },
-//   read: false
-// });
-
-//     // Emit real-time event
-//     if (req.io) {
-//       req.io.to(`user_${request.userId}`).emit('friend_request_rejected', {
-//         friendshipId: request.id,
-//         rejectedBy: currentUserId
-//       });
-//     }
-
-//     return res.status(200).json({ 
-//       success: true,
-//       message: 'Friend request declined successfully',
-//       friendshipId: request.id
-//     });
-
-//   } catch (error) {
-//     logger.error('Reject friend request error:', error);
-//     return res.status(500).json({ 
-//       success: false,
-//       code: 'SERVER_ERROR', 
-//       message: "An error occurred while processing the friend request" 
-//     });
-//   }
-// };
-
-
-// const cancelFriendRequest = async (req, res) => {
-//   try {
-//     const { friendshipId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericFriendshipId = validateId(friendshipId);
-
-//     const request = await Friendship.findOne({
-//       where: { id: numericFriendshipId, userId: currentUserId, status: 'pending' }
-//     });
-
-//     if (!request) return res.status(404).json({ code: 'NOT_FOUND', message: 'Request not found' });
-
-//     await request.destroy();
-
-//     if (req.io) {
-//       req.io.to(`user_${request.friendId}`).emit('friend_request_cancelled', {
-//         friendshipId: request.id
-//       });
-//     }
-
-//     return res.status(200).json({ message: 'Request cancelled' });
-
-//   } catch (error) {
-//     logger.error('Cancel request error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to cancel request" });
-//   }
-// };
-
-// const removeFriend = async (req, res) => {
-//   try {
-//     const { friendshipId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericFriendshipId = validateId(friendshipId);
-
-//     const friendship = await Friendship.findOne({
-//       where: {
-//         id: numericFriendshipId,
-//         status: 'accepted',
-//         [Op.or]: [
-//           { userId: currentUserId },
-//           { friendId: currentUserId }
-//         ]
-//       }
-//     });
-
-//     if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Friendship not found' });
-
-//     const otherUserId = friendship.userId === currentUserId ? friendship.friendId : friendship.userId;
-
-//     await friendship.destroy();
-
-//     await Chat.destroy({
-//       where: {
-//         [Op.or]: [
-//           { user1Id: currentUserId, user2Id: otherUserId },
-//           { user1Id: otherUserId, user2Id: currentUserId }
-//         ]
-//       }
-//     });
-
-//     if (req.io) {
-//       req.io.to(`user_${otherUserId}`).emit('friend_removed', {
-//         friendshipId: friendship.id
-//       });
-//     }
-
-//     return res.status(200).json({ message: 'Friend removed' });
-
-//   } catch (error) {
-//     logger.error('Remove friend error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to remove friend" });
-//   }
-// };
-
-// const blockUser = async (req, res) => {
-//   try {
-//     const { friendId } = req.body;
-//     const currentUserId = req.user.id;
-//     const numericFriendId = validateId(friendId);
-
-//     if (numericFriendId === currentUserId) {
-//       return res.status(400).json({ code: 'SELF_ACTION', message: "Cannot block yourself" });
-//     }
-
-//     const [friendship] = await Friendship.findOrCreate({
-//       where: {
-//         [Op.or]: [
-//           { userId: currentUserId, friendId: numericFriendId },
-//           { userId: numericFriendId, friendId: currentUserId }
-//         ]
-//       },
-//       defaults: {
-//         userId: currentUserId,
-//         friendId: numericFriendId,
-//         status: 'blocked',
-//         actionUserId: currentUserId
-//       }
-//     });
-
-//     await friendship.update({
-//       status: 'blocked',
-//       actionUserId: currentUserId
-//     });
-
-//     await Chat.destroy({
-//       where: {
-//         [Op.or]: [
-//           { user1Id: currentUserId, user2Id: numericFriendId },
-//           { user1Id: numericFriendId, user2Id: currentUserId }
-//         ]
-//       }
-//     });
-
-//     return res.status(200).json({ message: 'User blocked' });
-
-//   } catch (error) {
-//     logger.error('Block user error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to block user" });
-//   }
-// };
-
-// const unblockUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericUserId = validateId(userId);
-
-//     const friendship = await Friendship.findOne({
-//       where: {
-//         userId: currentUserId,
-//         friendId: numericUserId,
-//         status: 'blocked'
-//       }
-//     });
-
-//     if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Block not found' });
-
-//     await friendship.destroy();
-//     return res.status(200).json({ message: 'User unblocked' });
-
-//   } catch (error) {
-//     logger.error('Unblock user error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to unblock user" });
-//   }
-// };
-
-// const getPendingRequests = async (req, res) => {
-//   try {
-//     const { page = 1, size = 10 } = req.query;
-//     const { limit, offset } = getPagination(page, size);
-//     const currentUserId = req.user.id;
-
-//     const result = await Friendship.findAndCountAll({
-//       where: { friendId: currentUserId, status: 'pending' },
-//       include: [
-//         { 
-//           model: User, 
-//           as: 'requester',
-//           attributes: ['id', 'firstName', 'lastName', 'profileImage']
-//         }
-//       ],
-//       limit,
-//       offset,
-//       order: [['createdAt', 'DESC']]
-//     });
-
-//     const formatted = result.rows.map(f => formatFriendship(f, currentUserId));
-//     return res.status(200).json(getPagingData({ count: result.count, rows: formatted }, page, limit));
-
-//   } catch (error) {
-//     logger.error('Get pending requests error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get requests" });
-//   }
-// };
-
-// const getFriends = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const { page = 1, size = 10 } = req.query;
-//     const { limit, offset } = getPagination(page, size);
-//     const targetUserId = userId || req.user.id;
-
-//     const result = await Friendship.findAndCountAll({
-//       where: {
-//         status: 'accepted',
-//         [Op.or]: [{ userId: targetUserId }, { friendId: targetUserId }]
-//       },
-//       include: [
-//         { model: User, as: 'requester' },
-//         { model: User, as: 'requested' }
-//       ],
-//       limit,
-//       offset,
-//       order: [['acceptedAt', 'DESC']]
-//     });
-
-//     const formatted = result.rows.map(f => formatFriendship(f, targetUserId));
-//     return res.status(200).json(getPagingData({ count: result.count, rows: formatted }, page, limit));
-
-//   } catch (error) {
-//     logger.error('Get friends error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get friends" });
-//   }
-// };
-
-// const checkFriendshipStatus = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const currentUserId = req.user.id;
-//     const numericUserId = validateId(userId);
-
-//     const friendship = await Friendship.findOne({
-//       where: {
-//         [Op.or]: [
-//           { userId: currentUserId, friendId: numericUserId },
-//           { userId: numericUserId, friendId: currentUserId }
-//         ]
-//       }
-//     });
-
-//     const status = friendship ? friendship.status : 'none';
-//     return res.status(200).json({ status });
-
-//   } catch (error) {
-//     logger.error('Check status error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to check status" });
-//   }
-// };
-
-// const getMutualFriends = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const { page = 1, size = 10 } = req.query;
-//     const { limit, offset } = getPagination(page, size);
-//     const currentUserId = req.user.id;
-//     const numericUserId = validateId(userId);
-
-//     const [currentFriends, targetFriends] = await Promise.all([
-//       getFriendIds(currentUserId),
-//       getFriendIds(numericUserId)
-//     ]);
-
-//     const mutualIds = currentFriends.filter(id => targetFriends.includes(id));
-//     const { count, rows } = await User.findAndCountAll({
-//       where: { id: mutualIds },
-//       attributes: ['id', 'firstName', 'lastName', 'profileImage'],
-//       limit,
-//       offset
-//     });
-
-//     return res.status(200).json(getPagingData({ count, rows }, page, limit));
-
-//   } catch (error) {
-//     logger.error('Get mutual friends error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get mutual friends" });
-//   }
-// };
-
-// const getFriendSuggestions = async (req, res) => {
-//   try {
-//     const currentUserId = req.user.id;
-//     const friends = await getFriendIds(currentUserId);
-
-//     const suggestions = await User.findAll({
-//       where: {
-//         id: {
-//           [Op.notIn]: [...friends, currentUserId],
-//           [Op.in]: sequelize.literal(`(
-//             SELECT DISTINCT f.friendId 
-//             FROM friendships f
-//             WHERE f.userId IN (${friends.join(',') || 'NULL'})
-//             AND f.status = 'accepted'
-//             AND f.friendId NOT IN (
-//               SELECT friendId FROM friendships 
-//               WHERE userId = ${currentUserId}
-//               UNION
-//               SELECT userId FROM friendships 
-//               WHERE friendId = ${currentUserId}
-//             )
-//           )`)
-//         }
-//       },
-//       limit: 20,
-//       attributes: ['id', 'firstName', 'lastName', 'profileImage']
-//     });
-
-//     return res.status(200).json({ data: suggestions });
-
-//   } catch (error) {
-//     logger.error('Get suggestions error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to get suggestions" });
-//   }
-// };
-
-// const updateFriendshipTier = async (req, res) => {
-//   try {
-//     const { friendshipId } = req.params;
-//     const { tier, customLabel } = req.body;
-//     const currentUserId = req.user.id;
-//     const numericFriendshipId = validateId(friendshipId);
-
-//     if (!Friendship.TIERS.includes(tier)) {
-//       return res.status(400).json({ 
-//         code: 'INVALID_TIER', 
-//         message: `Valid tiers: ${Friendship.TIERS.join(', ')}` 
-//       });
-//     }
-
-//     const friendship = await Friendship.findOne({
-//       where: {
-//         id: numericFriendshipId,
-//         status: 'accepted',
-//         [Op.or]: [
-//           { userId: currentUserId },
-//           { friendId: currentUserId }
-//         ]
-//       }
-//     });
-
-//     if (!friendship) return res.status(404).json({ code: 'NOT_FOUND', message: 'Friendship not found' });
-
-//     await friendship.update({ tier, customLabel });
-//     return res.status(200).json({ message: 'Tier updated' });
-
-//   } catch (error) {
-//     logger.error('Update tier error:', error);
-//     return res.status(500).json({ code: 'SERVER_ERROR', message: "Failed to update tier" });
-//   }
-// };
-
-// const cleanupExpiredRequests = async () => {
-//   try {
-//     const result = await Friendship.destroy({
-//       where: {
-//         status: 'pending',
-//         expiresAt: { [Op.lt]: new Date() }
-//       }
-//     });
-//     logger.info(`Cleaned ${result} expired requests`);
-//     return result;
-//   } catch (error) {
-//     logger.error('Cleanup error:', error);
-//     throw error;
-//   }
-// };
-
-// module.exports = {
-//   sendFriendRequest,
-//   acceptFriendRequest,
-//   rejectFriendRequest,
-//   cancelFriendRequest,
-//   removeFriend,
-//   blockUser,
-//   unblockUser,
-//   getPendingRequests,
-//   getFriends,
-//   checkFriendshipStatus,
-//   getMutualFriends,
-//   getFriendSuggestions,
-//   updateFriendshipTier,
-//   cleanupExpiredRequests
-// };
 
 
 

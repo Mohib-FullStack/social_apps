@@ -114,13 +114,15 @@ const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
-const { successResponse, errorResponse } = require('./responseController');
+const { errorResponse, successResponse } = require('./responseController');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
 const { jwtAccessKey, jwtRefreshKey } = require('../secret');
 const { setAccessTokenCookie, setRefreshTokenCookie } = require('../helper/cookie');
 const sendLoginNotificationEmail = require('../helper/loginNotificationEmail');
 const geoip = require('geoip-lite'); // For IP geolocation
 const DeviceDetector = require('device-detector-js'); // For device detection
+
+
 
 const handleLogin = async (req, res, next) => {
   try {
@@ -210,7 +212,8 @@ const handleLogin = async (req, res, next) => {
     // Remove password before response
     delete user.password;
 
-    return successResponse(res, {
+
+   return successResponse(res, {
       statusCode: 200,
       message: 'Login successful',
       payload: { user },

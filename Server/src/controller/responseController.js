@@ -1,18 +1,34 @@
-// src/controller/responseController
-const errorResponse = (
-  res,
-  { statusCode = 500, message = 'Internal Server Error' }
-) => {
-  return res.status(statusCode).json({ success: false, message: message });
+const successResponse = (res, { 
+  statusCode = 200, 
+  message = 'Success', 
+  payload = {}, 
+  metadata = {} 
+}) => {
+  return res.status(statusCode).json({
+    success: true,
+    message,
+   payload,
+    ...metadata
+  });
 };
 
-const successResponse = (
-  res,
-  { statusCode = 200, message = 'Success', payload = {} }
-) => {
-  return res
-    .status(statusCode)
-    .json({ success: true, message: message, payload });
+const errorResponse = (res, { 
+  statusCode = 400, 
+  message = 'Error', 
+  errors = null, 
+  code = null 
+}) => {
+  const response = {
+    success: false,
+    message,
+    ...(code && { code }),
+    ...(errors && { errors })
+  };
+  return res.status(statusCode).json(response);
 };
 
-module.exports = { errorResponse, successResponse };
+module.exports = { successResponse, errorResponse };
+
+
+
+
