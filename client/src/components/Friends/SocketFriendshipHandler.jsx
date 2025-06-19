@@ -14,18 +14,20 @@ const SocketFriendshipHandler = () => {
     if (!socketInstance) return;
 
     const handleFriendRequest = (data) => {
-      dispatch(showSnackbar({
-        message: data.message,
-        severity: 'info',
-        action: (
-          <Button 
-            color="inherit" 
-            onClick={() => dispatch(getPendingRequests())}
-          >
-            View
-          </Button>
-        )
-      }));
+      dispatch(
+        showSnackbar({
+          message: data.message,
+          severity: 'info',
+          action: (
+            <Button
+              color="inherit"
+              onClick={() => dispatch(getPendingRequests())}
+            >
+              View
+            </Button>
+          ),
+        })
+      );
       dispatch(getPendingRequests());
     };
 

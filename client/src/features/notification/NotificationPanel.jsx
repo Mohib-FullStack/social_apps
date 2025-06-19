@@ -1,3 +1,4 @@
+// src/features/notification/NotificationPanel.jsx
 import {
   Check,
   Close,

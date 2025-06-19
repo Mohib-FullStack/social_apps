@@ -66,14 +66,3 @@ TabsSection.propTypes = {
 };
 
 export default TabsSection;
-
-
-
-
-
-
-
-
-
-
-

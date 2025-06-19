@@ -108,10 +108,3 @@ UserSearchResults.propTypes = {
 };
 
 export default UserSearchResults;
-
-
-
-
-
-
-

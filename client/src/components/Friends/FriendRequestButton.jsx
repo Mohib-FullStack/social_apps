@@ -1,21 +1,26 @@
+// src/components/Friends/FriendRequestButton.jsx
 import {
   PersonAddAlt1 as AcceptIcon,
   PersonAdd as AddFriendIcon,
   Close,
   Check as FriendsIcon,
   Schedule as PendingIcon,
-  Close as RejectIcon
+  Close as RejectIcon,
 } from '@mui/icons-material';
 import {
-  Box, Button, CircularProgress, Tooltip,
-  keyframes, styled
+  Box,
+  Button,
+  CircularProgress,
+  Tooltip,
+  keyframes,
+  styled,
 } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   acceptFriendRequest,
   checkFriendshipStatus,
   rejectFriendRequest,
-  sendFriendRequest
+  sendFriendRequest,
 } from '../../features/friendship/friendshipSlice';
 import { startLoading, stopLoading } from '../../features/loading/loadingSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
@@ -57,7 +62,7 @@ const STATUS_MAP = {
     icon: <PendingIcon />,
     color: 'secondary',
     variant: 'outlined',
-    disabled: true
+    disabled: true,
   },
   pending_incoming: {
     label: 'Accept Request',
@@ -65,22 +70,22 @@ const STATUS_MAP = {
     color: 'primary',
     variant: 'contained',
     action: 'accept',
-    showReject: true
+    showReject: true,
   },
   accepted: {
     label: 'Friends',
     icon: <FriendsIcon />,
     color: 'success',
     variant: 'outlined',
-    disabled: true
+    disabled: true,
   },
   default: {
     label: 'Add Friend',
     icon: <AddFriendIcon />,
     color: 'primary',
     variant: 'contained',
-    action: 'send'
-  }
+    action: 'send',
+  },
 };
 
 const FriendRequestButton = ({ friendId }) => {
@@ -91,22 +96,24 @@ const FriendRequestButton = ({ friendId }) => {
   );
   const isLoading = useSelector((state) => state.loading.isLoading);
 
-  const statusKey = friendship.status === 'pending'
-    ? `${friendship.status}_${friendship.direction}`
-    : friendship.status || 'default';
+  const statusKey =
+    friendship.status === 'pending'
+      ? `${friendship.status}_${friendship.direction}`
+      : friendship.status || 'default';
 
-  const {
-    label, icon, color, variant, disabled, action, showReject
-  } = STATUS_MAP[statusKey] || STATUS_MAP.default;
+  const { label, icon, color, variant, disabled, action, showReject } =
+    STATUS_MAP[statusKey] || STATUS_MAP.default;
 
   const executeWithLoading = async (asyncFn, loadingMessage) => {
     const loadingKey = `friendRequest:${friendId}`;
-    dispatch(startLoading({ 
-      message: loadingMessage,
-      key: loadingKey,
-      animationType: 'wave'
-    }));
-    
+    dispatch(
+      startLoading({
+        message: loadingMessage,
+        key: loadingKey,
+        animationType: 'wave',
+      })
+    );
+
     try {
       await asyncFn();
     } finally {
@@ -116,76 +123,117 @@ const FriendRequestButton = ({ friendId }) => {
 
   const handleSendRequest = () => {
     executeWithLoading(async () => {
-      dispatch(showSnackbar({ message: 'Sending friend request...', severity: 'info', persist: true }));
-      await dispatch(sendFriendRequest({ friendId: Number(friendId) })).unwrap();
-      dispatch(showSnackbar({
-        message: 'Friend request sent successfully!',
-        severity: 'success',
-        icon: <AddFriendIcon />,
-        autoHideDuration: 3000
-      }));
+      dispatch(
+        showSnackbar({
+          message: 'Sending friend request...',
+          severity: 'info',
+          persist: true,
+        })
+      );
+      await dispatch(
+        sendFriendRequest({ friendId: Number(friendId) })
+      ).unwrap();
+      dispatch(
+        showSnackbar({
+          message: 'Friend request sent successfully!',
+          severity: 'success',
+          icon: <AddFriendIcon />,
+          autoHideDuration: 3000,
+        })
+      );
       dispatch(checkFriendshipStatus(friendId));
     }, 'Sending friend request...').catch((error) => {
-      dispatch(showSnackbar({
-        message: getFriendlyErrorMessage(error.code),
-        severity: 'error',
-        icon: <Close fontSize="small" />,
-        autoHideDuration: 4000
-      }));
+      dispatch(
+        showSnackbar({
+          message: getFriendlyErrorMessage(error.code),
+          severity: 'error',
+          icon: <Close fontSize="small" />,
+          autoHideDuration: 4000,
+        })
+      );
     });
   };
 
   const handleAcceptRequest = () => {
     executeWithLoading(async () => {
       if (!friendship?.friendship?.id) throw new Error('Missing friendship ID');
-      dispatch(showSnackbar({ message: 'Accepting request...', severity: 'info', persist: true }));
+      dispatch(
+        showSnackbar({
+          message: 'Accepting request...',
+          severity: 'info',
+          persist: true,
+        })
+      );
 
-      const result = await dispatch(acceptFriendRequest(friendship.friendship.id)).unwrap();
-      dispatch(showSnackbar({
-        message: result.message || 'Request accepted!',
-        severity: 'success',
-        icon: <Check />,
-        autoHideDuration: 3000
-      }));
+      const result = await dispatch(
+        acceptFriendRequest(friendship.friendship.id)
+      ).unwrap();
+      dispatch(
+        showSnackbar({
+          message: result.message || 'Request accepted!',
+          severity: 'success',
+          icon: <Check />,
+          autoHideDuration: 3000,
+        })
+      );
       dispatch(checkFriendshipStatus(friendId));
     }, 'Accepting friend request...').catch((error) => {
-      dispatch(showSnackbar({
-        message: getFriendlyErrorMessage(error.code) || 'Failed to accept request',
-        severity: 'error',
-        icon: <Close fontSize="small" />,
-        autoHideDuration: 4000
-      }));
+      dispatch(
+        showSnackbar({
+          message:
+            getFriendlyErrorMessage(error.code) || 'Failed to accept request',
+          severity: 'error',
+          icon: <Close fontSize="small" />,
+          autoHideDuration: 4000,
+        })
+      );
     });
   };
 
   const handleRejectRequest = () => {
     executeWithLoading(async () => {
       if (!friendship?.friendship?.id) throw new Error('Missing friendship ID');
-      dispatch(showSnackbar({ message: 'Rejecting request...', severity: 'info', persist: true }));
+      dispatch(
+        showSnackbar({
+          message: 'Rejecting request...',
+          severity: 'info',
+          persist: true,
+        })
+      );
 
-      const result = await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
-      dispatch(showSnackbar({
-        message: result.message || 'Friend request rejected.',
-        severity: 'success',
-        icon: <Close />,
-        autoHideDuration: 3000
-      }));
+      const result = await dispatch(
+        rejectFriendRequest(friendship.friendship.id)
+      ).unwrap();
+      dispatch(
+        showSnackbar({
+          message: result.message || 'Friend request rejected.',
+          severity: 'success',
+          icon: <Close />,
+          autoHideDuration: 3000,
+        })
+      );
       dispatch(checkFriendshipStatus(friendId));
     }, 'Rejecting friend request...').catch((error) => {
-      dispatch(showSnackbar({
-        message: getFriendlyErrorMessage(error.code) || 'Failed to reject request',
-        severity: 'error',
-        icon: <Close fontSize="small" />,
-        autoHideDuration: 4000
-      }));
+      dispatch(
+        showSnackbar({
+          message:
+            getFriendlyErrorMessage(error.code) || 'Failed to reject request',
+          severity: 'error',
+          icon: <Close fontSize="small" />,
+          autoHideDuration: 4000,
+        })
+      );
     });
   };
 
   const handleAction = () => {
     switch (action) {
-      case 'accept': return handleAcceptRequest;
-      case 'send': return handleSendRequest;
-      default: return undefined;
+      case 'accept':
+        return handleAcceptRequest;
+      case 'send':
+        return handleSendRequest;
+      default:
+        return undefined;
     }
   };
 
@@ -198,9 +246,17 @@ const FriendRequestButton = ({ friendId }) => {
           variant={variant}
           color={color}
           size="small"
-          startIcon={isLoading ? (
-            <ProgressPulse size={20} thickness={4} sx={{ animation: `${bounce} 1s infinite ease-in-out` }} />
-          ) : icon}
+          startIcon={
+            isLoading ? (
+              <ProgressPulse
+                size={20}
+                thickness={4}
+                sx={{ animation: `${bounce} 1s infinite ease-in-out` }}
+              />
+            ) : (
+              icon
+            )
+          }
           onClick={handleAction()}
           disabled={disabled || isLoading}
           sx={{
@@ -223,31 +279,37 @@ const FriendRequestButton = ({ friendId }) => {
                 height: '100%',
                 background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)`,
                 animation: `${shimmer} 1.5s infinite linear`,
-              }
-            })
+              },
+            }),
           }}
         >
           {isLoading ? (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <span>Processing</span>
-              <Box sx={{
-                display: 'flex',
-                '& > span': {
-                  width: 4,
-                  height: 4,
-                  bgcolor: 'currentColor',
-                  borderRadius: '50%',
-                  display: 'inline-block',
-                  mx: 0.5,
-                  animation: `${bounce} 0.6s infinite ease-in-out`,
-                  '&:nth-of-type(2)': { animationDelay: '0.2s' },
-                  '&:nth-of-type(3)': { animationDelay: '0.4s' }
-                }
-              }}>
-                <span></span><span></span><span></span>
+              <Box
+                sx={{
+                  display: 'flex',
+                  '& > span': {
+                    width: 4,
+                    height: 4,
+                    bgcolor: 'currentColor',
+                    borderRadius: '50%',
+                    display: 'inline-block',
+                    mx: 0.5,
+                    animation: `${bounce} 0.6s infinite ease-in-out`,
+                    '&:nth-of-type(2)': { animationDelay: '0.2s' },
+                    '&:nth-of-type(3)': { animationDelay: '0.4s' },
+                  },
+                }}
+              >
+                <span></span>
+                <span></span>
+                <span></span>
               </Box>
             </Box>
-          ) : label}
+          ) : (
+            label
+          )}
         </Button>
       </Tooltip>
 
@@ -269,8 +331,8 @@ const FriendRequestButton = ({ friendId }) => {
               transition: 'all 0.2s ease',
               '& .MuiSvgIcon-root': {
                 transition: 'transform 0.3s ease',
-                transform: isLoading ? 'rotate(90deg)' : 'none'
-              }
+                transform: isLoading ? 'rotate(90deg)' : 'none',
+              },
             }}
           >
             <RejectIcon fontSize="small" />
@@ -387,11 +449,11 @@ export default FriendRequestButton;
 
 //   const executeWithLoading = async (asyncFn, loadingMessage) => {
 //     const loadingKey = `friendRequest:${friendId}`;
-//     dispatch(startLoading({ 
+//     dispatch(startLoading({
 //       message: loadingMessage,
 //       key: loadingKey
 //     }));
-    
+
 //     try {
 //       await asyncFn();
 //     } finally {
@@ -567,8 +629,6 @@ export default FriendRequestButton;
 // };
 
 // export default FriendRequestButton;
-
-
 
 //! good
 // import {
@@ -850,11 +910,6 @@ export default FriendRequestButton;
 
 // export default FriendRequestButton;
 
-
-
-
-
-
 //! good
 // import {
 //   PersonAddAlt1 as AcceptIcon,
@@ -955,9 +1010,9 @@ export default FriendRequestButton;
 //           persist: true
 //         })
 //       );
-      
+
 //       await dispatch(sendFriendRequest({ friendId: Number(friendId) })).unwrap();
-      
+
 //       dispatch(
 //         showSnackbar({
 //           message: 'Friend request sent successfully!',
@@ -997,7 +1052,7 @@ export default FriendRequestButton;
 //       const result = await dispatch(
 //         acceptFriendRequest(friendship.friendship.id)
 //       ).unwrap();
-      
+
 //       if (result?.friendship) {
 //         dispatch(
 //           showSnackbar({
@@ -1028,7 +1083,7 @@ export default FriendRequestButton;
 //       if (!friendship?.friendship?.id) {
 //         throw new Error('Friendship ID not found');
 //       }
-      
+
 //       dispatch(
 //         showSnackbar({
 //           message: 'Processing rejection...',
@@ -1036,9 +1091,9 @@ export default FriendRequestButton;
 //           persist: true
 //         })
 //       );
-      
+
 //       const result = await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
-      
+
 //       if (result?.friendship?.id) {
 //         dispatch(
 //           showSnackbar({
@@ -1066,7 +1121,7 @@ export default FriendRequestButton;
 
 //   if (!friendId || friendId === currentUserId) return null;
 
-//   const statusKey = friendship.status === 'pending' 
+//   const statusKey = friendship.status === 'pending'
 //     ? `${friendship.status}_${friendship.direction}`
 //     : friendship.status || 'default';
 
@@ -1099,7 +1154,7 @@ export default FriendRequestButton;
 //           color={color}
 //           size="small"
 //           startIcon={isLoading ? (
-//             <ProgressPulse 
+//             <ProgressPulse
 //               size={20}
 //               thickness={4}
 //               sx={{
@@ -1137,7 +1192,7 @@ export default FriendRequestButton;
 //           {isLoading ? (
 //             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
 //               <span>Processing</span>
-//               <Box component="span" sx={{ 
+//               <Box component="span" sx={{
 //                 display: 'flex',
 //                 '& > span': {
 //                   width: 4,
@@ -1159,7 +1214,7 @@ export default FriendRequestButton;
 //           ) : label}
 //         </Button>
 //       </Tooltip>
-      
+
 //       {showReject && (
 //         <Tooltip title="Reject Request" arrow>
 //           <Button
@@ -1191,12 +1246,6 @@ export default FriendRequestButton;
 // };
 
 // export default FriendRequestButton;
-
-
-
-
-
-
 
 //! good
 // Updated FriendRequestButton.jsx
@@ -1281,9 +1330,9 @@ export default FriendRequestButton;
 //           persist: true
 //         })
 //       );
-      
+
 //       await dispatch(sendFriendRequest({ friendId: Number(friendId) })).unwrap();
-      
+
 //       dispatch(
 //         showSnackbar({
 //           message: 'Friend request sent successfully!',
@@ -1323,7 +1372,7 @@ export default FriendRequestButton;
 //       const result = await dispatch(
 //         acceptFriendRequest(friendship.friendship.id)
 //       ).unwrap();
-      
+
 //       if (result?.friendship) {
 //         dispatch(
 //           showSnackbar({
@@ -1354,7 +1403,7 @@ export default FriendRequestButton;
 //       if (!friendship?.friendship?.id) {
 //         throw new Error('Friendship ID not found');
 //       }
-      
+
 //       dispatch(
 //         showSnackbar({
 //           message: 'Processing rejection...',
@@ -1362,9 +1411,9 @@ export default FriendRequestButton;
 //           persist: true
 //         })
 //       );
-      
+
 //       const result = await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
-      
+
 //       if (result?.friendship?.id) {
 //         dispatch(
 //           showSnackbar({
@@ -1392,7 +1441,7 @@ export default FriendRequestButton;
 
 //   if (!friendId || friendId === currentUserId) return null;
 
-//   const statusKey = friendship.status === 'pending' 
+//   const statusKey = friendship.status === 'pending'
 //     ? `${friendship.status}_${friendship.direction}`
 //     : friendship.status || 'default';
 
@@ -1425,7 +1474,7 @@ export default FriendRequestButton;
 //           color={color}
 //           size="small"
 //           startIcon={isLoading ? (
-//             <CircularProgress 
+//             <CircularProgress
 //               size={20}
 //               sx={{
 //                 animation: `${spin} 1s linear infinite`,
@@ -1459,7 +1508,7 @@ export default FriendRequestButton;
 //           ) : label}
 //         </Button>
 //       </Tooltip>
-      
+
 //       {showReject && (
 //         <Tooltip title="Reject Request" arrow>
 //           <Button
@@ -1487,12 +1536,6 @@ export default FriendRequestButton;
 // };
 
 // export default FriendRequestButton;
-
-
-
-
-
-
 
 //! original
 // // src/components/Friends/FriendRequestButton.jsx
@@ -1587,7 +1630,7 @@ export default FriendRequestButton;
 //       const result = await dispatch(
 //         acceptFriendRequest(friendship.friendship.id)
 //       ).unwrap();
-      
+
 //       if (result?.friendship) {
 //         dispatch(
 //           showSnackbar({
@@ -1614,9 +1657,9 @@ export default FriendRequestButton;
 //     if (!friendship?.friendship?.id) {
 //       throw new Error('Friendship ID not found');
 //     }
-    
+
 //     const result = await dispatch(rejectFriendRequest(friendship.friendship.id)).unwrap();
-    
+
 //     if (result?.friendship?.id) {
 //       dispatch(
 //         showSnackbar({
@@ -1639,10 +1682,9 @@ export default FriendRequestButton;
 //   }
 // };
 
-
 //   if (!friendId || friendId === currentUserId) return null;
 
-//   const statusKey = friendship.status === 'pending' 
+//   const statusKey = friendship.status === 'pending'
 //     ? `${friendship.status}_${friendship.direction}`
 //     : friendship.status || 'default';
 
@@ -1685,7 +1727,7 @@ export default FriendRequestButton;
 //           {label}
 //         </Button>
 //       </Tooltip>
-      
+
 //       {showReject && (
 //         <Tooltip title="Reject Request" arrow>
 //           <Button
@@ -1708,15 +1750,3 @@ export default FriendRequestButton;
 // };
 
 // export default FriendRequestButton;
-
-
-
-
-
-
-
-
-
-
-
-

@@ -223,8 +223,3 @@ ProfileHeader.defaultProps = {
 };
 
 export default ProfileHeader;
-
-
-
-
-

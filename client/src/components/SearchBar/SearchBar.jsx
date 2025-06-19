@@ -1,4 +1,3 @@
-//! deepseek
 import { Close, Search } from '@mui/icons-material';
 import { IconButton, InputBase, Paper } from '@mui/material';
 
@@ -38,9 +37,4 @@ const SearchBar = ({ value, onChange, onFocus, onBlur }) => {
 };
 
 export default SearchBar;
-
-
-
-
-
 

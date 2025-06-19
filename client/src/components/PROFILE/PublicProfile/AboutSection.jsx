@@ -61,13 +61,3 @@ AboutSection.propTypes = {
 };
 
 export default AboutSection;
-
-
-
-
-
-
-
-
-
-

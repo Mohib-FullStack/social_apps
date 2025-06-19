@@ -27,7 +27,7 @@ const {
 const { friendRequestLimiter } = require('../middleware/friendRequestLimiter');
 
 
-// Friend request endpoints
+//! Friend request endpoints
 friendShipsRouter.post(
   '/requests',
   isLoggedIn,
@@ -49,7 +49,7 @@ friendShipsRouter.get('/requests/pending', isLoggedIn, getPendingRequests);
 
 friendShipsRouter.get('/requests/sent', isLoggedIn, getFriends);
 
-// Friend request responses
+//! Friend request responses
 friendShipsRouter.put(
   '/requests/:friendshipId/accept',
   isLoggedIn,
@@ -58,6 +58,7 @@ friendShipsRouter.put(
   acceptFriendRequest
 );
 
+//! reject
 friendShipsRouter.put(
   '/requests/:friendshipId/reject',
   isLoggedIn,

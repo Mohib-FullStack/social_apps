@@ -1,4 +1,3 @@
-//! original
 // src/context/SocketContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import socketService from '../utils/socket';
@@ -51,11 +50,3 @@ export const useSocket = () => {
   }
   return context;
 };
-
-
-
-
-
-
-
-
