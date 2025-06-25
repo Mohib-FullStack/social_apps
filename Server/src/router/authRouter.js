@@ -25,15 +25,3 @@ authRouter.get('/protected', isLoggedIn, handleProtectedRoute); // Access protec
 
 module.exports = authRouter;
 
-
-
-
-
-
-
-
-
-
-
-
-

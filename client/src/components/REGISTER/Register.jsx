@@ -109,15 +109,18 @@ const RegisterForm = () => {
         // Connect with validation flag
         await socketService.connect('?validation=true');
         setConnectionState('connected');
-        
+
         // Add global validation listener
-        socketService.socket.on('field-validation', ({ field, valid, message }) => {
-          if (!valid) {
-            setError(field, { type: 'manual', message });
-          } else {
-            clearErrors(field);
+        socketService.socket.on(
+          'field-validation',
+          ({ field, valid, message }) => {
+            if (!valid) {
+              setError(field, { type: 'manual', message });
+            } else {
+              clearErrors(field);
+            }
           }
-        });
+        );
       } catch (error) {
         console.error('Socket connection error:', error);
         setConnectionState('error');
@@ -139,7 +142,7 @@ const RegisterForm = () => {
       try {
         setIsValidating(true);
         const response = await socketService.validateField(field, value);
-        
+
         if (!response.valid) {
           setError(field, { type: 'manual', message: response.message });
           return response.message;
@@ -417,7 +420,7 @@ const RegisterForm = () => {
           }}
         >
           <Email sx={{ fontSize: 80, color: 'primary.main', mb: 3 }} />
-  
+
           <Typography
             variant="h4"
             component="h1"
@@ -426,7 +429,7 @@ const RegisterForm = () => {
           >
             Verify Your Email
           </Typography>
-  
+
           <Typography
             variant="body1"
             component="div"
@@ -446,7 +449,7 @@ const RegisterForm = () => {
               {submittedEmail}
             </Box>
           </Typography>
-  
+
           <Box
             sx={{
               backgroundColor: 'background.paper',
@@ -469,7 +472,7 @@ const RegisterForm = () => {
               </ul>
             </Typography>
           </Box>
-  
+
           <Box component="div" sx={{ mb: 3 }}>
             <Typography variant="body2" component="div">
               <strong>Wrong email address?</strong>
@@ -749,74 +752,74 @@ const RegisterForm = () => {
                     },
                   }}
                   render={({ field }) => (
-                  //   <DatePicker
-                  //     {...field}
-                  //     label="Birth Date"
-                  //     maxDate={
-                  //       new Date(
-                  //         new Date().setFullYear(new Date().getFullYear() - 13)
-                  //       )
-                  //     }
-                  //     minDate={
-                  //       new Date(
-                  //         new Date().setFullYear(new Date().getFullYear() - 120)
-                  //       )
-                  //     }
-                  //     openTo="year"
-                  //     views={['year', 'month', 'day']}
-                  //     renderInput={(params) => (
-                  //       <TextField
-                  //         {...params}
-                  //         fullWidth
-                  //         margin="normal"
-                  //         error={!!errors.birthDate}
-                  //         helperText={errors.birthDate?.message}
-                  //         InputProps={{
-                  //           ...params.InputProps,
-                  //           startAdornment: (
-                  //             <InputAdornment position="start">
-                  //               <Cake />
-                  //             </InputAdornment>
-                  //           ),
-                  //         }}
-                  //       />
-                  //     )}
-                  //   />
+                    //   <DatePicker
+                    //     {...field}
+                    //     label="Birth Date"
+                    //     maxDate={
+                    //       new Date(
+                    //         new Date().setFullYear(new Date().getFullYear() - 13)
+                    //       )
+                    //     }
+                    //     minDate={
+                    //       new Date(
+                    //         new Date().setFullYear(new Date().getFullYear() - 120)
+                    //       )
+                    //     }
+                    //     openTo="year"
+                    //     views={['year', 'month', 'day']}
+                    //     renderInput={(params) => (
+                    //       <TextField
+                    //         {...params}
+                    //         fullWidth
+                    //         margin="normal"
+                    //         error={!!errors.birthDate}
+                    //         helperText={errors.birthDate?.message}
+                    //         InputProps={{
+                    //           ...params.InputProps,
+                    //           startAdornment: (
+                    //             <InputAdornment position="start">
+                    //               <Cake />
+                    //             </InputAdornment>
+                    //           ),
+                    //         }}
+                    //       />
+                    //     )}
+                    //   />
 
-                  <DatePicker
-  {...field}
-  label="Birth Date"
-  maxDate={
-    new Date(
-      new Date().setFullYear(new Date().getFullYear() - 13)
-    )
-  }
-  minDate={
-    new Date(
-      new Date().setFullYear(new Date().getFullYear() - 120)
-    )
-  }
-  openTo="year"
-  views={['year', 'month', 'day']}
-  slots={{
-    textField: TextField
-  }}
-  slotProps={{
-    textField: {
-      fullWidth: true,
-      margin: 'normal',
-      error: !!errors.birthDate,
-      helperText: errors.birthDate?.message,
-      InputProps: {
-        startAdornment: (
-          <InputAdornment position="start">
-            <Cake />
-          </InputAdornment>
-        ),
-      },
-    }
-  }}
-/>
+                    <DatePicker
+                      {...field}
+                      label="Birth Date"
+                      maxDate={
+                        new Date(
+                          new Date().setFullYear(new Date().getFullYear() - 13)
+                        )
+                      }
+                      minDate={
+                        new Date(
+                          new Date().setFullYear(new Date().getFullYear() - 120)
+                        )
+                      }
+                      openTo="year"
+                      views={['year', 'month', 'day']}
+                      slots={{
+                        textField: TextField,
+                      }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          margin: 'normal',
+                          error: !!errors.birthDate,
+                          helperText: errors.birthDate?.message,
+                          InputProps: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Cake />
+                              </InputAdornment>
+                            ),
+                          },
+                        },
+                      }}
+                    />
                   )}
                 />
               </Grid>
@@ -1019,18 +1022,3 @@ const RegisterForm = () => {
 };
 
 export default RegisterForm;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

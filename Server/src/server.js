@@ -1,5 +1,4 @@
 require('./config/loadEnv');
-
 const { app, server } = require('./app');
 const { serverPort, redisConfig } = require('./secret');
 const sequelize = require('./config/database');
@@ -29,9 +28,9 @@ const checkDatabase = async () => {
 
     return true;
   } catch (error) {
-    logger.error('❌ Database connection failed', { 
+    logger.error('❌ Database connection failed', {
       error: error.message,
-      stack: error.stack 
+      stack: error.stack,
     });
     return false;
   }
@@ -41,7 +40,7 @@ const syncDatabase = async () => {
   try {
     const options = {
       alter: process.env.NODE_ENV !== 'production',
-      logging: (msg) => logger.debug(`🗄️ ${msg}`)
+      logging: (msg) => logger.debug(`🗄️ ${msg}`),
     };
 
     logger.info('🔄 Synchronizing database...');
@@ -65,7 +64,7 @@ const syncDatabase = async () => {
   } catch (error) {
     logger.error('❌ Database synchronization failed', {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     return false;
   }
@@ -87,7 +86,7 @@ const startSocketIO = async () => {
   } catch (error) {
     logger.error('❌ WebSocket initialization failed', {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     return false;
   }
@@ -106,11 +105,10 @@ const startServer = async () => {
       logger.info(`🔌 WebSocket available on ws://localhost:${serverPort}`);
       logger.info(`⏱ Server started in ${process.uptime().toFixed(2)} seconds`);
     });
-
   } catch (err) {
     logger.error('🔥 Critical startup failure', {
       error: err.message,
-      stack: err.stack
+      stack: err.stack,
     });
     process.exit(1);
   }
@@ -119,79 +117,16 @@ const startServer = async () => {
 process.on('unhandledRejection', (err) => {
   logger.error('🚨 Unhandled Rejection:', {
     message: err.message,
-    stack: err.stack
+    stack: err.stack,
   });
 });
 
 process.on('uncaughtException', (err) => {
   logger.error('💥 Uncaught Exception:', {
     message: err.message,
-    stack: err.stack
+    stack: err.stack,
   });
   process.exit(1);
 });
 
 startServer();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

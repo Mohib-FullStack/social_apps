@@ -1,3 +1,4 @@
+// src/helper/checkUserExist
 const { Op } = require('sequelize');
 const User = require('../models/userModel');
 
@@ -35,11 +36,4 @@ const checkUserExist = async (criteria, excludeId = null) => {
 };
 
 module.exports = {checkUserExist};
-
-
-
-
-
-
-
 

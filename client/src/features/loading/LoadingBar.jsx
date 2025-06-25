@@ -25,7 +25,7 @@ const LoadingBarContainer = styled(Box)({
   height: '4px',
   zIndex: 1400,
   overflow: 'hidden',
-  backgroundColor: 'rgba(0, 0, 0, 0.1)'
+  backgroundColor: 'rgba(0, 0, 0, 0.1)',
 });
 
 const WaveBar = styled(Box)(({ theme }) => ({
@@ -55,39 +55,41 @@ const ProgressBar = styled(Box)(({ theme }) => ({
     bottom: 0,
     background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)`,
     animation: `${progressAnimation} 1.5s infinite linear`,
-  }
+  },
 }));
 
 const LoadingBar = () => {
-  const { isLoading, progress, variant, animationType } = useSelector((state) => state.loading);
+  const { isLoading, progress, variant, animationType } = useSelector(
+    (state) => state.loading
+  );
 
   if (!isLoading) return null;
 
   return (
     <LoadingBarContainer>
-      {animationType === 'wave' && (
-        <WaveBar />
-      )}
+      {animationType === 'wave' && <WaveBar />}
       {animationType === 'bar' && variant === 'determinate' && (
         <ProgressBar sx={{ width: `${progress}%` }} />
       )}
       {animationType === 'bar' && variant === 'indeterminate' && (
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '100%',
-          width: '100%',
-          '&:before': {
-            content: '""',
+        <Box
+          sx={{
             position: 'absolute',
+            top: 0,
+            left: 0,
             height: '100%',
-            width: '50%',
-            backgroundColor: 'primary.main',
-            animation: `${progressAnimation} 1.5s infinite linear`,
-            background: `linear-gradient(90deg, transparent, primary.main, transparent)`
-          }
-        }} />
+            width: '100%',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              height: '100%',
+              width: '50%',
+              backgroundColor: 'primary.main',
+              animation: `${progressAnimation} 1.5s infinite linear`,
+              background: `linear-gradient(90deg, transparent, primary.main, transparent)`,
+            },
+          }}
+        />
       )}
     </LoadingBarContainer>
   );

@@ -51,7 +51,7 @@ const connectDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected.');
-    
+
     // Register all models and their associations
     require('../models/associations');
 
@@ -61,14 +61,14 @@ const connectDatabase = async () => {
       execSync('npx sequelize-cli db:migrate', { stdio: 'inherit' });
     } else {
       console.log('🔄 Running in development mode - synchronizing models...');
-      
+
       const syncOptions = {
         force: false,
         alter: {
           drop: false, // Prevent dropping constraints
-          add: true    // Only add new columns/constraints
+          add: true, // Only add new columns/constraints
         },
-        logging: console.log
+        logging: console.log,
       };
 
       try {
@@ -76,7 +76,7 @@ const connectDatabase = async () => {
         console.log('🔄 Database synchronized successfully');
       } catch (syncError) {
         console.error('⚠️ Sync error (non-blocking):', syncError.message);
-        
+
         // Try a more conservative approach if first sync fails
         if (syncError.name.includes('Constraint')) {
           console.log('🛠 Attempting conservative sync...');
@@ -92,7 +92,10 @@ const connectDatabase = async () => {
     const [tables] = await sequelize.query(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
     );
-    console.log('📊 Existing tables:', tables.map(t => t.table_name));
+    console.log(
+      '📊 Existing tables:',
+      tables.map((t) => t.table_name)
+    );
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     process.exit(1);
@@ -102,8 +105,3 @@ const connectDatabase = async () => {
 connectDatabase();
 
 module.exports = sequelize;
-
-
-
-
-

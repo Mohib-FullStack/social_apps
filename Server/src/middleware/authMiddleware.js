@@ -1,7 +1,9 @@
 // middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
 const createError = require('http-errors');
-const { jwtSecret, jwtAccessKey } = require('../secret');
+const User = require('../models/userModel');
+const { jwtAccessKey, jwtRefreshKey,jwtSecret, } = require('../secret');
+
 
 // Middleware to verify access token from cookies (for logged-in users)
 const isLoggedIn = (req, res, next) => {
@@ -19,8 +21,6 @@ const isLoggedIn = (req, res, next) => {
     return next(createError(401, "Invalid or expired token. Please log in."));
   }
 };
-
-
 
 // Middleware to prevent logged-in users from accessing certain routes (like login/register)
 const isLoggedOut = (req, res, next) => {

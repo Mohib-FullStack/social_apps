@@ -2,15 +2,38 @@ const Message = require('../models/messageModel');
 const User = require('../models/userModel');
 
 // ✅ Create
+// In controller/messageController.js
 const sendMessage = async (req, res) => {
   try {
     const { senderId, receiverId, content } = req.body;
+
     const message = await Message.create({ senderId, receiverId, content });
-    res.status(201).json(message);
+
+    // Fetch sender info (for snackbar display)
+    const sender = await User.findByPk(senderId, {
+      attributes: ['id', 'firstName', 'lastName', 'profileImage']
+    });
+
+    // Attach metadata for client
+    const enrichedMessage = {
+      id: message.id,
+      senderId,
+      receiverId,
+      content,
+      timestamp: message.createdAt,
+      senderName: `${sender.firstName} ${sender.lastName}`,
+      senderAvatar: sender.profileImage,
+    };
+
+    // ✅ Emit to receiver's socket room
+    req.app.get('io')?.to(receiverId.toString()).emit('private_message', enrichedMessage);
+
+    res.status(201).json(enrichedMessage);
   } catch (err) {
     res.status(500).json({ error: 'Failed to send message' });
   }
 };
+
 
 // ✅ Read all messages between two users
 const getConversation = async (req, res) => {

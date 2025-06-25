@@ -14,7 +14,7 @@ const {
   acceptFriendRequest,
   rejectFriendRequest,
   getFriendSuggestions,
-  listFriends,
+  // listFriends,
   checkFriendshipStatus,
   getMutualFriends,
   blockUser,
@@ -47,7 +47,10 @@ friendShipsRouter.delete(
 
 friendShipsRouter.get('/requests/pending', isLoggedIn, getPendingRequests);
 
-friendShipsRouter.get('/requests/sent', isLoggedIn, getFriends);
+// ===== Friend List =====
+friendShipsRouter.get('/:userId/friends', isLoggedIn, getFriends);          // ✅ Mohib, Ara, or others
+friendShipsRouter.get('/me/friends', isLoggedIn, getFriends);               // ✅ Current user's friends
+
 
 //! Friend request responses
 friendShipsRouter.put(
@@ -68,7 +71,7 @@ friendShipsRouter.put(
 );
 
 // Friend management
-friendShipsRouter.get('/', isLoggedIn, listFriends);
+// friendShipsRouter.get('/', isLoggedIn, listFriends);
 
 friendShipsRouter.get('/suggestions', isLoggedIn, getFriendSuggestions);
 
@@ -105,174 +108,63 @@ friendShipsRouter.put(
   updateFriendshipTier
 );
 
-// friendShipsRouter.get(
-//   '/tier/:tier',
-//   isLoggedIn,
-//   getFriendsByTier
-// );
 
 module.exports = friendShipsRouter;
 
 
 
-
-  
-
-  
-
-  
-
-  
-  
-
-  
-
-
-  
-  
-  
-
-  
- 
-
-  
-
-  
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//! original
+//! new
 // const express = require('express');
-// const friendShipsRouter = express.Router();
-// const { isLoggedIn } = require('../middleware/authMiddleware');
-// const { 
-//   validateFriendId, 
-//   validateRequestId, 
-//   validateBlockAction 
-// } = require('../validators/friendship');
-// const runValidation = require('../validators');
+// const router = express.Router();
+
 // const {
 //   sendFriendRequest,
-//   cancelFriendRequest,
-//   getPendingRequests,
-//   getSentRequests,
 //   acceptFriendRequest,
 //   rejectFriendRequest,
-//   getFriendIds,
-//   getFriendSuggestions,
-//   listFriends,
-//   checkFriendshipStatus,
-//   getMutualFriends,
-//   removeFriendship,
+//   cancelFriendRequest,
+//   removeFriend,
 //   blockUser,
 //   unblockUser,
-//   cleanupExpiredRequests,
+//   getPendingRequests,
+//   getFriends,
+//   checkFriendshipStatus,
+//   getMutualFriends,
+//   getFriendSuggestions,
 //   updateFriendshipTier,
-//   getFriendsByTier
-// } = require('../controller/friendShipController');
+//   cleanupExpiredRequests,
+//   getSentRequests // assuming you have this too
+// } = require('../controllers/friendshipController');
 
-// // Friend request endpoints
-// friendShipsRouter.post(
-//   '/requests',
-//   isLoggedIn,
-//   // validateFriendId,
-//   // runValidation,
-//   sendFriendRequest
-// );
+// const { isLoggedIn } = require('../middleware/authMiddleware');
 
-// friendShipsRouter.delete(
-//   '/requests/:friendshipId',
-//   isLoggedIn,
-//   validateRequestId,
-//   runValidation,
-//   cancelFriendRequest
-// );
+// // ===== Friend Request Actions =====
+// router.post('/requests', isLoggedIn, sendFriendRequest);
+// router.put('/requests/:friendshipId/accept', isLoggedIn, acceptFriendRequest);
+// router.put('/requests/:friendshipId/reject', isLoggedIn, rejectFriendRequest);
+// router.delete('/requests/:friendshipId', isLoggedIn, cancelFriendRequest);
 
-// friendShipsRouter.get('/requests/pending', isLoggedIn, getPendingRequests);
-// // friendShipsRouter.get('/requests/sent', isLoggedIn, getSentRequests);
+// // ===== Friend List =====
+// router.get('/:userId/friends', isLoggedIn, getFriends);          // ✅ Mohib, Ara, or others
+// router.get('/me/friends', isLoggedIn, getFriends);               // ✅ Current user's friends
 
-// // Friend request responses
-// friendShipsRouter.put(
-//   '/requests/:friendshipId/accept',
-//   isLoggedIn,
-//   // validateRequestId,
-//   // runValidation,
-//   acceptFriendRequest
-// );
+// // ===== Pending & Sent Requests =====
+// router.get('/requests/pending', isLoggedIn, getPendingRequests);
+// router.get('/requests/sent', isLoggedIn, getSentRequests);       // Only if you implemented this
 
-// friendShipsRouter.put(
-//   '/requests/:friendshipId/reject',
-//   isLoggedIn,
-//   // validateRequestId,
-//   // runValidation,
-//   rejectFriendRequest
-// );
+// // ===== Friend Management =====
+// router.delete('/:friendshipId', isLoggedIn, removeFriend);
+// router.put('/:friendshipId/tier', isLoggedIn, updateFriendshipTier);
 
-// // Friend management
-// // friendShipsRouter.get('/', isLoggedIn, getFriendIds);
-// friendShipsRouter.get('/suggestions', isLoggedIn, getFriendSuggestions);
-// // friendShipsRouter.get('/:userId/friends', isLoggedIn, listFriends);
-// friendShipsRouter.get('/status/:userId', isLoggedIn, checkFriendshipStatus);
-// friendShipsRouter.get('/:userId/mutual-friends', isLoggedIn, getMutualFriends);
-// // friendShipsRouter.delete('/:friendshipId', isLoggedIn, removeFriendship);
+// // ===== Block/Unblock =====
+// router.post('/block', isLoggedIn, blockUser);
+// router.delete('/block/:userId', isLoggedIn, unblockUser);
 
-// // Block management
-// friendShipsRouter.post(
-//   '/block',
-//   isLoggedIn,
-//   validateBlockAction,
-//   runValidation,
-//   blockUser
-// );
+// // ===== Friendship Status & Mutuals =====
+// router.get('/status/:userId', isLoggedIn, checkFriendshipStatus);
+// router.get('/:userId/mutual-friends', isLoggedIn, getMutualFriends);
 
-// friendShipsRouter.delete(
-//   '/block/:userId',
-//   isLoggedIn,
-//   validateBlockAction,
-//   runValidation,
-//   unblockUser
-// );
+// // ===== Suggestions & Cleanup =====
+// router.get('/suggestions', isLoggedIn, getFriendSuggestions);
+// router.delete('/cleanup', isLoggedIn, cleanupExpiredRequests);
 
-// // Maintenance
-// friendShipsRouter.post('/cleanup', isLoggedIn, cleanupExpiredRequests);
-
-// // Tier management
-// friendShipsRouter.put(
-//   '/:friendshipId/tier',
-//   isLoggedIn,
-//   updateFriendshipTier
-// );
-
-// friendShipsRouter.get(
-//   '/tier/:tier',
-//   isLoggedIn,
-//   // getFriendsByTier
-// );
-
-// module.exports = friendShipsRouter;
-
-
-
-
-
-
-
-
+// module.exports = router;

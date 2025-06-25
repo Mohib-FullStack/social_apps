@@ -1,5 +1,4 @@
 // src/utils/moderation.js
-
 function contentModeration(text) {
   // Dummy logic: Replace bad words, etc.
   const badWords = ['badword1', 'badword2'];

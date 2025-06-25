@@ -10,20 +10,18 @@ const validateFriendId = [
         throw new Error('Cannot perform action with yourself');
       }
       return true;
-    })
+    }),
 ];
 
 const validateRequestId = [
-  param('requestId')
-    .isInt({ min: 1 })
-    .withMessage('Invalid request ID')
+  param('requestId').isInt({ min: 1 }).withMessage('Invalid request ID'),
 ];
 
 const validateFriendshipAction = [
   param('requestId').isInt({ min: 1 }),
   body('action')
     .isIn(['accept', 'reject', 'cancel'])
-    .withMessage('Invalid action')
+    .withMessage('Invalid action'),
 ];
 
 const validateBlockAction = [
@@ -35,12 +33,12 @@ const validateBlockAction = [
         throw new Error('Cannot block yourself');
       }
       return true;
-    })
+    }),
 ];
 
 module.exports = {
   validateFriendId,
   validateRequestId,
   validateFriendshipAction,
-  validateBlockAction
+  validateBlockAction,
 };

@@ -1,5 +1,5 @@
-import { Menu, MenuItem, Avatar, Box, Typography, Divider } from '@mui/material';
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
+import { Avatar, Box, Divider, Menu, MenuItem, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 
 const UserMenu = ({ 
@@ -32,6 +32,11 @@ const UserMenu = ({
       <MenuItem component={Link} to="/profile/me" onClick={handleMenuClose}>
         <AccountCircle sx={{ mr: 1, color: 'primary.main' }} />
         My Profile
+      </MenuItem>
+
+        <MenuItem component={Link} to="/dashboard" onClick={handleMenuClose}>
+        <AccountCircle sx={{ mr: 1, color: 'primary.main' }} />
+        Dashboard
       </MenuItem>
       {isAdmin && (
         <MenuItem component={Link} to="/admin" onClick={handleMenuClose}>

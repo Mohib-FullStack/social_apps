@@ -1,7 +1,8 @@
 //src/axiosInstance
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3030/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -45,7 +46,9 @@ axiosInstance.interceptors.response.use(
         const newAccessToken = data.payload.accessToken;
 
         localStorage.setItem('accessToken', newAccessToken);
-        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        axiosInstance.defaults.headers.common[
+          'Authorization'
+        ] = `Bearer ${newAccessToken}`;
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
 
         return axiosInstance(originalRequest);
@@ -61,5 +64,3 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
-
-

@@ -1,114 +1,3 @@
-// const createError = require('http-errors');
-// const jwt = require('jsonwebtoken');
-// const bcrypt = require('bcrypt'); // ✅ Not bcryptjs!
-// const User = require('../models/userModel');
-// const {
-//   successResponse,
-//   errorResponse,
-// } = require('../controller/responseController');
-// const { createJSONWebToken } = require('../helper/jsonwebtoken');
-// const { jwtAccessKey, jwtRefreshKey } = require('../secret');
-// const {
-//   setAccessTokenCookie,
-//   setRefreshTokenCookie,
-// } = require('../helper/cookie');
-
-// // Handle Login
-// const handleLogin = async (req, res, next) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // Trim and normalize email
-//     const normalizedEmail = email.trim().toLowerCase();
-//     const trimmedPassword = password.trim();
-
-//     console.log(`Login attempt for: ${normalizedEmail}`); // Debug log
-
-//     // Find user including the password field
-//     const user = await User.findOne({
-//       where: { email: normalizedEmail },
-//       attributes: ['id', 'email', 'password', 'isBanned', 'isAdmin'],
-//       paranoid: false,
-//       raw: true, // Get plain object instead of model instance
-//     });
-
-//     if (!user) {
-//       console.log('No user found with email:', normalizedEmail); // Debug log
-//       return errorResponse(res, {
-//         statusCode: 401,
-//         message: 'Email or password is incorrect.',
-//       });
-//     }
-
-//     console.log('User found:', user.id); // Debug log
-//     console.log('Stored password hash:', user.password); // Debug log
-
-//     // Verify the password is a valid bcrypt hash
-//     const isHashValid = user.password.match(/^\$2[aby]\$\d+\$.{53}$/);
-//     console.log('Is stored password a valid bcrypt hash?', isHashValid); // Debug log
-
-//     if (!isHashValid) {
-//       console.error('Invalid password hash format in database');
-//       return errorResponse(res, {
-//         statusCode: 500,
-//         message: 'System error. Please contact support.',
-//       });
-//     }
-
-//     const isPasswordMatch = await bcrypt.compare(
-//       trimmedPassword,
-//       user.password
-//     );
-//     console.log('Password match result:', isPasswordMatch); // Debug log
-
-//     if (!isPasswordMatch) {
-//       return errorResponse(res, {
-//         statusCode: 401,
-//         message: 'Email or password is incorrect.',
-//       });
-//     }
-
-//     if (user.isBanned) {
-//       return errorResponse(res, {
-//         statusCode: 403,
-//         message: 'You are banned. Contact the administrator.',
-//       });
-//     }
-
-//     // Rest of your successful login logic...
-//     const accessToken = createJSONWebToken(
-//       { id: user.id, email: user.email, isAdmin: user.isAdmin },
-//       jwtAccessKey,
-//       '15m'
-//     );
-
-//     const refreshToken = createJSONWebToken(
-//       { id: user.id, email: user.email, isAdmin: user.isAdmin },
-//       jwtRefreshKey,
-//       '7d'
-//     );
-
-//     setAccessTokenCookie(res, accessToken);
-//     setRefreshTokenCookie(res, refreshToken);
-
-//     // Remove password before response
-//     delete user.password;
-
-//     return successResponse(res, {
-//       statusCode: 200,
-//       message: 'Login successful',
-//       payload: { user },
-//     });
-//   } catch (error) {
-//     console.error('Login error:', error);
-//     return errorResponse(res, {
-//       statusCode: 500,
-//       message: 'Login failed due to server error',
-//     });
-//   }
-// };
-
-//! update
 // authController.js
 const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
@@ -117,12 +6,13 @@ const User = require('../models/userModel');
 const { errorResponse, successResponse } = require('./responseController');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
 const { jwtAccessKey, jwtRefreshKey } = require('../secret');
-const { setAccessTokenCookie, setRefreshTokenCookie } = require('../helper/cookie');
+const {
+  setAccessTokenCookie,
+  setRefreshTokenCookie,
+} = require('../helper/cookie');
 const sendLoginNotificationEmail = require('../helper/loginNotificationEmail');
 const geoip = require('geoip-lite'); // For IP geolocation
 const DeviceDetector = require('device-detector-js'); // For device detection
-
-
 
 const handleLogin = async (req, res, next) => {
   try {
@@ -137,7 +27,15 @@ const handleLogin = async (req, res, next) => {
     // Find user including the password field
     const user = await User.findOne({
       where: { email: normalizedEmail },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'password', 'isBanned', 'isAdmin'],
+      attributes: [
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'password',
+        'isBanned',
+        'isAdmin',
+      ],
       paranoid: false,
       raw: true,
     });
@@ -150,7 +48,10 @@ const handleLogin = async (req, res, next) => {
     }
 
     // Password verification
-    const isPasswordMatch = await bcrypt.compare(trimmedPassword, user.password);
+    const isPasswordMatch = await bcrypt.compare(
+      trimmedPassword,
+      user.password
+    );
     if (!isPasswordMatch) {
       return errorResponse(res, {
         statusCode: 401,
@@ -188,13 +89,13 @@ const handleLogin = async (req, res, next) => {
       const location = {
         city: geo.city || 'Unknown',
         region: geo.region || 'Unknown',
-        country: geo.country || 'Unknown'
+        country: geo.country || 'Unknown',
       };
 
       // Detect device
       const deviceDetector = new DeviceDetector();
       const deviceInfo = deviceDetector.parse(userAgent);
-      const device = deviceInfo.device?.type 
+      const device = deviceInfo.device?.type
         ? `${deviceInfo.device.type} (${deviceInfo.os?.name || 'Unknown OS'})`
         : 'Unknown Device';
 
@@ -202,7 +103,7 @@ const handleLogin = async (req, res, next) => {
         time: new Date(),
         location,
         device,
-        ipAddress
+        ipAddress,
       });
     } catch (emailError) {
       console.error('Failed to send login notification:', emailError);
@@ -212,8 +113,7 @@ const handleLogin = async (req, res, next) => {
     // Remove password before response
     delete user.password;
 
-
-   return successResponse(res, {
+    return successResponse(res, {
       statusCode: 200,
       message: 'Login successful',
       payload: { user },
@@ -226,9 +126,6 @@ const handleLogin = async (req, res, next) => {
     });
   }
 };
-
-
-
 
 //! Handle Logout
 const handleLogout = (req, res, next) => {
@@ -247,36 +144,35 @@ const handleLogout = (req, res, next) => {
 };
 
 // Handle Refresh Token
-const handleRefreshToken = (req, res, next) => {
-  const oldRefreshToken = req.cookies.refreshToken;
-  if (!oldRefreshToken) {
-    return next(createError(401, 'No refresh token provided.'));
-  }
-
+const handleRefreshToken = async (req, res, next) => {
   try {
-    const decodedToken = jwt.verify(oldRefreshToken, jwtRefreshKey);
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) throw createError(401, 'Refresh token missing');
+
+    const decoded = jwt.verify(refreshToken, jwtRefreshKey);
+
+    const user = await User.findByPk(decoded.id);
+    if (!user) throw createError(401, 'Invalid refresh token');
+
     const newAccessToken = createJSONWebToken(
-      {
-        id: decodedToken.id,
-        email: decodedToken.email,
-        isAdmin: decodedToken.isAdmin,
-      },
+      { id: user.id },
       jwtAccessKey,
       '15m'
     );
+
     setAccessTokenCookie(res, newAccessToken);
 
     return successResponse(res, {
       statusCode: 200,
-      message: 'New access token generated',
-      payload: { accessToken: newAccessToken },
+      message: 'Access token refreshed successfully',
+      payload: { user },
     });
   } catch (error) {
-    return next(createError(403, 'Invalid or expired refresh token.'));
+    next(error);
   }
 };
 
-// Protected Route Handler
+//! Protected Route Handler
 const handleProtectedRoute = (req, res, next) => {
   const accessToken = req.cookies.accessToken;
 
@@ -332,10 +228,10 @@ const handledestroyAllSessions = async (userId) => {
     // 1. Invalidate all refresh tokens for this user
     // 2. Clear any session records in your database
     // 3. Optionally notify connected WebSocket clients
-    
+
     // For now, we'll just log this action
     console.log(`All sessions destroyed for user ${userId}`);
-    
+
     // In a production app, you might:
     // await RefreshToken.destroy({ where: { userId } });
     // await Session.destroy({ where: { userId } });
@@ -350,5 +246,5 @@ module.exports = {
   handleLogout,
   handleRefreshToken,
   handleProtectedRoute,
-  handledestroyAllSessions
+  handledestroyAllSessions,
 };

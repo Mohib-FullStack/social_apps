@@ -531,26 +531,3 @@ const PrivateProfileUpdate = () => {
 
 export default PrivateProfileUpdate;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

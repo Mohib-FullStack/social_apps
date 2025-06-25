@@ -1,16 +1,3 @@
-// config/logger.js
-// const winston = require('winston');
-
-// module.exports = winston.createLogger({
-//   level: 'info',
-//   format: winston.format.json(),
-//   transports: [
-//     new winston.transports.Console(),
-//     new winston.transports.File({ filename: 'error.log', level: 'error' }),
-//     new winston.transports.File({ filename: 'combined.log' })
-//   ]
-// });
-
 // src/config/logger.js
 const winston = require('winston');
 const { format } = winston;
@@ -35,27 +22,27 @@ const logger = winston.createLogger({
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         errors({ stack: true }),
         logFormat
-      )
+      ),
     }),
-    new winston.transports.File({ 
-      filename: 'logs/error.log', 
+    new winston.transports.File({
+      filename: 'logs/error.log',
       level: 'error',
       format: combine(
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         errors({ stack: true }),
         format.json()
-      )
+      ),
     }),
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: 'logs/combined.log',
       format: combine(
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         errors({ stack: true }),
         format.json()
-      )
-    })
+      ),
+    }),
   ],
-  exitOnError: false
+  exitOnError: false,
 });
 
 // Add a method specifically for Sequelize logging

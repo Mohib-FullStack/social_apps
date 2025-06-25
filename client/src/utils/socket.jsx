@@ -1,96 +1,96 @@
 // src/utils/socket.js
 import { io } from 'socket.io-client';
 
-class SocketService {
-  constructor() {
-    this.socket = null;
-    this.listeners = new Map();
-    this.validationTimeouts = {};
-    this.connectionAttempts = 0;
-    this.maxConnectionAttempts = 5;
-  }
+const createSocketService = () => {
+  let socket = null;
+  const listeners = new Map();
+  let validationTimeouts = {};
+  let connectionAttempts = 0;
+  const maxConnectionAttempts = 5;
 
-  connect(queryParams = '?validation=true') {
-    if (!this.socket) {
-      const socketUrl = `${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030'}${queryParams}`;
+  const clearAllValidationTimeouts = () => {
+    Object.values(validationTimeouts).forEach(clearTimeout);
+    validationTimeouts = {};
+  };
+
+  const connect = (auth = {}, query = {}) => {
+    if (!socket) {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030';
       
       console.log('Connecting to socket at:', socketUrl); // Debug log
       
-      this.socket = io(socketUrl, {
+      socket = io(socketUrl, {
         withCredentials: true,
         autoConnect: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         transports: ['websocket'], // Force WebSocket transport
         timeout: 10000, // Increase connection timeout
+        auth,    // JWT token here
+        query,   // optional for validation=true
       });
 
-      this.socket.on('connect', () => {
-        console.log('Socket connected:', this.socket.id);
-        this.connectionAttempts = 0;
+      socket.on('connect', () => {
+        console.log('Socket connected:', socket.id);
+        connectionAttempts = 0;
       });
 
-      this.socket.on('disconnect', (reason) => {
+      socket.on('disconnect', (reason) => {
         console.log('Socket disconnected:', reason);
-        this.clearAllValidationTimeouts();
+        clearAllValidationTimeouts();
       });
 
-      this.socket.on('connect_error', (error) => {
+      socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error.message);
-        this.clearAllValidationTimeouts();
-        this.connectionAttempts++;
+        clearAllValidationTimeouts();
+        connectionAttempts++;
         
-        if (this.connectionAttempts >= this.maxConnectionAttempts) {
+        if (connectionAttempts >= maxConnectionAttempts) {
           console.error('Max connection attempts reached');
           // You might want to trigger some UI notification here
         }
       });
 
       // Add ping/pong monitoring
-      this.socket.on('ping', () => console.debug('Socket ping'));
-      this.socket.on('pong', (latency) => console.debug('Socket pong', latency));
+      socket.on('ping', () => console.debug('Socket ping'));
+      socket.on('pong', (latency) => console.debug('Socket pong', latency));
     }
-    return this.socket;
-  }
+    return socket;
+  };
 
-  disconnect() {
-    if (this.socket) {
-      this.clearAllValidationTimeouts();
-      this.socket.disconnect();
-      this.socket = null;
-      this.listeners.clear();
-      this.connectionAttempts = 0;
+  const disconnect = () => {
+    if (socket) {
+      clearAllValidationTimeouts();
+      socket.disconnect();
+      socket = null;
+      listeners.clear();
+      connectionAttempts = 0;
     }
-  }
+  };
 
-  clearAllValidationTimeouts() {
-    Object.values(this.validationTimeouts).forEach(clearTimeout);
-    this.validationTimeouts = {};
-  }
-
-  validateField(field, value) {
+  const validateField = (field, value) => {
     return new Promise((resolve, reject) => {
-      if (!this.socket?.connected) {
-        this.socket = this.connect();
+      if (!socket?.connected) {
+        socket = connect();
       }
 
       const requestId = Date.now().toString();
 
       // Clear any previous validation for this field
-      if (this.validationTimeouts[field]) {
-        clearTimeout(this.validationTimeouts[field]);
-        delete this.validationTimeouts[field];
+      if (validationTimeouts[field]) {
+        clearTimeout(validationTimeouts[field]);
+        delete validationTimeouts[field];
       }
 
       // Set timeout (3 seconds)
-      this.validationTimeouts[field] = setTimeout(() => {
+      validationTimeouts[field] = setTimeout(() => {
         reject(new Error('Validation timeout'));
       }, 3000);
 
       // Send validation request
-      this.socket.emit('validate-field', { field, value, requestId }, (response) => {
-        clearTimeout(this.validationTimeouts[field]);
-        delete this.validationTimeouts[field];
+      socket.emit('validate-field', { field, value, requestId }, (response) => {
+        clearTimeout(validationTimeouts[field]);
+        delete validationTimeouts[field];
         
         if (response.error) {
           reject(new Error(response.error || 'Validation failed'));
@@ -99,10 +99,137 @@ class SocketService {
         }
       });
     });
-  }
-}
+  };
+
+  return {
+    connect,
+    disconnect,
+    validateField,
+    clearAllValidationTimeouts
+  };
+};
 
 // Singleton instance
-const socketService = new SocketService();
+const socketService = createSocketService();
 
 export default socketService;
+
+
+
+
+
+
+//! original
+// src/utils/socket.js
+// import { io } from 'socket.io-client';
+
+// const createSocketService = () => {
+//   let socket = null;
+//   const listeners = new Map();
+//   let validationTimeouts = {};
+//   let connectionAttempts = 0;
+//   const maxConnectionAttempts = 5;
+
+//   const clearAllValidationTimeouts = () => {
+//     Object.values(validationTimeouts).forEach(clearTimeout);
+//     validationTimeouts = {};
+//   };
+
+//   const connect = (queryParams = '?validation=true') => {
+//     if (!socket) {
+//       const socketUrl = `${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030'}${queryParams}`;
+      
+//       console.log('Connecting to socket at:', socketUrl); // Debug log
+      
+//       socket = io(socketUrl, {
+//         withCredentials: true,
+//         autoConnect: true,
+//         reconnectionAttempts: 5,
+//         reconnectionDelay: 1000,
+//         transports: ['websocket'], // Force WebSocket transport
+//         timeout: 10000, // Increase connection timeout
+//       });
+
+//       socket.on('connect', () => {
+//         console.log('Socket connected:', socket.id);
+//         connectionAttempts = 0;
+//       });
+
+//       socket.on('disconnect', (reason) => {
+//         console.log('Socket disconnected:', reason);
+//         clearAllValidationTimeouts();
+//       });
+
+//       socket.on('connect_error', (error) => {
+//         console.error('Socket connection error:', error.message);
+//         clearAllValidationTimeouts();
+//         connectionAttempts++;
+        
+//         if (connectionAttempts >= maxConnectionAttempts) {
+//           console.error('Max connection attempts reached');
+//           // You might want to trigger some UI notification here
+//         }
+//       });
+
+//       // Add ping/pong monitoring
+//       socket.on('ping', () => console.debug('Socket ping'));
+//       socket.on('pong', (latency) => console.debug('Socket pong', latency));
+//     }
+//     return socket;
+//   };
+
+//   const disconnect = () => {
+//     if (socket) {
+//       clearAllValidationTimeouts();
+//       socket.disconnect();
+//       socket = null;
+//       listeners.clear();
+//       connectionAttempts = 0;
+//     }
+//   };
+
+//   const validateField = (field, value) => {
+//     return new Promise((resolve, reject) => {
+//       if (!socket?.connected) {
+//         socket = connect();
+//       }
+
+//       const requestId = Date.now().toString();
+
+//       // Clear any previous validation for this field
+//       if (validationTimeouts[field]) {
+//         clearTimeout(validationTimeouts[field]);
+//         delete validationTimeouts[field];
+//       }
+
+//       // Set timeout (3 seconds)
+//       validationTimeouts[field] = setTimeout(() => {
+//         reject(new Error('Validation timeout'));
+//       }, 3000);
+
+//       // Send validation request
+//       socket.emit('validate-field', { field, value, requestId }, (response) => {
+//         clearTimeout(validationTimeouts[field]);
+//         delete validationTimeouts[field];
+        
+//         if (response.error) {
+//           reject(new Error(response.error || 'Validation failed'));
+//         } else {
+//           resolve(response);
+//         }
+//       });
+//     });
+//   };
+
+//   return {
+//     connect,
+//     disconnect,
+//     validateField,
+//     clearAllValidationTimeouts
+//   };
+// };
+
+// // Singleton instance
+// const socketService = createSocketService();
+
+// export default socketService;

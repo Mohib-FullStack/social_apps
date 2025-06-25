@@ -12,7 +12,7 @@ const SearchBar = ({ value, onChange, onFocus, onBlur }) => {
         width: '100%',
         maxWidth: 600,
         borderRadius: 4,
-        boxShadow: 2
+        boxShadow: 2,
       }}
     >
       <IconButton sx={{ p: '10px' }} aria-label="search">
@@ -37,4 +37,3 @@ const SearchBar = ({ value, onChange, onFocus, onBlur }) => {
 };
 
 export default SearchBar;
-

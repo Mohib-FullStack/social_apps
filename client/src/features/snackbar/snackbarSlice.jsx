@@ -1,4 +1,4 @@
-// // features/snackbar/snackbarSlice.jsx
+// features/snackbar/snackbarSlice.jsx
 // import { createSlice } from '@reduxjs/toolkit'
 
 // const snackbarSlice = createSlice({
@@ -26,10 +26,46 @@
 
 // export default snackbarSlice.reducer
 
+//! Refactor
+// import { createSlice } from '@reduxjs/toolkit';
+// import { nanoid } from 'nanoid';
 
-//! updated
-import { createSlice } from '@reduxjs/toolkit'
-import { nanoid } from 'nanoid'
+// const snackbarSlice = createSlice({
+//   name: 'snackbar',
+//   initialState: {
+//     messages: [],
+//   },
+//   reducers: {
+//     showSnackbar: {
+//       reducer(state, action) {
+//         state.messages.push(action.payload);
+//       },
+//       prepare({ message, severity = 'info', duration = 6000 }) {
+//         return {
+//           payload: {
+//             id: nanoid(),
+//             message,
+//             severity,
+//             duration,
+//           },
+//         };
+//       },
+//     },
+//     removeSnackbar: (state, action) => {
+//       state.messages = state.messages.filter(
+//         (msg) => msg.id !== action.payload
+//       );
+//     },
+//   },
+// });
+
+// export const { showSnackbar, removeSnackbar } = snackbarSlice.actions;
+// export default snackbarSlice.reducer;
+
+//! last
+// src/features/snackbar/snackbarSlice.js
+import { createSlice } from '@reduxjs/toolkit';
+import { nanoid } from 'nanoid';
 
 const snackbarSlice = createSlice({
   name: 'snackbar',
@@ -39,24 +75,28 @@ const snackbarSlice = createSlice({
   reducers: {
     showSnackbar: {
       reducer(state, action) {
-        state.messages.push(action.payload)
+        state.messages.push(action.payload);
       },
-      prepare({ message, severity = 'info', duration = 6000 }) {
+      prepare({ message, severity = 'info', duration = 6000, username = null, avatarUrl = null }) {
         return {
           payload: {
             id: nanoid(),
             message,
             severity,
             duration,
+            username,
+            avatarUrl,
           },
-        }
+        };
       },
     },
     removeSnackbar: (state, action) => {
-      state.messages = state.messages.filter(msg => msg.id !== action.payload)
+      state.messages = state.messages.filter(
+        (msg) => msg.id !== action.payload
+      );
     },
   },
-})
+});
 
-export const { showSnackbar, removeSnackbar } = snackbarSlice.actions
-export default snackbarSlice.reducer
+export const { showSnackbar, removeSnackbar } = snackbarSlice.actions;
+export default snackbarSlice.reducer;

@@ -59,7 +59,7 @@ export const markAsRead = createAsyncThunk(
       const ids = Array.isArray(notificationIds)
         ? notificationIds
         : [notificationIds];
-      await axiosInstance.patch('/notifications/mark-as-read', {
+      await axiosInstance.put('/notifications/mark-as-read', {
         notificationIds: ids,
       });
       return ids;

@@ -70,14 +70,23 @@ export const rejectFriendRequest = createAsyncThunk(
   }
 );
 
-export const cancelFriendRequest = createAsyncThunk(
-  'friendship/cancelFriendRequest',
-  async (friendshipId, { rejectWithValue }) => {
+export const getFriends = createAsyncThunk(
+  'friendship/getFriends',
+  async ({ userId, page = 1, size = 10 }, { rejectWithValue }) => {
     try {
-      await axiosInstance.delete(`/friendships/requests/${friendshipId}`);
-      return friendshipId;
+      const url = `/friendships/${userId || 'me'}/friends?page=${page}&size=${size}`;
+      const res = await axiosInstance.get(url);
+      console.log('GET FRIENDS thunk result:', res.data);
+      return {
+        data: res.data.payload,
+        pagination: res.data.metadata?.pagination || {},
+        userId: userId || 'current',
+      };
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to cancel request');
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Failed to fetch friends',
+        userId,
+      });
     }
   }
 );
@@ -89,7 +98,21 @@ export const removeFriend = createAsyncThunk(
       await axiosInstance.delete(`/friendships/${friendshipId}`);
       return friendshipId;
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to remove friend');
+      return rejectWithValue(error.response?.data || {});
+    }
+  }
+);
+
+export const cancelFriendRequest = createAsyncThunk(
+  'friendship/cancelFriendRequest',
+  async (friendshipId, { rejectWithValue }) => {
+    try {
+      await axiosInstance.delete(`/friendships/requests/${friendshipId}`);
+      return friendshipId;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || 'Failed to cancel request'
+      );
     }
   }
 );
@@ -98,10 +121,10 @@ export const updateFriendshipTier = createAsyncThunk(
   'friendship/updateFriendshipTier',
   async ({ friendshipId, tier, customLabel }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.put(
-        `/friendships/${friendshipId}/tier`,
-        { tier, customLabel }
-      );
+      const res = await axiosInstance.put(`/friendships/${friendshipId}/tier`, {
+        tier,
+        customLabel,
+      });
       return res.data.data;
     } catch (error) {
       return rejectWithValue(
@@ -138,7 +161,10 @@ export const unblockUser = createAsyncThunk(
 export const getPendingRequests = createAsyncThunk(
   'friendship/getPendingRequests',
   // async ({ page = 1, size = FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
-  async ({ page = 1, size = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = {}, { rejectWithValue }) => {
+  async (
+    { page = 1, size = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const res = await axiosInstance.get(
         `/friendships/requests/pending?page=${page}&size=${size}`
@@ -148,7 +174,9 @@ export const getPendingRequests = createAsyncThunk(
         pagination: res.data.payload.pagination,
       };
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to get pending requests');
+      return rejectWithValue(
+        error.response?.data || 'Failed to get pending requests'
+      );
     }
   }
 );
@@ -172,54 +200,6 @@ export const getSentRequests = createAsyncThunk(
   }
 );
 
-export const listFriends = createAsyncThunk(
-  'friendship/listFriends',
-  async (
-    { userId, page = 1, size = FRIENDS_PER_PAGE } = {},
-    { rejectWithValue }
-  ) => {
-    try {
-      const url = userId
-        ? `/friendships/${userId}/friends?page=${page}&size=${size}`
-        : `/friendships?page=${page}&size=${size}`;
-      const res = await axiosInstance.get(url);
-      return {
-        data: res.data.payload.data,
-        pagination: res.data.payload.pagination,
-        userId,
-      };
-    } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to fetch friends');
-    }
-  }
-);
-
-export const getFriends = createAsyncThunk(
-  'friendship/getFriends',
-  async (
-    { userId, page = 1, size = FRIENDSHIP_CONFIG.FRIENDS_PER_PAGE } = {},
-    { rejectWithValue }
-  ) => {
-    try {
-      const url = userId
-        ? `/friendships/${userId}/friends?page=${page}&size=${size}`
-        : `/friendships?page=${page}&size=${size}`;
-      
-      const res = await axiosInstance.get(url);
-      return {
-        data: res.data.payload.data,
-        pagination: res.data.payload.pagination,
-        userId: userId || 'current',
-      };
-    } catch (error) {
-      return rejectWithValue({
-        message: error.response?.data?.message || 'Failed to fetch friends',
-        userId,
-        code: error.response?.data?.code,
-      });
-    }
-  }
-);
 
 export const getMutualFriends = createAsyncThunk(
   'friendship/getMutualFriends',
@@ -336,6 +316,7 @@ const initialState = {
   suggestions: { data: [], status: 'idle', error: null },
   tiers: { data: [], status: 'idle', error: null },
   friendsByTier: createPaginatedState(),
+  friendsByUser: {},
   current: createPaginatedState(),
   statusLookup: {},
   status: 'idle',
@@ -380,12 +361,12 @@ const friendshipSlice = createSlice({
       .addCase(cancelFriendRequest.pending, (state) => {
         state.status = 'loading';
       })
-.addCase(cancelFriendRequest.fulfilled, (state, action) => {
-  state.sentRequests.data = state.sentRequests.data.filter(
-    req => req.id !== action.payload
-  );
-  state.status = 'succeeded';
-})
+      .addCase(cancelFriendRequest.fulfilled, (state, action) => {
+        state.sentRequests.data = state.sentRequests.data.filter(
+          (req) => req.id !== action.payload
+        );
+        state.status = 'succeeded';
+      })
       .addCase(cancelFriendRequest.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
@@ -451,40 +432,23 @@ const friendshipSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Remove friendship
-      .addCase(removeFriend.pending, (state) => {
+       // Update friendship tier
+      .addCase(updateFriendshipTier.pending, (state) => {
         state.status = 'loading';
       })
-
-      .addCase(removeFriend.fulfilled, (state, action) => {
-  state.friends.data = state.friends.data.filter(
-    friend => friend.id !== action.payload
-  );
-  state.status = 'succeeded';
-})
-     
-      .addCase(removeFriend.rejected, (state, action) => {
+      .addCase(updateFriendshipTier.fulfilled, (state, action) => {
+        const index = state.friends.data.findIndex(
+          (f) => f.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.friends.data[index] = action.payload;
+        }
+        state.status = 'succeeded';
+      })
+      .addCase(updateFriendshipTier.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })
-
-      // Update friendship tier
-    .addCase(updateFriendshipTier.pending, (state) => {
-  state.status = 'loading';
-})
-.addCase(updateFriendshipTier.fulfilled, (state, action) => {
-  const index = state.friends.data.findIndex(
-    f => f.id === action.payload.id
-  );
-  if (index !== -1) {
-    state.friends.data[index] = action.payload;
-  }
-  state.status = 'succeeded';
-})
-.addCase(updateFriendshipTier.rejected, (state, action) => {
-  state.status = 'failed';
-  state.error = action.payload;
-})
 
       // Block user
       .addCase(blockUser.pending, (state) => {
@@ -506,30 +470,30 @@ const friendshipSlice = createSlice({
       .addCase(unblockUser.pending, (state) => {
         state.status = 'loading';
       })
-   .addCase(unblockUser.fulfilled, (state, action) => {
-  state.status = 'succeeded';
-})
+      .addCase(unblockUser.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+      })
       .addCase(unblockUser.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })
 
       // Get pending requests
-    .addCase(getPendingRequests.pending, (state) => {
-  state.pendingRequests.status = 'loading';
-})
-.addCase(getPendingRequests.fulfilled, (state, action) => {
-  state.pendingRequests = {
-    data: action.payload.data,
-    pagination: action.payload.pagination,
-    status: 'succeeded',
-    error: null,
-  };
-})
-.addCase(getPendingRequests.rejected, (state, action) => {
-  state.pendingRequests.status = 'failed';
-  state.pendingRequests.error = action.payload;
-})
+      .addCase(getPendingRequests.pending, (state) => {
+        state.pendingRequests.status = 'loading';
+      })
+      .addCase(getPendingRequests.fulfilled, (state, action) => {
+        state.pendingRequests = {
+          data: action.payload.data,
+          pagination: action.payload.pagination,
+          status: 'succeeded',
+          error: null,
+        };
+      })
+      .addCase(getPendingRequests.rejected, (state, action) => {
+        state.pendingRequests.status = 'failed';
+        state.pendingRequests.error = action.payload;
+      })
 
       // Get sent requests
       .addCase(getSentRequests.pending, (state) => {
@@ -548,83 +512,72 @@ const friendshipSlice = createSlice({
         state.sentRequests.error = action.payload;
       })
 
-      // List friends
-      .addCase(listFriends.pending, (state) => {
-        state.friends.status = 'loading';
+      //! Get friends (for any user)
+    .addCase(getFriends.pending, (state) => {
+        state.status = 'loading';
       })
-      .addCase(listFriends.fulfilled, (state, action) => {
-        state.friends = {
+      .addCase(getFriends.fulfilled, (state, action) => {
+        const { userId, data, pagination } = action.payload;
+        state.friendsByUser[userId] = {
+          data,
+          pagination,
+          status: 'succeeded',
+        };
+        state.status = 'succeeded';
+      })
+      .addCase(getFriends.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload?.message || 'Failed to fetch friends';
+      })
+
+      // removeFriend
+      .addCase(removeFriend.fulfilled, (state, action) => {
+        const friendshipId = action.payload;
+        Object.keys(state.friendsByUser).forEach((userId) => {
+          state.friendsByUser[userId].data = state.friendsByUser[userId].data.filter(
+            (friendship) => friendship.id !== friendshipId
+          );
+        });
+      })
+
+      // Get mutual friends
+      .addCase(getMutualFriends.pending, (state) => {
+        state.mutualFriends.status = 'loading';
+      })
+      .addCase(getMutualFriends.fulfilled, (state, action) => {
+        state.mutualFriends = {
           data: action.payload.data,
           pagination: action.payload.pagination,
           status: 'succeeded',
           error: null,
         };
       })
-      .addCase(listFriends.rejected, (state, action) => {
-        state.friends.status = 'failed';
-        state.friends.error = action.payload;
+      .addCase(getMutualFriends.rejected, (state, action) => {
+        state.mutualFriends.status = 'failed';
+        state.mutualFriends.error = action.payload;
       })
 
-      // Get friends (for any user)
-     .addCase(getFriends.pending, (state, action) => {
-  const userId = action.meta.arg.userId || 'current';
-  state.friendsByUser[userId] = state.friendsByUser[userId] || createPaginatedState();
-  state.friendsByUser[userId].status = 'loading';
-})
-.addCase(getFriends.fulfilled, (state, action) => {
-  const { data, pagination, userId = 'current' } = action.payload;
-  state.friendsByUser[userId] = {
-    data,
-    pagination,
-    status: 'succeeded',
-    error: null,
-  };
-})
-.addCase(getFriends.rejected, (state, action) => {
-  const userId = action.meta.arg.userId || 'current';
-  state.friendsByUser[userId] = state.friendsByUser[userId] || createPaginatedState();
-  state.friendsByUser[userId].status = 'failed';
-  state.friendsByUser[userId].error = action.payload;
-})
-
-      // Get mutual friends
-   .addCase(getMutualFriends.pending, (state) => {
-  state.mutualFriends.status = 'loading';
-})
-.addCase(getMutualFriends.fulfilled, (state, action) => {
-  state.mutualFriends = {
-    data: action.payload.data,
-    pagination: action.payload.pagination,
-    status: 'succeeded',
-    error: null,
-  };
-})
-.addCase(getMutualFriends.rejected, (state, action) => {
-  state.mutualFriends.status = 'failed';
-  state.mutualFriends.error = action.payload;
-})
-
       // Get friend suggestions
-    .addCase(getFriendSuggestions.pending, (state) => {
-  state.suggestions.status = 'loading';
-})
-.addCase(getFriendSuggestions.fulfilled, (state, action) => {
-  state.suggestions = {
-    data: action.payload,
-    status: 'succeeded',
-    error: null,
-  };
-})
-.addCase(getFriendSuggestions.rejected, (state, action) => {
-  state.suggestions.status = 'failed';
-  state.suggestions.error = action.payload;
-})
+      .addCase(getFriendSuggestions.pending, (state) => {
+        state.suggestions.status = 'loading';
+      })
+      .addCase(getFriendSuggestions.fulfilled, (state, action) => {
+        state.suggestions = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+        };
+      })
+      .addCase(getFriendSuggestions.rejected, (state, action) => {
+        state.suggestions.status = 'failed';
+        state.suggestions.error = action.payload;
+      })
 
       // Check friendship status
-         .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
-  const { userId, status, direction, friendship } = action.payload;
-  state.statusLookup[userId] = { status, direction, friendship };
-})
+      .addCase(checkFriendshipStatus.fulfilled, (state, action) => {
+        const { userId, status, direction, friendship } = action.payload;
+        state.statusLookup[userId] = { status, direction, friendship };
+      })
 
       // Friends by tier
       .addCase(getFriendsByTier.pending, (state) => {
@@ -660,10 +613,10 @@ const friendshipSlice = createSlice({
       })
 
       // Cleanup expired requests
-   .addCase(cleanupExpiredRequests.fulfilled, (state) => {
-  state.status = 'succeeded';
-  state.lastAction = 'cleanupExpiredRequests';
-});
+      .addCase(cleanupExpiredRequests.fulfilled, (state) => {
+        state.status = 'succeeded';
+        state.lastAction = 'cleanupExpiredRequests';
+      });
   },
 });
 

@@ -1,7 +1,6 @@
 const express = require('express');
 const {
   handleActivateUser,
-
   handleGetUsers,
   handleGetUserById,
   handleUpdateUserById,

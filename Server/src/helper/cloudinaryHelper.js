@@ -81,16 +81,3 @@ module.exports = {
   extractPublicIdFromUrl,
   publicIdWithoutExtensionFromUrl // Maintained for backward compatibility
 };
-
-
-
-
-
-
-
-
-
-
-
-
-

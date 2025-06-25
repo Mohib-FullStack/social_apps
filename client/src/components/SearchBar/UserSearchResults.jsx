@@ -1,12 +1,20 @@
-import { Avatar, Box, Typography, List, ListItem, ListItemAvatar, ListItemText } from '@mui/material';
+import {
+  Avatar,
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types'; // Add this import
 
-const UserSearchResults = ({ 
-  results = [], 
-  onResultClick = () => {}, 
-  isLoading = false 
+const UserSearchResults = ({
+  results = [],
+  onResultClick = () => {},
+  isLoading = false,
 }) => {
   const navigate = useNavigate();
   const currentUserId = useSelector((state) => state.user.profile?.id);
@@ -44,30 +52,30 @@ const UserSearchResults = ({
   return (
     <List sx={{ maxHeight: 300, overflowY: 'auto', py: 0 }}>
       {results.map((user) => (
-        <ListItem 
+        <ListItem
           key={user.id}
           button
           onClick={() => handleClick(user)}
           sx={{
-            '&:hover': { 
-              backgroundColor: 'action.hover' 
+            '&:hover': {
+              backgroundColor: 'action.hover',
             },
             transition: 'background-color 0.2s ease',
             px: 2,
-            py: 1.5
+            py: 1.5,
           }}
           aria-label={`View profile of ${user.firstName} ${user.lastName}`}
           data-testid={`user-result-${user.id}`}
         >
           <ListItemAvatar>
-            <Avatar 
-              src={user.profileImage || '/default-avatar.png'} 
+            <Avatar
+              src={user.profileImage || '/default-avatar.png'}
               alt={`${user.firstName}'s profile`}
-              sx={{ 
-                width: 40, 
+              sx={{
+                width: 40,
                 height: 40,
                 backgroundColor: 'primary.light',
-                color: 'primary.contrastText'
+                color: 'primary.contrastText',
               }}
             />
           </ListItemAvatar>
@@ -77,13 +85,13 @@ const UserSearchResults = ({
             primaryTypographyProps={{
               variant: 'subtitle1',
               noWrap: true,
-              component: 'div'
+              component: 'div',
             }}
             secondaryTypographyProps={{
               variant: 'body2',
               color: 'text.secondary',
               noWrap: true,
-              component: 'div'
+              component: 'div',
             }}
             sx={{ overflow: 'hidden' }}
           />

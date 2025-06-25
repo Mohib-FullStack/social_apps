@@ -38,5 +38,3 @@ const theme = createTheme({
 });
 
 export default theme;
-
-

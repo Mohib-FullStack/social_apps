@@ -1,8 +1,7 @@
 //  config/index.js
 const UPLOAD_USER_IMG_DIRECTORY = 'public/images/users';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 ;
-
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // Include additional MIME types for images
 const ALLOWED_FILE_TYPES = [

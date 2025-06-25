@@ -1,6 +1,6 @@
-import { List, ListItem, ListItemIcon, ListItemText, Avatar, Typography, Box } from '@mui/material';
-import { Link } from 'react-router-dom';
 import { ContactMail, Login } from '@mui/icons-material';
+import { Avatar, Box, List, ListItem, ListItemIcon, ListItemText, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 const DrawerContent = ({ 
   navItems, 
@@ -49,6 +49,17 @@ const DrawerContent = ({
             <ContactMail color="info" />
           </ListItemIcon>
           <ListItemText primary="Contact Us" />
+        </ListItem>
+
+          <ListItem 
+          component={Link} 
+          to="/user-table"
+          onClick={toggleDrawer(false)}
+        >
+          <ListItemIcon>
+            <ContactMail color="info" />
+          </ListItemIcon>
+          <ListItemText primary="userTable" />
         </ListItem>
 
         {!loggedIn && (
