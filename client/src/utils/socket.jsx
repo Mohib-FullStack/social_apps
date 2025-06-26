@@ -13,21 +13,19 @@ const createSocketService = () => {
     validationTimeouts = {};
   };
 
-  const connect = (auth = {}, query = {}) => {
+  const connect = (queryParams = '?validation=true') => {
     if (!socket) {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030';
+      const socketUrl = `${import.meta.env.VITE_SOCKET_URL || 'http://localhost:3030'}${queryParams}`;
       
-      console.log('Connecting to socket at:', socketUrl); // Debug log
+      console.log('Connecting to socket at:', socketUrl);
       
       socket = io(socketUrl, {
-        withCredentials: true,
+        withCredentials: true,  // Crucial for cookie auth
         autoConnect: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        transports: ['websocket'], // Force WebSocket transport
-        timeout: 10000, // Increase connection timeout
-        auth,    // JWT token here
-        query,   // optional for validation=true
+        transports: ['websocket'],
+        timeout: 10000,
       });
 
       socket.on('connect', () => {
@@ -47,11 +45,10 @@ const createSocketService = () => {
         
         if (connectionAttempts >= maxConnectionAttempts) {
           console.error('Max connection attempts reached');
-          // You might want to trigger some UI notification here
         }
       });
 
-      // Add ping/pong monitoring
+      // Ping/pong monitoring
       socket.on('ping', () => console.debug('Socket ping'));
       socket.on('pong', (latency) => console.debug('Socket pong', latency));
     }
@@ -76,18 +73,15 @@ const createSocketService = () => {
 
       const requestId = Date.now().toString();
 
-      // Clear any previous validation for this field
       if (validationTimeouts[field]) {
         clearTimeout(validationTimeouts[field]);
         delete validationTimeouts[field];
       }
 
-      // Set timeout (3 seconds)
       validationTimeouts[field] = setTimeout(() => {
         reject(new Error('Validation timeout'));
       }, 3000);
 
-      // Send validation request
       socket.emit('validate-field', { field, value, requestId }, (response) => {
         clearTimeout(validationTimeouts[field]);
         delete validationTimeouts[field];
@@ -109,9 +103,7 @@ const createSocketService = () => {
   };
 };
 
-// Singleton instance
 const socketService = createSocketService();
-
 export default socketService;
 
 

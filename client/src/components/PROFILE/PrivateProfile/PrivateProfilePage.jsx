@@ -1,917 +1,280 @@
+//! This is Fine
+// PrivateProfilePage.jsx (React) — Chat integrated with Socket.IO
+
+// import {
+//   Box,
+//   Typography
+// } from '@mui/material';
+// import { useSelector } from 'react-redux';
+// import Dashboard from '../../DASHBOARD/Dashboard';
+// import FriendsListCard from './FriendsListCard';
+
+
+// const PrivateProfilePage = () => {
+//   const profile = useSelector((state) => state.user.profile);
+
+//   if (!profile?.id) {
+//     return (
+//       <Box textAlign="center" mt={4}>
+//         <Typography variant="body1" color="text.secondary">
+//           Loading user profile...
+//         </Typography>
+//       </Box>
+//     );
+//   }
+
+//   return (
+//      <Box maxWidth="md" mx="auto" px={2} pt={2}>
+//       <Typography variant="h5" gutterBottom>
+//         {profile.firstName} {profile.lastName}'s Profile
+//       </Typography>
+//       <Dashboard/>
+//        <FriendsListCard /> 
+//     </Box>
+//   );
+// };
+
+// export default PrivateProfilePage;
+
+//! refactor with Dashboard
+// import {
+//   Box,
+//   Button,
+//   ThemeProvider,
+//   Typography,
+//   useMediaQuery
+// } from '@mui/material';
+// import { useCallback, useEffect, useMemo, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigate } from 'react-router-dom';
+// import theme from '../../../theme';
+
+// // Redux actions
+// import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
+// import {
+//   fetchUserProfile,
+//   updateCoverImage
+// } from '../../../features/user/userSlice';
+
+// // Components
+// import ProfileHeader from './ProfileHeader';
+// import ProfileSkeleton from './ProfileSkeleton';
+// import Dashboard from '../../DASHBOARD/Dashboard';
+
+// // Constants
+// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
+// const DEFAULT_COVER_IMAGE = '/default-cover.jpg';
+// const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+// // Main PrivateProfilePage Component
+// const PrivateProfilePage = () => {
+//   // Initialization
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+//   // Redux state
+//   const { profile, loading, error } = useSelector((state) => state.user);
+
+//   // Component state
+//   const [state, setState] = useState({
+//     coverImageLoading: false,
+//     isHoveringCover: false,
+//   });
+
+//   // Derived values
+//   const userId = useMemo(() => profile?.user?.id || profile?.id || 'me', [profile]);
+
+//   const userData = useMemo(() => ({
+//     id: userId,
+//     fullName: `${profile?.user?.firstName || profile?.firstName || ''} ${profile?.user?.lastName || profile?.lastName || ''}`.trim(),
+//     profileImage: profile?.user?.profileImage || profile?.profileImage || DEFAULT_PROFILE_IMAGE,
+//     coverImage: profile?.user?.coverImage || profile?.coverImage || DEFAULT_COVER_IMAGE,
+//     isCurrentUser: true, // This ensures the add friend button won't show
+//   }), [profile, userId]);
+
+//   // Effects
+//   useEffect(() => {
+//     dispatch(fetchUserProfile());
+//   }, [dispatch]);
+
+//   useEffect(() => {
+//     if (error) {
+//       dispatch(showSnackbar({
+//         message: error,
+//         severity: 'error'
+//       }));
+//     }
+//   }, [error, dispatch]);
+
+//   // Handler functions
+//   const handleStateChange = useCallback((updates) => {
+//     setState(prev => ({ ...prev, ...updates }));
+//   }, []);
+
+//   const handleEditProfile = useCallback(() => navigate('/my-profile-update'), [navigate]);
+
+//   const handleCoverPhotoUpdate = useCallback(async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     if (!file.type.startsWith('image/')) {
+//       dispatch(showSnackbar({
+//         message: 'Only image files are allowed',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     if (file.size > MAX_COVER_IMAGE_SIZE) {
+//       dispatch(showSnackbar({
+//         message: 'Image size must be less than 5MB',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     handleStateChange({ coverImageLoading: true });
+    
+//     try {
+//       const formData = new FormData();
+//       formData.append('coverImage', file);
+//       await dispatch(updateCoverImage(formData)).unwrap();
+      
+//       dispatch(showSnackbar({
+//         message: 'Cover image updated successfully!',
+//         severity: 'success'
+//       }));
+      
+//       await dispatch(fetchUserProfile());
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: error.message || 'Failed to update cover image',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       handleStateChange({ coverImageLoading: false });
+//       e.target.value = '';
+//     }
+//   }, [dispatch, handleStateChange]);
+
+//   // Render functions
+//   const renderErrorState = () => (
+//     <Box sx={{
+//       display: 'flex',
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       height: '100vh',
+//       flexDirection: 'column',
+//       gap: 2
+//     }}>
+//       <Typography variant="h6" color="error">
+//         Failed to load profile
+//       </Typography>
+//       <Button 
+//         variant="contained" 
+//         onClick={() => dispatch(fetchUserProfile())}
+//         sx={{ mt: 2 }}
+//       >
+//         Retry
+//       </Button>
+//     </Box>
+//   );
+
+//   if (loading || !profile) {
+//     return <ProfileSkeleton />;
+//   }
+
+//   if (error) {
+//     return renderErrorState();
+//   }
+
+//   return (
+//     <ThemeProvider theme={theme}>
+//       <Box sx={{
+//         backgroundColor: 'background.default',
+//         minHeight: '100vh',
+//         pb: 6
+//       }}>
+//         {/* Profile Header with cover image functionality only */}
+//         <ProfileHeader
+//           userData={userData}
+//           isMobile={isMobile}
+//           onCoverPhotoEdit={handleCoverPhotoUpdate}
+//           onProfilePhotoEdit={handleEditProfile}
+//           coverImageLoading={state.coverImageLoading}
+//           isHoveringCover={state.isHoveringCover}
+//           setIsHoveringCover={(value) => handleStateChange({ isHoveringCover: value })}
+//           showAddFriendButton={false} // Explicitly hiding the add friend button
+//         />
+//           <Dashboard/>
+//               </Box>
+            
+//     </ThemeProvider>
+//   );
+// };
+
+// export default PrivateProfilePage;
+
+//! test
 import {
-  Add as AddIcon,
-  ArrowForward as ArrowForwardIcon,
-  Check as CheckIcon,
-  Edit as EditIcon,
-  Event as EventsIcon,
-  People as FriendsIcon,
-  HourglassEmpty as HourglassEmptyIcon,
-  AccountBox as InfoIcon,
-  Favorite as LikesIcon,
-  Lock as LockIcon,
-  PhotoLibrary as MediaIcon,
-  Message as MessageIcon,
-  Chat as MessagesIcon,
-  MoreHoriz as MoreHorizIcon,
-  PersonAdd as PersonAddIcon,
-  PersonRemove as PersonRemoveIcon,
-  PhotoCamera as PhotoCameraIcon // Add this line
-  ,
-  Article as PostsIcon,
-  Security as PrivacyIcon,
-  BusinessCenter as ProfessionalIcon,
-  Build as ToolsIcon,
-  Visibility as VisibilityIcon
-} from '@mui/icons-material';
-import OpenInNew from '@mui/icons-material/OpenInNew';
-import {
-  Avatar,
-  Badge,
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  Tab,
-  Tabs,
-  TextField,
   ThemeProvider,
-  Tooltip,
   Typography,
-  useMediaQuery,
-  useTheme,
-  Zoom
+  useMediaQuery
 } from '@mui/material';
-import PropTypes from 'prop-types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import theme from '../../../theme';
 
-// Redux actions
-import {
-  blockUser,
-  getFriends,
-  removeFriend,
-  unblockUser,
-  updateFriendshipTier
-} from '../../../features/friendship/friendshipSlice';
 import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
 import {
   fetchUserProfile,
-  logoutUser,
-  updateCoverImage
+  updateCoverImage,
+  updatePrivateProfile
 } from '../../../features/user/userSlice';
 
-// Utils
-import socketService from '../../../utils/socket';
-
-// Components
-import CancelRequestButton from './CancelRequestButton';
-import DeleteAccountDialog from './DeleteAccountDialog';
+import Dashboard from '../../DASHBOARD/Dashboard';
 import ProfileHeader from './ProfileHeader';
-import ProfileInfoSection from './ProfileInfoSection';
 import ProfileSkeleton from './ProfileSkeleton';
-import ProfileStats from './ProfileStats';
+import ProfileTabs from './ProfileTabs';
 
-// Constants
 const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
 const DEFAULT_COVER_IMAGE = '/default-cover.jpg';
-const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const PROFILE_TABS = [
-  { label: 'Posts', value: 0 },
-  { label: 'About', value: 1 },
-  { label: 'Friends', value: 2 },
-  { label: 'Photos', value: 3 },
-  { label: 'Dashboard', value: 4 }
-];
-
-// Chat Preview Modal Component
-const ChatPreviewModal = ({ open, onClose, friend }) => {
-  const user = useSelector((state) => state.user.profile);
-  const [messageText, setMessageText] = useState('');
-
-  const handleSend = () => {
-    if (!messageText.trim() || !user || !friend) return;
-
-    const payload = {
-      senderId: user.id,
-      receiverId: friend.id,
-      content: messageText,
-      timestamp: new Date().toISOString(),
-    };
-
-    socketService.emit('private_message', payload);
-    setMessageText('');
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Start Chat</DialogTitle>
-      <DialogContent>
-        <Box display="flex" alignItems="center" gap={2} mb={2}>
-          <Avatar
-            src={friend?.profileImage || DEFAULT_PROFILE_IMAGE}
-            sx={{ width: 48, height: 48 }}
-          />
-          <Typography variant="subtitle1">
-            {friend?.firstName} {friend?.lastName}
-          </Typography>
-        </Box>
-        <TextField
-          autoFocus
-          multiline
-          rows={3}
-          fullWidth
-          variant="outlined"
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-          placeholder="Write your message..."
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSend} disabled={!messageText.trim()}>
-          Send
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
-// Friendship Tier Dialog Component
-const FriendshipTierDialog = ({ friendshipId, currentTier }) => {
-  const dispatch = useDispatch();
-  
-  const tiers = [
-    { value: 'close', label: 'Close Friends' },
-    { value: 'regular', label: 'Regular Friends' },
-    { value: 'family', label: 'Family' },
-    { value: 'work', label: 'Work' }
-  ];
-
-  const handleChange = async (event) => {
-    const newTier = event.target.value;
-    try {
-      await dispatch(updateFriendshipTier({ 
-        friendshipId, 
-        tier: newTier 
-      })).unwrap();
-      
-      dispatch(showSnackbar({
-        message: 'Friendship tier updated successfully',
-        severity: 'success'
-      }));
-    } catch (error) {
-      dispatch(showSnackbar({
-        message: 'Failed to update friendship tier',
-        severity: 'error'
-      }));
-    }
-  };
-
-  return (
-    <Tooltip title="Change friendship tier" arrow>
-      <FormControl size="small" sx={{ minWidth: 120 }}>
-        <InputLabel>Tier</InputLabel>
-        <Select
-          value={currentTier || 'regular'}
-          onChange={handleChange}
-          label="Tier"
-        >
-          {tiers.map((tier) => (
-            <MenuItem key={tier.value} value={tier.value}>
-              {tier.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Tooltip>
-  );
-};
-
-// Friends List Card Component
-const FriendsListCard = () => {
-  const dispatch = useDispatch();
-  const { profile } = useSelector((state) => state.user);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const friends = useSelector(
-    (state) => state.friendship.friendsByUser[profile?.id] || { data: [] }
-  );
-
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const [chatFriend, setChatFriend] = useState(null);
-
-  useEffect(() => {
-    if (!profile?.id) return;
-    setLoading(true);
-    dispatch(getFriends({ userId: profile.id }))
-      .unwrap()
-      .catch((err) => {
-        console.error('Failed to load friends:', err);
-        dispatch(showSnackbar({
-          message: 'Failed to load friends list',
-          severity: 'error'
-        }));
-      })
-      .finally(() => setLoading(false));
-  }, [dispatch, profile?.id]);
-
-  const handleRemove = async (friendshipId) => {
-    if (window.confirm('Are you sure you want to remove this friend?')) {
-      try {
-        await dispatch(removeFriend(friendshipId)).unwrap();
-        dispatch(showSnackbar({
-          message: 'Friend removed successfully',
-          severity: 'success'
-        }));
-      } catch (error) {
-        dispatch(showSnackbar({
-          message: 'Failed to remove friend',
-          severity: 'error'
-        }));
-      }
-    }
-  };
-
-  const mockMutualFriendsCount = (friendId) => {
-    const seed = friendId % 5;
-    return seed === 0 ? 0 : seed + 1;
-  };
-
-  const friendList = friends.data || [];
-  const filteredFriends = activeTab === 'all'
-    ? friendList
-    : friendList.filter(f => f.tier === activeTab);
-
-  return (
-    <Card elevation={1} sx={{ mt: 1, mb: 2 }}>
-      <CardHeader
-        title="Friends"
-        subheader={`${filteredFriends.length} ${activeTab !== 'all' ? activeTab : ''} friends`}
-        sx={{ pt: 1, pb: 0.5 }}
-      />
-
-      <Tabs
-        value={activeTab}
-        onChange={(e, value) => setActiveTab(value)}
-        variant="fullWidth"
-        indicatorColor="primary"
-        textColor="primary"
-      >
-        <Tab label="All" value="all" />
-        <Tab label="Close" value="close" />
-        <Tab label="Family" value="family" />
-      </Tabs>
-
-      <CardContent sx={{ pt: 0.5, pb: 1 }}>
-        {loading ? (
-          <Typography color="text.secondary" align="center">
-            Loading friends...
-          </Typography>
-        ) : filteredFriends.length === 0 ? (
-          <Typography color="text.secondary" align="center">
-            No {activeTab !== 'all' ? activeTab : ''} friends to show.
-          </Typography>
-        ) : (
-          <Grid container spacing={2}>
-            {filteredFriends.map(({ id, friend, tier }) => {
-              const mutualCount = mockMutualFriendsCount(friend.id);
-              return (
-                <Grid item xs={12} sm={6} md={4} key={id}>
-                  <Card variant="outlined" sx={{ height: '100%' }}>
-                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Badge
-                        badgeContent={
-                          mutualCount > 0 ? `${mutualCount} mutual` : null
-                        }
-                        color="primary"
-                      >
-                        <Avatar
-                          src={friend.profileImage || DEFAULT_PROFILE_IMAGE}
-                          sx={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56 }}
-                        />
-                      </Badge>
-                      <Box flexGrow={1}>
-                        <Typography variant="subtitle1" noWrap>
-                          {friend.firstName} {friend.lastName}
-                        </Typography>
-                        {tier !== 'regular' && (
-                          <Typography variant="body2" color="text.secondary">
-                            {tier}
-                          </Typography>
-                        )}
-                      </Box>
-                    </CardContent>
-                    <Box
-                      display="flex"
-                      flexDirection={isMobile ? 'column' : 'row'}
-                      justifyContent="flex-end"
-                      gap={1}
-                      px={2}
-                      pb={2}
-                    >
-                      <Button
-                        size="small"
-                        fullWidth={isMobile}
-                        variant="outlined"
-                        startIcon={<MessageIcon />}
-                        onClick={() => setChatFriend(friend)}
-                      >
-                        Message
-                      </Button>
-                      <Button
-                        size="small"
-                        fullWidth={isMobile}
-                        variant="outlined"
-                        color="error"
-                        startIcon={<PersonRemoveIcon />}
-                        onClick={() => handleRemove(id)}
-                      >
-                        Remove
-                      </Button>
-                    </Box>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
-        <ChatPreviewModal
-          open={!!chatFriend}
-          friend={chatFriend}
-          onClose={() => setChatFriend(null)}
-        />
-      </CardContent>
-    </Card>
-  );
-};
-
-// Profile Actions Component
-const ProfileActions = ({
-  isOwnProfile,
-  friendStatus = 'not_friends',
-  friendshipId,
-  userId,
-  onAddFriend,
-  onMessage,
-  onEditProfile,
-  onCreateStory,
-  onViewFriends,
-  onViewAsPublic,
-  isBlocked
-}) => {
-  const dispatch = useDispatch();
-  const [showFriendsList, setShowFriendsList] = useState(false);
-
-  const commonStyles = {
-    display: 'flex',
-    gap: 2,
-    mt: 2,
-    flexWrap: 'wrap',
-  };
-
-   const storyButtonStyles = {
-    background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366)',
-    color: 'white',
-    '&:hover': {
-      opacity: 0.9,
-    },
-  };
-
-  const viewAsPublicButtonStyles = {
-    background: 'linear-gradient(45deg, #2196F3, #21CBF3)',
-    color: 'white',
-    '&:hover': {
-      opacity: 0.9,
-    },
-  };
-
-  const handleBlock = async () => {
-    if (window.confirm('Are you sure you want to block this user?')) {
-      try {
-        await dispatch(blockUser(userId)).unwrap();
-        dispatch(showSnackbar({
-          message: 'User blocked successfully',
-          severity: 'success'
-        }));
-      } catch (error) {
-        dispatch(showSnackbar({
-          message: error.message || 'Failed to block user',
-          severity: 'error'
-        }));
-      }
-    }
-  };
-
-  const handleUnblock = async () => {
-    try {
-      await dispatch(unblockUser(userId)).unwrap();
-      dispatch(showSnackbar({
-        message: 'User unblocked successfully',
-        severity: 'success'
-      }));
-    } catch (error) {
-      dispatch(showSnackbar({
-        message: error.message || 'Failed to unblock user',
-        severity: 'error'
-      }));
-    }
-  };
-
-  if (isOwnProfile) {
-    return (
-      <Box sx={commonStyles}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onCreateStory}
-          sx={storyButtonStyles}
-        >
-          Add to story
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={onEditProfile}
-          color="primary"
-        >
-          Edit profile
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={<VisibilityIcon />}
-          onClick={onViewAsPublic}
-          sx={viewAsPublicButtonStyles}
-        >
-          View As Public
-        </Button>
-
-        <Button
-          variant="outlined"
-          endIcon={<ArrowForwardIcon fontSize="small" />}
-          onClick={() => {
-            onViewFriends();
-            setShowFriendsList(prev => !prev);
-          }}
-        >
-          {showFriendsList ? 'Hide Friends' : 'See all friends'}
-        </Button>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={commonStyles}>
-      {isBlocked ? (
-        <Button 
-          variant="outlined" 
-          color="primary"
-          onClick={handleUnblock}
-          sx={{ minWidth: 150 }}
-        >
-          Unblock User
-        </Button>
-      ) : (
-        <>
-          {friendStatus === 'not_friends' && (
-            <Button
-              variant="contained"
-              startIcon={<PersonAddIcon />}
-              onClick={onAddFriend}
-              sx={{ minWidth: 150 }}
-            >
-              Add Friend
-            </Button>
-          )}
-
-          {friendStatus === 'pending' && (
-            <>
-              <Button variant="outlined" disabled startIcon={<HourglassEmptyIcon />} sx={{ minWidth: 150 }}>
-                Request Sent
-              </Button>
-              <CancelRequestButton friendshipId={friendshipId} />
-            </>
-          )}
-
-          {friendStatus === 'friends' && (
-            <>
-              <Button variant="contained" disabled startIcon={<CheckIcon />} sx={{ minWidth: 150 }}>
-                Friends
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<MessageIcon />}
-                onClick={onMessage}
-                sx={{ minWidth: 150 }}
-              >
-                Message
-              </Button>
-            </>
-          )}
-
-          {friendStatus === 'following' && (
-            <Button variant="outlined" disabled sx={{ minWidth: 150 }}>
-              Following
-            </Button>
-          )}
-        </>
-      )}
-
-      {!isBlocked && (
-        <Button 
-          variant="outlined" 
-          color="error"
-          onClick={handleBlock}
-          sx={{ minWidth: 150 }}
-        >
-          Block User
-        </Button>
-      )}
-
-      <Button variant="outlined">
-        <MoreHorizIcon />
-      </Button>
-    </Box>
-  );
-};
-
-ProfileActions.propTypes = {
-  isOwnProfile: PropTypes.bool.isRequired,
-  friendStatus: PropTypes.oneOf([
-    'friends',
-    'pending',
-    'not_friends',
-    'following',
-  ]),
-  friendshipId: PropTypes.string,
-  userId: PropTypes.string,
-  isBlocked: PropTypes.bool,
-  onAddFriend: PropTypes.func,
-  onMessage: PropTypes.func,
-  onEditProfile: PropTypes.func,
-  onCreateStory: PropTypes.func,
-  onViewFriends: PropTypes.func,
-  onViewAsPublic: PropTypes.func,
-};
-
-ProfileActions.defaultProps = {
-  friendStatus: 'not_friends',
-  isBlocked: false,
-  onViewAsPublic: () => {},
-};
-
-// Dashboard Component
-const Dashboard = ({ userData }) => {
-  const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const cardStyle = (color) => ({
-    height: '100%',
-    background: `linear-gradient(135deg, ${color} 0%, ${theme.palette.background.paper} 100%)`,
-    color: theme.palette.getContrastText(color),
-    '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 },
-    transition: '0.3s'
-  });
-
-  const renderCard = ({ title, icon, subtitle, color, action }, index) => (
-    <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-      <Card sx={cardStyle(color)} onClick={action}>
-        <CardContent sx={{ p: 2 }}>
-          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48, mb: 1 }}>
-            {icon}
-          </Avatar>
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom noWrap>
-            {title}
-          </Typography>
-          <Typography variant="body2" noWrap>{subtitle}</Typography>
-        </CardContent>
-        <Box sx={{ px: 2, pb: 2 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            fullWidth
-            sx={{
-              fontSize: '0.75rem',
-              py: 0.5,
-              color: 'inherit',
-              borderColor: 'rgba(255,255,255,0.5)',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.1)',
-                borderColor: 'white'
-              }
-            }}
-          >
-            Explore
-          </Button>
-        </Box>
-      </Card>
-    </Grid>
-  );
-
-  const socialCards = [
-    {
-      title: "Social Feed",
-      icon: <PostsIcon fontSize="large" />,
-      subtitle: "See latest posts",
-      color: theme.palette.primary.main,
-      action: () => navigate('/feed')
-    },
-    {
-      title: "Profile Views",
-      icon: <VisibilityIcon fontSize="large" />,
-      subtitle: "Check who's viewed",
-      color: theme.palette.success.main,
-      action: () => navigate('/insights')
-    },
-    {
-      title: "Messages",
-      icon: <MessagesIcon fontSize="large" />,
-      subtitle: "View conversations",
-      color: theme.palette.info.main,
-      action: () => navigate('/messages')
-    },
-    {
-      title: "Events",
-      icon: <EventsIcon fontSize="large" />,
-      subtitle: "Upcoming activities",
-      color: theme.palette.error.main,
-      action: () => navigate('/events')
-    },
-    {
-      title: "Story Archive",
-      icon: <PhotoCameraIcon fontSize="large" />,
-      subtitle: "Relive old moments",
-      color: "#9c27b0",
-      action: () => navigate('/stories')
-    },
-    {
-      title: "Likes",
-      icon: <LikesIcon fontSize="large" />,
-      subtitle: "Content you liked",
-      color: "#f44336",
-      action: () => navigate('/likes')
-    }
-  ];
-
-  const profileActionCards = [
-    {
-      title: "Edit Profile",
-      icon: <EditIcon fontSize="large" />,
-      subtitle: "Update your information",
-      color: "#4caf50",
-      action: () => navigate('/my-profile-update')
-    },
-    {
-      title: "View as Public",
-      icon: <VisibilityIcon fontSize="large" />,
-      subtitle: "See your public profile",
-      color: "#2196f3",
-      action: () => window.open(`/profile/${userData?.id || 'me'}`, '_blank')
-    },
-    {
-      title: "Update Password",
-      icon: <LockIcon fontSize="large" />,
-      subtitle: "Change your credentials",
-      color: "#ff9800",
-      action: () => navigate('/change-password')
-    },
-    {
-      title: "Personal Info",
-      icon: <InfoIcon fontSize="large" />,
-      subtitle: "Your email, phone & bio",
-      color: "#3f51b5",
-      action: () => navigate('/profile/private-update')
-    },
-    {
-      title: "Media",
-      icon: <MediaIcon fontSize="large" />,
-      subtitle: "Your uploaded content",
-      color: "#9c27b0",
-      action: () => navigate('/profile/media')
-    },
-    {
-      title: "Tools",
-      icon: <ToolsIcon fontSize="large" />,
-      subtitle: "Developer or creative tools",
-      color: "#607d8b",
-      action: () => navigate('/profile/tools')
-    },
-    {
-      title: "Professional",
-      icon: <ProfessionalIcon fontSize="large" />,
-      subtitle: "Job, career, portfolio",
-      color: "#795548",
-      action: () => navigate('/profile/professional')
-    },
-    {
-      title: "Privacy Settings",
-      icon: <PrivacyIcon fontSize="large" />,
-      subtitle: "Control what others see",
-      color: "#009688",
-      action: () => navigate('/profile/privacy')
-    },
-    {
-      title: "My Posts",
-      icon: <PostsIcon fontSize="large" />,
-      subtitle: "See all your posts",
-      color: "#673ab7",
-      action: () => navigate('/my-posts')
-    },
-    {
-      title: "Friends",
-      icon: <FriendsIcon fontSize="large" />,
-      subtitle: "Manage your connections",
-      color: "#00bcd4",
-      action: () => navigate('/friends')
-    },
-    {
-      title: "Blocked Users",
-      icon: <PrivacyIcon fontSize="large" />,
-      subtitle: "Users you blocked",
-      color: "#607d8b",
-      action: () => navigate('/profile/blocked-users')
-    },
-    {
-      title: "Unblock Requests",
-      icon: <LockIcon fontSize="large" />,
-      subtitle: "Pending unblock requests",
-      color: "#9e9e9e",
-      action: () => navigate('/profile/unblock-requests')
-    }
-  ];
-
-  return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Grid container spacing={3}>
-        {socialCards.map(renderCard)}
-      </Grid>
-
-      <Typography variant="h5" sx={{ mt: 6, mb: 2 }}>Profile Settings</Typography>
-      <Grid container spacing={3}>
-        {profileActionCards.map(renderCard)}
-      </Grid>
-
-      {isMobile && (
-        <Box sx={{
-          position: 'fixed',
-          bottom: 20,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card sx={{ borderRadius: 50, boxShadow: 3, px: 2, py: 1 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {[...socialCards.slice(0, 2), ...profileActionCards.slice(0, 2)].map((card, index) => (
-                <Button
-                  key={index}
-                  startIcon={React.cloneElement(card.icon, { fontSize: 'small' })}
-                  onClick={card.action}
-                  sx={{
-                    minWidth: 'unset',
-                    color: card.color,
-                    '&:hover': { bgcolor: `${card.color}10` }
-                  }}
-                />
-              ))}
-            </Box>
-          </Card>
-        </Box>
-      )}
-    </Container>
-  );
-};
-
-// ProfileTabs Component
-const ProfileTabs = ({
-  tabValue,
-  handleTabChange,
-  userData,
-  formatDate
-}) => {
-  return (
-    <>
-      <Tabs
-        value={tabValue}
-        onChange={handleTabChange}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ mb: 3 }}
-      >
-        {PROFILE_TABS.map((tab) => (
-          <Tab key={tab.value} label={tab.label} value={tab.value} />
-        ))}
-      </Tabs>
-
-      {tabValue === 0 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>Your Posts</Typography>
-          <Typography color="text.secondary">No posts to display</Typography>
-        </Box>
-      )}
-
-      {tabValue === 1 && (
-        <Box>
-          <ProfileInfoSection
-            userData={userData}
-            isMobile={useMediaQuery(theme.breakpoints.down('sm'))}
-            formatDate={formatDate}
-          />
-        </Box>
-      )}
-
-      {tabValue === 2 && (
-        <Box>
-          <FriendsListCard />
-        </Box>
-      )}
-
-      {tabValue === 3 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>Your Photos</Typography>
-          <Typography color="text.secondary">No photos to display</Typography>
-        </Box>
-      )}
-
-      {tabValue === 4 && (
-        <Dashboard userData={userData} />
-      )}
-    </>
-  );
-};
-
-// Main PrivateProfilePage Component
 const PrivateProfilePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
   const { profile, loading, error } = useSelector((state) => state.user);
-  const { sentRequests, friendsList } = useSelector((state) => state.friendship);
 
   const [state, setState] = useState({
-    tabValue: 0,
-    deleteDialogOpen: false,
+    showDashboard: true,
     coverImageLoading: false,
-    privacy: {
-      profileVisibility: 'public',
-      emailVisibility: 'friends',
-      phoneVisibility: 'private'
-    },
-    privacyChanged: false,
-    searchInput: '',
-    isHoveringCover: false,
-    showCancelButtons: false,
-    showFriendsList: false
+    profileImageLoading: false,
+    isHoveringCover: false
   });
 
-  const userId = useMemo(() => profile?.user?.id || profile?.id || 'me', [profile]);
+  const handleStateChange = useCallback((updates) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
 
-  const userData = useMemo(() => ({
-    id: userId,
-    fullName: `${profile?.user?.firstName || profile?.firstName || ''} ${profile?.user?.lastName || profile?.lastName || ''}`.trim(),
-    email: profile?.user?.email || profile?.email || 'No email provided',
-    phone: profile?.user?.phone || profile?.phone || 'No phone provided',
-    location: profile?.user?.location || profile?.location || 'Location not set',
-    website: profile?.user?.website || profile?.website || null,
-    bio: profile?.user?.bio || profile?.bio || 'Tell your story...',
-    isVerified: profile?.user?.isVerified || profile?.isVerified || false,
-    profileImage: profile?.user?.profileImage || profile?.profileImage || DEFAULT_PROFILE_IMAGE,
-    coverImage: profile?.user?.coverImage || profile?.coverImage || DEFAULT_COVER_IMAGE,
-    createdAt: profile?.user?.createdAt || profile?.createdAt || new Date(),
-    updatedAt: profile?.user?.updatedAt || profile?.updatedAt || new Date(),
-    postsCount: profile?.user?.postsCount || profile?.postsCount || 0,
-    friendsCount: profile?.user?.friendsCount || profile?.friendsCount || 0,
-    viewsCount: profile?.user?.viewsCount || profile?.viewsCount || 0,
-    isCurrentUser: true,
-    sentRequests: sentRequests?.data || [],
-    friends: friendsList?.data?.map(friend => ({
-      ...friend,
-      friendshipDate: friend.friendshipDate || new Date()
-    })) || [],
-    isBlocked: profile?.user?.isBlocked || profile?.isBlocked || false
-  }), [profile, userId, sentRequests, friendsList]);
+  const userData = useMemo(() => {
+    const user = profile?.user || profile || {};
+    return {
+      id: user.id || 'me',
+      fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      email: user.email || 'No email provided',
+      phone: user.phone || 'No phone provided',
+      profileImage: user.profileImage || DEFAULT_PROFILE_IMAGE,
+      coverImage: user.coverImage || DEFAULT_COVER_IMAGE,
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date(),
+      isCurrentUser: true
+    };
+  }, [profile]);
 
   useEffect(() => {
     dispatch(fetchUserProfile());
@@ -919,216 +282,116 @@ const PrivateProfilePage = () => {
 
   useEffect(() => {
     if (error) {
-      dispatch(showSnackbar({
-        message: error,
-        severity: 'error'
-      }));
+      dispatch(showSnackbar({ message: error, severity: 'error' }));
     }
   }, [error, dispatch]);
 
-  const handleStateChange = useCallback((updates) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const handleViewAsPublic = useCallback(() => {
-    window.open(`/profile/${userId}`, '_blank');
-  }, [userId]);
-
-  const handleCreateStory = useCallback(() => navigate('/create-story'), [navigate]);
-  const handleEditProfile = useCallback(() => navigate('/my-profile-update'), [navigate]);
-  
-  const handleViewFriends = useCallback(() => {
-    handleStateChange({ 
-      showFriendsList: !state.showFriendsList,
-      showCancelButtons: false 
-    });
-  }, [state.showFriendsList, handleStateChange]);
-
-  const handleMessageFriend = useCallback(() => {
-    dispatch(showSnackbar({
-      message: 'Select a friend to message from the friends list',
-      severity: 'info'
-    }));
-  }, [dispatch]);
-
-  const toggleCancelButtons = useCallback(() => {
-    handleStateChange({ 
-      showCancelButtons: !state.showCancelButtons,
-      showFriendsList: false 
-    });
-  }, [state.showCancelButtons, handleStateChange]);
-
-  const handleEditPrivateProfile = useCallback(() => navigate('/profile/private-update'), [navigate]);
-
-  const handlePrivacyUpdate = useCallback((field, value) => {
-    handleStateChange({ 
-      privacy: { ...state.privacy, [field]: value },
-      privacyChanged: true 
-    });
-  }, [state.privacy, handleStateChange]);
-
-  const formatDate = useCallback((dateString) => {
-    try {
-      const date = new Date(dateString);
-      return isNaN(date.getTime()) 
-        ? 'Unknown date' 
-        : date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-    } catch {
-      return 'Unknown date';
-    }
-  }, []);
-
-  const handleCoverPhotoUpdate = useCallback(async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const validateImage = (file, maxSize, label) => {
+    if (!file) return { valid: false, message: `${label} not selected.` };
 
     if (!file.type.startsWith('image/')) {
-      dispatch(showSnackbar({
-        message: 'Only image files are allowed',
-        severity: 'error'
-      }));
+      return { valid: false, message: 'Only image files are allowed' };
+    }
+
+    if (file.size > maxSize) {
+      return { valid: false, message: `${label} must be less than ${maxSize / (1024 * 1024)}MB` };
+    }
+
+    return { valid: true };
+  };
+
+  const handleImageUpload = async (file, fieldName, updateAction, loadingKey) => {
+    const maxSize = fieldName === 'coverImage' ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+    const label = fieldName === 'coverImage' ? 'Cover image' : 'Profile image';
+
+    const { valid, message } = validateImage(file, maxSize, label);
+    if (!valid) {
+      dispatch(showSnackbar({ message, severity: 'error' }));
       return;
     }
 
-    if (file.size > MAX_COVER_IMAGE_SIZE) {
-      dispatch(showSnackbar({
-        message: 'Image size must be less than 5MB',
-        severity: 'error'
-      }));
-      return;
-    }
+    handleStateChange({ [loadingKey]: true });
 
-    handleStateChange({ coverImageLoading: true });
-    
     try {
       const formData = new FormData();
-      formData.append('coverImage', file);
-      await dispatch(updateCoverImage(formData)).unwrap();
-      
-      dispatch(showSnackbar({
-        message: 'Cover image updated successfully!',
-        severity: 'success'
-      }));
-      
-      await dispatch(fetchUserProfile());
-    } catch (error) {
-      dispatch(showSnackbar({
-        message: error.message || 'Failed to update cover image',
-        severity: 'error'
-      }));
+      formData.append(fieldName, file);
+      await dispatch(updateAction(formData)).unwrap();
+      dispatch(showSnackbar({ message: `${label} updated successfully!`, severity: 'success' }));
+      dispatch(fetchUserProfile());
+    } catch (err) {
+      dispatch(showSnackbar({ message: err.message || `Failed to update ${label.toLowerCase()}`, severity: 'error' }));
     } finally {
-      handleStateChange({ coverImageLoading: false });
-      e.target.value = '';
+      handleStateChange({ [loadingKey]: false });
     }
-  }, [dispatch, handleStateChange]);
+  };
+
+  const handleCoverPhotoUpdate = useCallback((e) => {
+    const file = e.target.files[0];
+    handleImageUpload(file, 'coverImage', updateCoverImage, 'coverImageLoading');
+    e.target.value = '';
+  }, [dispatch]);
+
+  const handleProfilePhotoUpdate = useCallback((e) => {
+    const file = e.target.files[0];
+    handleImageUpload(file, 'profileImage', updatePrivateProfile, 'profileImageLoading');
+    e.target.value = '';
+  }, [dispatch]);
+
+  const handleToggleView = () => {
+    handleStateChange({ showDashboard: !state.showDashboard });
+  };
 
   const renderErrorState = () => (
     <Box sx={{
       display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
       flexDirection: 'column',
-      gap: 2
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      gap: 2,
     }}>
       <Typography variant="h6" color="error">
         Failed to load profile
       </Typography>
-      <Button 
-        variant="contained" 
-        onClick={() => dispatch(fetchUserProfile())}
-        sx={{ mt: 2 }}
-      >
+      <Button variant="contained" onClick={() => dispatch(fetchUserProfile())}>
         Retry
       </Button>
     </Box>
   );
 
-  if (loading || !profile) {
-    return <ProfileSkeleton />;
-  }
-
-  if (error) {
-    return renderErrorState();
-  }
+  if (loading || !profile) return <ProfileSkeleton />;
+  if (error) return renderErrorState();
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{
-        backgroundColor: 'background.default',
-        minHeight: '100vh',
-        pb: 6
-      }}>
+      <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh', pb: 6 }}>
         <ProfileHeader
           userData={userData}
           isMobile={isMobile}
           onCoverPhotoEdit={handleCoverPhotoUpdate}
-          onProfilePhotoEdit={handleEditProfile}
+          onProfilePhotoEdit={handleProfilePhotoUpdate}
           coverImageLoading={state.coverImageLoading}
+          profileImageLoading={state.profileImageLoading}
           isHoveringCover={state.isHoveringCover}
-          setIsHoveringCover={(value) => handleStateChange({ isHoveringCover: value })}
+          setIsHoveringCover={(val) => handleStateChange({ isHoveringCover: val })}
         />
 
-        <Zoom in={!loading} timeout={500}>
-          <Box>
-            <ProfileActions
-              isOwnProfile={true}
-              onCreateStory={handleCreateStory}
-              onEditProfile={handleEditProfile}
-              onViewFriends={handleViewFriends}
-              onViewAsPublic={handleViewAsPublic}
-              onMessage={handleMessageFriend}
-              userId={userId}
-              isBlocked={userData.isBlocked}
-            />
-          </Box>
-        </Zoom>
+        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, mt: 4 }}>
+          <Button
+            variant="outlined"
+            onClick={handleToggleView}
+            sx={{ mb: 2 }}
+            aria-label="Toggle between dashboard and profile tabs"
+          >
+            {state.showDashboard ? 'View Profile Details' : 'Back to Dashboard'}
+          </Button>
 
-        <Box sx={{ 
-          maxWidth: 'lg', 
-          mx: 'auto', 
-          px: { xs: 2, sm: 3, md: 4 },
-          mt: 4
-        }}>
-          <ProfileStats userData={userData} />
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
-            <Tooltip title="Open your public profile in new tab" arrow>
-              <Button 
-                onClick={handleViewAsPublic}
-                startIcon={<OpenInNew />}
-                variant="outlined"
-                size="small"
-              >
-                View As Public
-              </Button>
-            </Tooltip>
-          </Box>
-
-          <ProfileTabs
-            tabValue={state.tabValue}
-            handleTabChange={(_, val) => handleStateChange({ tabValue: val })}
-            userData={userData}
-            formatDate={formatDate}
-          />
+          {state.showDashboard ? (
+            <Dashboard userData={userData} navigate={navigate} />
+          ) : (
+            <ProfileTabs userData={userData} navigate={navigate} />
+          )}
         </Box>
-
-        <DeleteAccountDialog
-          open={state.deleteDialogOpen}
-          onClose={() => handleStateChange({ deleteDialogOpen: false })}
-          onConfirm={() => {
-            dispatch(logoutUser());
-            dispatch(showSnackbar({
-              message: 'Account deleted successfully',
-              severity: 'success'
-            }));
-            navigate('/');
-          }}
-        />
       </Box>
     </ThemeProvider>
   );
@@ -1138,48 +401,278 @@ export default PrivateProfilePage;
 
 
 
-
-
-//! ready
 // import {
-//   Add as AddIcon,
-//   ArrowForward as ArrowForwardIcon,
-//   Check as CheckIcon,
-//   Edit as EditIcon,
-//   HourglassEmpty as HourglassEmptyIcon,
-//   Message as MessageIcon,
-//   MoreHoriz as MoreHorizIcon,
-//   PersonAdd as PersonAddIcon,
-//   PersonRemove as PersonRemoveIcon,
-//   Visibility as VisibilityIcon
-// } from '@mui/icons-material';
-// import OpenInNew from '@mui/icons-material/OpenInNew';
-// import {
-//   Avatar,
-//   Badge,
 //   Box,
 //   Button,
-//   Card,
-//   CardContent,
-//   CardHeader,
+//   ThemeProvider,
+//   Typography,
+//   useMediaQuery
+// } from '@mui/material';
+// import { useCallback, useEffect, useMemo, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigate } from 'react-router-dom';
+// import theme from '../../../theme';
+
+// // Redux actions
+// import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
+// import {
+//   fetchUserProfile,
+//   updateCoverImage,
+//   updatePrivateProfile // Changed from updateProfileImage
+// } from '../../../features/user/userSlice';
+
+// // Components
+// import Dashboard from '../../DASHBOARD/Dashboard';
+// import ProfileHeader from './ProfileHeader';
+// import ProfileSkeleton from './ProfileSkeleton';
+// import ProfileTabs from './ProfileTabs';
+
+// // Constants
+// const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
+// const DEFAULT_COVER_IMAGE = '/default-cover.jpg';
+// const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+// const MAX_PROFILE_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+
+// const PrivateProfilePage = () => {
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
+//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+//   // Redux state
+//   const { profile, loading, error } = useSelector((state) => state.user);
+
+//   // Component state
+//   const [state, setState] = useState({
+//     coverImageLoading: false,
+//     profileImageLoading: false,
+//     isHoveringCover: false,
+//     showDashboard: true
+//   });
+
+//   // Derived values
+//   const userId = useMemo(() => profile?.user?.id || profile?.id || 'me', [profile]);
+
+//   const userData = useMemo(() => ({
+//     id: userId,
+//     fullName: `${profile?.user?.firstName || profile?.firstName || ''} ${profile?.user?.lastName || profile?.lastName || ''}`.trim(),
+//     email: profile?.user?.email || profile?.email || 'No email provided',
+//     phone: profile?.user?.phone || profile?.phone || 'No phone provided',
+//     profileImage: profile?.user?.profileImage || profile?.profileImage || DEFAULT_PROFILE_IMAGE,
+//     coverImage: profile?.user?.coverImage || profile?.coverImage || DEFAULT_COVER_IMAGE,
+//     createdAt: profile?.user?.createdAt || profile?.createdAt || new Date(),
+//     updatedAt: profile?.user?.updatedAt || profile?.updatedAt || new Date(),
+//     isCurrentUser: true,
+//   }), [profile, userId]);
+
+//   useEffect(() => {
+//     dispatch(fetchUserProfile());
+//   }, [dispatch]);
+
+//   useEffect(() => {
+//     if (error) {
+//       dispatch(showSnackbar({
+//         message: error,
+//         severity: 'error'
+//       }));
+//     }
+//   }, [error, dispatch]);
+
+//   const handleStateChange = useCallback((updates) => {
+//     setState(prev => ({ ...prev, ...updates }));
+//   }, []);
+
+//   const handleEditProfile = useCallback(() => navigate('/my-profile-update'), [navigate]);
+
+//   const handleToggleView = useCallback(() => {
+//     handleStateChange({ showDashboard: !state.showDashboard });
+//   }, [state.showDashboard, handleStateChange]);
+
+//   const handleCoverPhotoUpdate = useCallback(async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     if (!file.type.startsWith('image/')) {
+//       dispatch(showSnackbar({
+//         message: 'Only image files are allowed',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     if (file.size > MAX_COVER_IMAGE_SIZE) {
+//       dispatch(showSnackbar({
+//         message: 'Cover image must be less than 5MB',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     handleStateChange({ coverImageLoading: true });
+    
+//     try {
+//       const formData = new FormData();
+//       formData.append('coverImage', file);
+//       await dispatch(updateCoverImage(formData)).unwrap();
+      
+//       dispatch(showSnackbar({
+//         message: 'Cover image updated successfully!',
+//         severity: 'success'
+//       }));
+      
+//       await dispatch(fetchUserProfile());
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: error.message || 'Failed to update cover image',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       handleStateChange({ coverImageLoading: false });
+//       e.target.value = '';
+//     }
+//   }, [dispatch, handleStateChange]);
+
+//   // Updated to use updatePrivateProfile instead of updateProfileImage
+//   const handleProfilePhotoUpdate = useCallback(async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
+
+//     if (!file.type.startsWith('image/')) {
+//       dispatch(showSnackbar({
+//         message: 'Only image files are allowed',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     if (file.size > MAX_PROFILE_IMAGE_SIZE) {
+//       dispatch(showSnackbar({
+//         message: 'Profile image must be less than 2MB',
+//         severity: 'error'
+//       }));
+//       return;
+//     }
+
+//     handleStateChange({ profileImageLoading: true });
+    
+//     try {
+//       const formData = new FormData();
+//       formData.append('profileImage', file);
+//       // Changed to use updatePrivateProfile
+//       await dispatch(updatePrivateProfile(formData)).unwrap();
+      
+//       dispatch(showSnackbar({
+//         message: 'Profile image updated successfully!',
+//         severity: 'success'
+//       }));
+      
+//       await dispatch(fetchUserProfile());
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: error.message || 'Failed to update profile image',
+//         severity: 'error'
+//       }));
+//     } finally {
+//       handleStateChange({ profileImageLoading: false });
+//       e.target.value = '';
+//     }
+//   }, [dispatch, handleStateChange]);
+
+//   const renderErrorState = () => (
+//     <Box sx={{
+//       display: 'flex',
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       height: '100vh',
+//       flexDirection: 'column',
+//       gap: 2
+//     }}>
+//       <Typography variant="h6" color="error">
+//         Failed to load profile
+//       </Typography>
+//       <Button 
+//         variant="contained" 
+//         onClick={() => dispatch(fetchUserProfile())}
+//         sx={{ mt: 2 }}
+//       >
+//         Retry
+//       </Button>
+//     </Box>
+//   );
+
+//   if (loading || !profile) {
+//     return <ProfileSkeleton />;
+//   }
+
+//   if (error) {
+//     return renderErrorState();
+//   }
+
+//   return (
+//     <ThemeProvider theme={theme}>
+//       <Box sx={{
+//         backgroundColor: 'background.default',
+//         minHeight: '100vh',
+//         pb: 6
+//       }}>
+//         <ProfileHeader
+//           userData={userData}
+//           isMobile={isMobile}
+//           onCoverPhotoEdit={handleCoverPhotoUpdate}
+//           onProfilePhotoEdit={handleProfilePhotoUpdate}
+//           coverImageLoading={state.coverImageLoading}
+//           profileImageLoading={state.profileImageLoading}
+//           isHoveringCover={state.isHoveringCover}
+//           setIsHoveringCover={(value) => handleStateChange({ isHoveringCover: value })}
+//         />
+
+//         <Box sx={{ 
+//           maxWidth: 'lg', 
+//           mx: 'auto', 
+//           px: { xs: 2, sm: 3, md: 4 },
+//           mt: 4
+//         }}>
+//           <Button 
+//             variant="outlined" 
+//             onClick={handleToggleView}
+//             sx={{ mb: 2 }}
+//           >
+//             {state.showDashboard ? 'View Profile Details' : 'Back to Dashboard'}
+//           </Button>
+
+//           {state.showDashboard ? (
+//             <Dashboard 
+//               userData={userData} 
+//               navigate={navigate} 
+//             />
+//           ) : (
+//             <ProfileTabs 
+//               userData={userData} 
+//               navigate={navigate} 
+//             />
+//           )}
+//         </Box>
+//       </Box>
+//     </ThemeProvider>
+//   );
+// };
+
+// export default PrivateProfilePage;
+
+//! original
+// import {
+//   Avatar,
+//   Box,
+//   Button,
 //   Dialog,
 //   DialogActions,
 //   DialogContent,
 //   DialogTitle,
 //   Fade,
-//   FormControl,
 //   Grid,
-//   InputLabel,
-//   MenuItem,
-//   Select,
-//   Tab,
-//   Tabs,
 //   TextField,
 //   ThemeProvider,
-//   Tooltip,
 //   Typography,
-//   useMediaQuery,
-//   useTheme, // Make sure this is imported
+//   useMediaQuery, // Make sure this is imported
 //   Zoom
 // } from '@mui/material';
 // import PropTypes from 'prop-types';
@@ -1191,10 +684,7 @@ export default PrivateProfilePage;
 // // Redux actions
 // import {
 //   blockUser,
-//   getFriends,
-//   removeFriend,
-//   unblockUser,
-//   updateFriendshipTier
+//   unblockUser
 // } from '../../../features/friendship/friendshipSlice';
 // import { showSnackbar } from '../../../features/snackbar/snackbarSlice';
 // import {
@@ -1207,14 +697,11 @@ export default PrivateProfilePage;
 // import socketService from '../../../utils/socket';
 
 // // Components
-// import Dashboard from '../../DASHBOARD/Dashboard';
-// import CancelRequestButton from './CancelRequestButton';
 // import DeleteAccountDialog from './DeleteAccountDialog';
 // import ProfileHeader from './ProfileHeader';
-// import ProfileInfoSection from './ProfileInfoSection';
 // import ProfileSkeleton from './ProfileSkeleton';
-// import ProfileStats from './ProfileStats';
-// import ProfileTabs from './ProfileTabs';
+// // import ProfileStats from './ProfileStats';
+// // import ProfileTabs from './ProfileTabs';
 
 // // Constants
 // const DEFAULT_PROFILE_IMAGE = '/default-avatar.png';
@@ -1276,215 +763,215 @@ export default PrivateProfilePage;
 // };
 
 // // Friendship Tier Dialog Component (from old version)
-// const FriendshipTierDialog = ({ friendshipId, currentTier }) => {
-//   const dispatch = useDispatch();
+// // const FriendshipTierDialog = ({ friendshipId, currentTier }) => {
+// //   const dispatch = useDispatch();
   
-//   const tiers = [
-//     { value: 'close', label: 'Close Friends' },
-//     { value: 'regular', label: 'Regular Friends' },
-//     { value: 'family', label: 'Family' },
-//     { value: 'work', label: 'Work' }
-//   ];
+// //   const tiers = [
+// //     { value: 'close', label: 'Close Friends' },
+// //     { value: 'regular', label: 'Regular Friends' },
+// //     { value: 'family', label: 'Family' },
+// //     { value: 'work', label: 'Work' }
+// //   ];
 
-//   const handleChange = async (event) => {
-//     const newTier = event.target.value;
-//     try {
-//       await dispatch(updateFriendshipTier({ 
-//         friendshipId, 
-//         tier: newTier 
-//       })).unwrap();
+// //   const handleChange = async (event) => {
+// //     const newTier = event.target.value;
+// //     try {
+// //       await dispatch(updateFriendshipTier({ 
+// //         friendshipId, 
+// //         tier: newTier 
+// //       })).unwrap();
       
-//       dispatch(showSnackbar({
-//         message: 'Friendship tier updated successfully',
-//         severity: 'success'
-//       }));
-//     } catch (error) {
-//       dispatch(showSnackbar({
-//         message: 'Failed to update friendship tier',
-//         severity: 'error'
-//       }));
-//     }
-//   };
+// //       dispatch(showSnackbar({
+// //         message: 'Friendship tier updated successfully',
+// //         severity: 'success'
+// //       }));
+// //     } catch (error) {
+// //       dispatch(showSnackbar({
+// //         message: 'Failed to update friendship tier',
+// //         severity: 'error'
+// //       }));
+// //     }
+// //   };
 
-//   return (
-//     <Tooltip title="Change friendship tier" arrow>
-//       <FormControl size="small" sx={{ minWidth: 120 }}>
-//         <InputLabel>Tier</InputLabel>
-//         <Select
-//           value={currentTier || 'regular'}
-//           onChange={handleChange}
-//           label="Tier"
-//         >
-//           {tiers.map((tier) => (
-//             <MenuItem key={tier.value} value={tier.value}>
-//               {tier.label}
-//             </MenuItem>
-//           ))}
-//         </Select>
-//       </FormControl>
-//     </Tooltip>
-//   );
-// };
+// //   return (
+// //     <Tooltip title="Change friendship tier" arrow>
+// //       <FormControl size="small" sx={{ minWidth: 120 }}>
+// //         <InputLabel>Tier</InputLabel>
+// //         <Select
+// //           value={currentTier || 'regular'}
+// //           onChange={handleChange}
+// //           label="Tier"
+// //         >
+// //           {tiers.map((tier) => (
+// //             <MenuItem key={tier.value} value={tier.value}>
+// //               {tier.label}
+// //             </MenuItem>
+// //           ))}
+// //         </Select>
+// //       </FormControl>
+// //     </Tooltip>
+// //   );
+// // };
 
-// // Friends List Card Component (integrated version)
-// const FriendsListCard = () => {
-//   const dispatch = useDispatch();
-//   const { profile } = useSelector((state) => state.user);
-//   const theme = useTheme();
-//   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+// //! Friends List Card Component (integrated version)
+// // const FriendsListCard = () => {
+// //   const dispatch = useDispatch();
+// //   const { profile } = useSelector((state) => state.user);
+// //   const theme = useTheme();
+// //   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-//   const friends = useSelector(
-//     (state) => state.friendship.friendsByUser[profile?.id] || { data: [] }
-//   );
+// //   const friends = useSelector(
+// //     (state) => state.friendship.friendsByUser[profile?.id] || { data: [] }
+// //   );
 
-//   const [loading, setLoading] = useState(false);
-//   const [activeTab, setActiveTab] = useState('all');
-//   const [chatFriend, setChatFriend] = useState(null);
+// //   const [loading, setLoading] = useState(false);
+// //   const [activeTab, setActiveTab] = useState('all');
+// //   const [chatFriend, setChatFriend] = useState(null);
 
-//   useEffect(() => {
-//     if (!profile?.id) return;
-//     setLoading(true);
-//     dispatch(getFriends({ userId: profile.id }))
-//       .unwrap()
-//       .catch((err) => {
-//         console.error('Failed to load friends:', err);
-//         dispatch(showSnackbar({
-//           message: 'Failed to load friends list',
-//           severity: 'error'
-//         }));
-//       })
-//       .finally(() => setLoading(false));
-//   }, [dispatch, profile?.id]);
+// //   useEffect(() => {
+// //     if (!profile?.id) return;
+// //     setLoading(true);
+// //     dispatch(getFriends({ userId: profile.id }))
+// //       .unwrap()
+// //       .catch((err) => {
+// //         console.error('Failed to load friends:', err);
+// //         dispatch(showSnackbar({
+// //           message: 'Failed to load friends list',
+// //           severity: 'error'
+// //         }));
+// //       })
+// //       .finally(() => setLoading(false));
+// //   }, [dispatch, profile?.id]);
 
-//   const handleRemove = async (friendshipId) => {
-//     if (window.confirm('Are you sure you want to remove this friend?')) {
-//       try {
-//         await dispatch(removeFriend(friendshipId)).unwrap();
-//         dispatch(showSnackbar({
-//           message: 'Friend removed successfully',
-//           severity: 'success'
-//         }));
-//       } catch (error) {
-//         dispatch(showSnackbar({
-//           message: 'Failed to remove friend',
-//           severity: 'error'
-//         }));
-//       }
-//     }
-//   };
+// //   const handleRemove = async (friendshipId) => {
+// //     if (window.confirm('Are you sure you want to remove this friend?')) {
+// //       try {
+// //         await dispatch(removeFriend(friendshipId)).unwrap();
+// //         dispatch(showSnackbar({
+// //           message: 'Friend removed successfully',
+// //           severity: 'success'
+// //         }));
+// //       } catch (error) {
+// //         dispatch(showSnackbar({
+// //           message: 'Failed to remove friend',
+// //           severity: 'error'
+// //         }));
+// //       }
+// //     }
+// //   };
 
-//   const mockMutualFriendsCount = (friendId) => {
-//     const seed = friendId % 5;
-//     return seed === 0 ? 0 : seed + 1;
-//   };
+// //   const mockMutualFriendsCount = (friendId) => {
+// //     const seed = friendId % 5;
+// //     return seed === 0 ? 0 : seed + 1;
+// //   };
 
-//   const friendList = friends.data || [];
-//   const filteredFriends = activeTab === 'all'
-//     ? friendList
-//     : friendList.filter(f => f.tier === activeTab);
+// //   const friendList = friends.data || [];
+// //   const filteredFriends = activeTab === 'all'
+// //     ? friendList
+// //     : friendList.filter(f => f.tier === activeTab);
 
-//   return (
-//     <Card elevation={1} sx={{ mt: 1, mb: 2 }}>
-//       <CardHeader
-//         title="Friends"
-//         subheader={`${filteredFriends.length} ${activeTab !== 'all' ? activeTab : ''} friends`}
-//         sx={{ pt: 1, pb: 0.5 }}
-//       />
+// //   return (
+// //     <Card elevation={1} sx={{ mt: 1, mb: 2 }}>
+// //       <CardHeader
+// //         title="Friends"
+// //         subheader={`${filteredFriends.length} ${activeTab !== 'all' ? activeTab : ''} friends`}
+// //         sx={{ pt: 1, pb: 0.5 }}
+// //       />
 
-//       <Tabs
-//         value={activeTab}
-//         onChange={(e, value) => setActiveTab(value)}
-//         variant="fullWidth"
-//         indicatorColor="primary"
-//         textColor="primary"
-//       >
-//         <Tab label="All" value="all" />
-//         <Tab label="Close" value="close" />
-//         <Tab label="Family" value="family" />
-//       </Tabs>
+// //       <Tabs
+// //         value={activeTab}
+// //         onChange={(e, value) => setActiveTab(value)}
+// //         variant="fullWidth"
+// //         indicatorColor="primary"
+// //         textColor="primary"
+// //       >
+// //         <Tab label="All" value="all" />
+// //         <Tab label="Close" value="close" />
+// //         <Tab label="Family" value="family" />
+// //       </Tabs>
 
-//       <CardContent sx={{ pt: 0.5, pb: 1 }}>
-//         {loading ? (
-//           <Typography color="text.secondary" align="center">
-//             Loading friends...
-//           </Typography>
-//         ) : filteredFriends.length === 0 ? (
-//           <Typography color="text.secondary" align="center">
-//             No {activeTab !== 'all' ? activeTab : ''} friends to show.
-//           </Typography>
-//         ) : (
-//           <Grid container spacing={2}>
-//             {filteredFriends.map(({ id, friend, tier }) => {
-//               const mutualCount = mockMutualFriendsCount(friend.id);
-//               return (
-//                 <Grid item xs={12} sm={6} md={4} key={id}>
-//                   <Card variant="outlined" sx={{ height: '100%' }}>
-//                     <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-//                       <Badge
-//                         badgeContent={
-//                           mutualCount > 0 ? `${mutualCount} mutual` : null
-//                         }
-//                         color="primary"
-//                       >
-//                         <Avatar
-//                           src={friend.profileImage || DEFAULT_PROFILE_IMAGE}
-//                           sx={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56 }}
-//                         />
-//                       </Badge>
-//                       <Box flexGrow={1}>
-//                         <Typography variant="subtitle1" noWrap>
-//                           {friend.firstName} {friend.lastName}
-//                         </Typography>
-//                         {tier !== 'regular' && (
-//                           <Typography variant="body2" color="text.secondary">
-//                             {tier}
-//                           </Typography>
-//                         )}
-//                       </Box>
-//                     </CardContent>
-//                     <Box
-//                       display="flex"
-//                       flexDirection={isMobile ? 'column' : 'row'}
-//                       justifyContent="flex-end"
-//                       gap={1}
-//                       px={2}
-//                       pb={2}
-//                     >
-//                       <Button
-//                         size="small"
-//                         fullWidth={isMobile}
-//                         variant="outlined"
-//                         startIcon={<MessageIcon />}
-//                         onClick={() => setChatFriend(friend)}
-//                       >
-//                         Message
-//                       </Button>
-//                       <Button
-//                         size="small"
-//                         fullWidth={isMobile}
-//                         variant="outlined"
-//                         color="error"
-//                         startIcon={<PersonRemoveIcon />}
-//                         onClick={() => handleRemove(id)}
-//                       >
-//                         Remove
-//                       </Button>
-//                     </Box>
-//                   </Card>
-//                 </Grid>
-//               );
-//             })}
-//           </Grid>
-//         )}
-//         <ChatPreviewModal
-//           open={!!chatFriend}
-//           friend={chatFriend}
-//           onClose={() => setChatFriend(null)}
-//         />
-//       </CardContent>
-//     </Card>
-//   );
-// };
+// //       <CardContent sx={{ pt: 0.5, pb: 1 }}>
+// //         {loading ? (
+// //           <Typography color="text.secondary" align="center">
+// //             Loading friends...
+// //           </Typography>
+// //         ) : filteredFriends.length === 0 ? (
+// //           <Typography color="text.secondary" align="center">
+// //             No {activeTab !== 'all' ? activeTab : ''} friends to show.
+// //           </Typography>
+// //         ) : (
+// //           <Grid container spacing={2}>
+// //             {filteredFriends.map(({ id, friend, tier }) => {
+// //               const mutualCount = mockMutualFriendsCount(friend.id);
+// //               return (
+// //                 <Grid item xs={12} sm={6} md={4} key={id}>
+// //                   <Card variant="outlined" sx={{ height: '100%' }}>
+// //                     <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+// //                       <Badge
+// //                         badgeContent={
+// //                           mutualCount > 0 ? `${mutualCount} mutual` : null
+// //                         }
+// //                         color="primary"
+// //                       >
+// //                         <Avatar
+// //                           src={friend.profileImage || DEFAULT_PROFILE_IMAGE}
+// //                           sx={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56 }}
+// //                         />
+// //                       </Badge>
+// //                       <Box flexGrow={1}>
+// //                         <Typography variant="subtitle1" noWrap>
+// //                           {friend.firstName} {friend.lastName}
+// //                         </Typography>
+// //                         {tier !== 'regular' && (
+// //                           <Typography variant="body2" color="text.secondary">
+// //                             {tier}
+// //                           </Typography>
+// //                         )}
+// //                       </Box>
+// //                     </CardContent>
+// //                     <Box
+// //                       display="flex"
+// //                       flexDirection={isMobile ? 'column' : 'row'}
+// //                       justifyContent="flex-end"
+// //                       gap={1}
+// //                       px={2}
+// //                       pb={2}
+// //                     >
+// //                       <Button
+// //                         size="small"
+// //                         fullWidth={isMobile}
+// //                         variant="outlined"
+// //                         startIcon={<MessageIcon />}
+// //                         onClick={() => setChatFriend(friend)}
+// //                       >
+// //                         Message
+// //                       </Button>
+// //                       <Button
+// //                         size="small"
+// //                         fullWidth={isMobile}
+// //                         variant="outlined"
+// //                         color="error"
+// //                         startIcon={<PersonRemoveIcon />}
+// //                         onClick={() => handleRemove(id)}
+// //                       >
+// //                         Remove
+// //                       </Button>
+// //                     </Box>
+// //                   </Card>
+// //                 </Grid>
+// //               );
+// //             })}
+// //           </Grid>
+// //         )}
+// //         <ChatPreviewModal
+// //           open={!!chatFriend}
+// //           friend={chatFriend}
+// //           onClose={() => setChatFriend(null)}
+// //         />
+// //       </CardContent>
+// //     </Card>
+// //   );
+// // };
 
 
 // // Profile Actions Component (from old version with message functionality added)
@@ -1559,124 +1046,130 @@ export default PrivateProfilePage;
 //     }
 //   };
 
-//   if (isOwnProfile) {
-//     return (
-//       <Box sx={commonStyles}>
-//         <Button
-//           variant="contained"
-//           startIcon={<AddIcon />}
-//           onClick={onCreateStory}
-//           sx={storyButtonStyles}
-//         >
-//           Add to story
-//         </Button>
+//   //! after header start
+//   // if (isOwnProfile) {
+//   //   return (
+//   //     <Box sx={commonStyles}>
+//   //       <Button
+//   //         variant="contained"
+//   //         startIcon={<AddIcon />}
+//   //         onClick={onCreateStory}
+//   //         sx={storyButtonStyles}
+//   //       >
+//   //         Add to story
+//   //       </Button>
 
-//         <Button
-//           variant="contained"
-//           startIcon={<EditIcon />}
-//           onClick={onEditProfile}
-//           color="primary"
-//         >
-//           Edit profile
-//         </Button>
+//   //       <Button
+//   //         variant="contained"
+//   //         startIcon={<EditIcon />}
+//   //         onClick={onEditProfile}
+//   //         color="primary"
+//   //       >
+//   //         Edit profile
+//   //       </Button>
 
-//         <Button
-//           variant="contained"
-//           startIcon={<VisibilityIcon />}
-//           onClick={onViewAsPublic}
-//           sx={viewAsPublicButtonStyles}
-//         >
-//           View As Public
-//         </Button>
+//   //       <Button
+//   //         variant="contained"
+//   //         startIcon={<VisibilityIcon />}
+//   //         onClick={onViewAsPublic}
+//   //         sx={viewAsPublicButtonStyles}
+//   //       >
+//   //         View As Public
+//   //       </Button>
 
-//         <Button
-//           variant="outlined"
-//           endIcon={<ArrowForwardIcon fontSize="small" />}
-//           onClick={() => {
-//             onViewFriends();
-//             setShowFriendsList(prev => !prev);
-//           }}
-//         >
-//           {showFriendsList ? 'Hide Friends' : 'See all friends'}
-//         </Button>
-//       </Box>
-//     );
-//   }
+//   //       <Button
+//   //         variant="outlined"
+//   //         endIcon={<ArrowForwardIcon fontSize="small" />}
+//   //         onClick={() => {
+//   //           onViewFriends();
+//   //           setShowFriendsList(prev => !prev);
+//   //         }}
+//   //       >
+//   //         {showFriendsList ? 'Hide Friends' : 'See all friends'}
+//   //       </Button>
+//   //     </Box>
+//   //   );
+//   // }
+//  //! after header end
 
-//   return (
-//     <Box sx={commonStyles}>
-//       {isBlocked ? (
-//         <Button 
-//           variant="outlined" 
-//           color="primary"
-//           onClick={handleUnblock}
-//           sx={{ minWidth: 150 }}
-//         >
-//           Unblock User
-//         </Button>
-//       ) : (
-//         <>
-//           {friendStatus === 'not_friends' && (
-//             <Button
-//               variant="contained"
-//               startIcon={<PersonAddIcon />}
-//               onClick={onAddFriend}
-//               sx={{ minWidth: 150 }}
-//             >
-//               Add Friend
-//             </Button>
-//           )}
 
-//           {friendStatus === 'pending' && (
-//             <>
-//               <Button variant="outlined" disabled startIcon={<HourglassEmptyIcon />} sx={{ minWidth: 150 }}>
-//                 Request Sent
-//               </Button>
-//               <CancelRequestButton friendshipId={friendshipId} />
-//             </>
-//           )}
 
-//           {friendStatus === 'friends' && (
-//             <>
-//               <Button variant="contained" disabled startIcon={<CheckIcon />} sx={{ minWidth: 150 }}>
-//                 Friends
-//               </Button>
-//               <Button
-//                 variant="contained"
-//                 color="secondary"
-//                 startIcon={<MessageIcon />}
-//                 onClick={onMessage}
-//                 sx={{ minWidth: 150 }}
-//               >
-//                 Message
-//               </Button>
-//             </>
-//           )}
+// //!  block and unblock button start
+//   // return (
+//   //   <Box sx={commonStyles}>
+//   //     {isBlocked ? (
+//   //       <Button 
+//   //         variant="outlined" 
+//   //         color="primary"
+//   //         onClick={handleUnblock}
+//   //         sx={{ minWidth: 150 }}
+//   //       >
+//   //         Unblock User
+//   //       </Button>
+//   //     ) : (
+//   //       <>
+//   //         {friendStatus === 'not_friends' && (
+//   //           <Button
+//   //             variant="contained"
+//   //             startIcon={<PersonAddIcon />}
+//   //             onClick={onAddFriend}
+//   //             sx={{ minWidth: 150 }}
+//   //           >
+//   //             Add Friend
+//   //           </Button>
+//   //         )}
 
-//           {friendStatus === 'following' && (
-//             <Button variant="outlined" disabled sx={{ minWidth: 150 }}>
-//               Following
-//             </Button>
-//           )}
-//         </>
-//       )}
+//   //         {friendStatus === 'pending' && (
+//   //           <>
+//   //             <Button variant="outlined" disabled startIcon={<HourglassEmptyIcon />} sx={{ minWidth: 150 }}>
+//   //               Request Sent
+//   //             </Button>
+//   //             <CancelRequestButton friendshipId={friendshipId} />
+//   //           </>
+//   //         )}
 
-//       {!isBlocked && (
-//         <Button 
-//           variant="outlined" 
-//           color="error"
-//           onClick={handleBlock}
-//           sx={{ minWidth: 150 }}
-//         >
-//           Block User
-//         </Button>
-//       )}
+//   //         {friendStatus === 'friends' && (
+//   //           <>
+//   //             <Button variant="contained" disabled startIcon={<CheckIcon />} sx={{ minWidth: 150 }}>
+//   //               Friends
+//   //             </Button>
+//   //             <Button
+//   //               variant="contained"
+//   //               color="secondary"
+//   //               startIcon={<MessageIcon />}
+//   //               onClick={onMessage}
+//   //               sx={{ minWidth: 150 }}
+//   //             >
+//   //               Message
+//   //             </Button>
+//   //           </>
+//   //         )}
 
-//       <Button variant="outlined">
-//         <MoreHorizIcon />
-//       </Button>
-//     </Box>
-//   );
+//   //         {friendStatus === 'following' && (
+//   //           <Button variant="outlined" disabled sx={{ minWidth: 150 }}>
+//   //             Following
+//   //           </Button>
+//   //         )}
+//   //       </>
+//   //     )}
+
+//   //     {!isBlocked && (
+//   //       <Button 
+//   //         variant="outlined" 
+//   //         color="error"
+//   //         onClick={handleBlock}
+//   //         sx={{ minWidth: 150 }}
+//   //       >
+//   //         Block User
+//   //       </Button>
+//   //     )}
+
+//   //     <Button variant="outlined">
+//   //       <MoreHorizIcon />
+//   //     </Button>
+//   //   </Box>
+//   // );
+//   //!  block and unblock button end
 // };
 
 // ProfileActions.propTypes = {
@@ -1698,11 +1191,11 @@ export default PrivateProfilePage;
 //   onViewAsPublic: PropTypes.func,
 // };
 
-// ProfileActions.defaultProps = {
-//   friendStatus: 'not_friends',
-//   isBlocked: false,
-//   onViewAsPublic: () => {},
-// };
+// // ProfileActions.defaultProps = {
+// //   friendStatus: 'not_friends',
+// //   isBlocked: false,
+// //   onViewAsPublic: () => {},
+// // };
 
 // // Main PrivateProfilePage Component
 // const PrivateProfilePage = () => {
@@ -1947,27 +1440,30 @@ export default PrivateProfilePage;
 //         }}>
 //           <Grid container spacing={3}>
 //             <Grid item xs={12} md={6}>
-//               <FriendsListCard />
+//               {/* <FriendsListCard /> */}
 //             </Grid>
 //           </Grid>
 //         </Box>
 
 //         <Fade in={!loading} timeout={1000}>
 //           <Box>
-//             <ProfileInfoSection
+
+
+//             {/* personal info */}
+//             {/* <ProfileInfoSection
 //               userData={userData}
 //               isMobile={isMobile}
 //               formatDate={formatDate}
-//             />
+//             /> */}
 
 //             <Box sx={{
 //               maxWidth: 'lg',
 //               mx: 'auto',
 //               px: { xs: 2, sm: 3, md: 4 }
 //             }}>
-//               <ProfileStats userData={userData} />
+//               {/* <ProfileStats userData={userData} /> */}
 
-//               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
+//               {/* <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
 //                 <Tooltip title="Open your public profile in new tab" arrow>
 //                   <Button 
 //                     onClick={handleViewAsPublic}
@@ -1978,9 +1474,9 @@ export default PrivateProfilePage;
 //                     View As Public
 //                   </Button>
 //                 </Tooltip>
-//               </Box>
+//               </Box> */}
 
-//               <ProfileTabs
+//               {/* <ProfileTabs
 //                 tabValue={state.tabValue}
 //                 handleTabChange={(_, val) => handleStateChange({ tabValue: val })}
 //                 privacy={state.privacy}
@@ -1996,7 +1492,7 @@ export default PrivateProfilePage;
 //                 onDeleteAccount={() => handleStateChange({ deleteDialogOpen: true })}
 //                 userData={userData}
 //                 formatDate={formatDate}
-//               />
+//               /> */}
 //             </Box>
 //           </Box>
 //         </Fade>
@@ -2019,6 +1515,18 @@ export default PrivateProfilePage;
 // };
 
 // export default PrivateProfilePage;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

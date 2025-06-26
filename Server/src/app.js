@@ -116,16 +116,16 @@ app.use(realIp);
 // =======================
 // Optimized Rate Limiting
 // =======================
-const generalRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many requests from this IP. Please try again later.',
-  },
-});
+// const generalRateLimiter = rateLimit({
+//   windowMs: 60 * 1000,
+//   max: 100,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   message: {
+//     success: false,
+//     message: 'Too many requests from this IP. Please try again later.',
+//   },
+// });
 
 // const authRateLimiter = rateLimit({
 //   windowMs: 60 * 1000,
@@ -185,7 +185,7 @@ app.use(cookieParser());
 // Apply rate limiters
 // app.use("/api/auth", authRateLimiter);
 // app.use('/api/friendships/requests', friendRequestLimiter); // Added specific limiter for friend requests
-app.use(generalRateLimiter);
+// app.use(generalRateLimiter);
 
 // =======================
 // Static Files

@@ -1,3 +1,41 @@
+// // ===============================
+// // 3️⃣ Global Top Loader: LoadingBar.jsx
+// // ===============================
+
+// // src/features/loading/LoadingBar.jsx
+// import { Box, keyframes, styled } from '@mui/material';
+// import { useSelector } from 'react-redux';
+
+// const waveAnim = keyframes`
+//   0%, 100% { background-position: 0% 50%; }
+//   50% { background-position: 100% 50%; }
+// `;
+
+// const Bar = styled(Box)(({ theme }) => ({
+//   position: 'fixed',
+//   top: 0,
+//   left: 0,
+//   width: '100%',
+//   height: '4px',
+//   background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+//   backgroundSize: '200% 100%',
+//   animation: `${waveAnim} 2s infinite linear`,
+//   zIndex: 1400
+// }));
+
+// const LoadingBar = () => {
+//   const barLoading = useSelector(state =>
+//     state.loading.items.find(item => item.type === 'bar')
+//   );
+
+//   return barLoading ? <Bar /> : null;
+// };
+
+// export default LoadingBar;
+
+
+
+//! original
 // features/loading/LoadingBar.jsx
 import { Box, keyframes, styled } from '@mui/material';
 import { useSelector } from 'react-redux';
