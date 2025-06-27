@@ -70,7 +70,7 @@ const Friendship = sequelize.define('Friendship', {
     defaultValue: 1
   },
   tier: {
-    type: DataTypes.ENUM('regular', 'close', 'family', 'work'),
+    type: DataTypes.ENUM('regular', 'close', 'family', 'colleague'),
     defaultValue: 'regular'
   },
   customLabel: {
@@ -157,7 +157,7 @@ Friendship.TIERS = {
   REGULAR: 'regular',
   CLOSE: 'close',
   FAMILY: 'family',
-  WORK: 'work'
+  COLLEAGUE: 'colleague'
 };
 
 // Associate function to be called after all models are loaded

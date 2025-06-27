@@ -26,7 +26,7 @@ const FRIENDSHIP_CONFIG = {
     REJECTED: 'rejected',
     BLOCKED: 'blocked',
   },
-  TIERS: ['regular', 'close', 'family', 'work'],
+  TIERS: ['regular', 'close', 'family', 'colleague'],
 };
 
 // Helper Functions

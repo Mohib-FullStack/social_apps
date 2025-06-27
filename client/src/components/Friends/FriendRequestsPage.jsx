@@ -1,5 +1,7 @@
 // ✅ Fully Refactored FriendRequestsPage.jsx with Avatar & Username Snackbars
 
+// Updated FriendRequestsPage.jsx with centralized loading and snackbar UX
+
 import { Check as AcceptIcon, Close as DeclineIcon } from '@mui/icons-material';
 import {
   Avatar,
@@ -25,29 +27,17 @@ import {
   acceptFriendRequest,
   getPendingRequests,
   getSentRequests,
-  rejectFriendRequest,
+  rejectFriendRequest
 } from '../../features/friendship/friendshipSlice';
 import { startLoading, stopLoading } from '../../features/loading/loadingSlice';
 import { showSnackbar } from '../../features/snackbar/snackbarSlice';
 import { getFriendlyErrorMessage } from '../../utils/friendshipErrors';
 import CancelRequestButton from '../PROFILE/PrivateProfile/CancelRequestButton';
 
-// Animations
-const pulse = keyframes`
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-`;
-
 const wave = keyframes`
   0% { transform: translateX(-100%); }
   50% { transform: translateX(100%); }
   100% { transform: translateX(100%); }
-`;
-
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 `;
 
 const ShimmerOverlay = styled('div')({
@@ -92,14 +82,17 @@ const SentRequestsTab = ({ requests }) => (
 const FriendRequestsPage = () => {
   const dispatch = useDispatch();
   const [tabValue, setTabValue] = useState(0);
-  const { pendingRequests, sentRequests, status, error } = useSelector((state) => state.friendship);
+  const { pendingRequests, sentRequests } = useSelector((state) => state.friendship);
   const { isLoading } = useSelector((state) => state.loading);
 
   useEffect(() => {
     const loadRequests = async () => {
       dispatch(startLoading({ message: 'Loading friend requests...', animationType: 'wave' }));
       try {
-        await Promise.all([dispatch(getPendingRequests()), dispatch(getSentRequests())]);
+        await Promise.all([
+          dispatch(getPendingRequests()),
+          dispatch(getSentRequests())
+        ]);
       } finally {
         dispatch(stopLoading());
       }
@@ -110,14 +103,7 @@ const FriendRequestsPage = () => {
   const handleAccept = async (friendshipId, requester) => {
     dispatch(startLoading({ message: 'Accepting friend request...', animationType: 'wave' }));
     try {
-      dispatch(showSnackbar({
-        message: 'Accepting friend request...',
-        severity: 'info',
-        persist: true,
-      }));
-
       const resultAction = await dispatch(acceptFriendRequest(friendshipId));
-
       if (acceptFriendRequest.fulfilled.match(resultAction)) {
         const user = resultAction.payload?.user || requester || {};
         dispatch(showSnackbar({
@@ -129,8 +115,7 @@ const FriendRequestsPage = () => {
         }));
         setTimeout(() => dispatch(getPendingRequests()), 1000);
       } else {
-        const error = resultAction.payload;
-        throw new Error(error?.code || 'accept_failed');
+        throw new Error(resultAction.payload?.code || 'accept_failed');
       }
     } catch (error) {
       dispatch(showSnackbar({
@@ -147,14 +132,7 @@ const FriendRequestsPage = () => {
   const handleReject = async (friendshipId, requester) => {
     dispatch(startLoading({ message: 'Rejecting friend request...', animationType: 'wave' }));
     try {
-      dispatch(showSnackbar({
-        message: 'Processing rejection...',
-        severity: 'info',
-        persist: true,
-      }));
-
       const resultAction = await dispatch(rejectFriendRequest(friendshipId));
-
       if (rejectFriendRequest.fulfilled.match(resultAction)) {
         const user = resultAction.payload?.user || requester || {};
         dispatch(showSnackbar({
@@ -166,8 +144,7 @@ const FriendRequestsPage = () => {
         }));
         setTimeout(() => dispatch(getPendingRequests()), 1000);
       } else {
-        const error = resultAction.payload;
-        throw new Error(error?.code || 'reject_failed');
+        throw new Error(resultAction.payload?.code || 'reject_failed');
       }
     } catch (error) {
       dispatch(showSnackbar({
@@ -181,10 +158,6 @@ const FriendRequestsPage = () => {
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
@@ -193,7 +166,7 @@ const FriendRequestsPage = () => {
           <Chip label={`${pendingRequests.data?.length || 0} pending`} color="primary" sx={{ ml: 2 }} />
         </Box>
 
-        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ mb: 3 }}>
           <Tab label="Received" />
           <Tab label="Sent" />
         </Tabs>
@@ -252,6 +225,260 @@ const FriendRequestsPage = () => {
 };
 
 export default FriendRequestsPage;
+
+//! original
+// import { Check as AcceptIcon, Close as DeclineIcon } from '@mui/icons-material';
+// import {
+//   Avatar,
+//   Box,
+//   Button,
+//   Chip,
+//   Container,
+//   Divider,
+//   List,
+//   ListItem,
+//   ListItemAvatar,
+//   ListItemText,
+//   Paper,
+//   Tab,
+//   Tabs,
+//   Typography,
+//   keyframes,
+//   styled
+// } from '@mui/material';
+// import React, { useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import {
+//   acceptFriendRequest,
+//   getPendingRequests,
+//   getSentRequests,
+//   rejectFriendRequest,
+// } from '../../features/friendship/friendshipSlice';
+// import { startLoading, stopLoading } from '../../features/loading/loadingSlice';
+// import { showSnackbar } from '../../features/snackbar/snackbarSlice';
+// import { getFriendlyErrorMessage } from '../../utils/friendshipErrors';
+// import CancelRequestButton from '../PROFILE/PrivateProfile/CancelRequestButton';
+
+// // Animations
+// const pulse = keyframes`
+//   0% { opacity: 0.6; }
+//   50% { opacity: 1; }
+//   100% { opacity: 0.6; }
+// `;
+
+// const wave = keyframes`
+//   0% { transform: translateX(-100%); }
+//   50% { transform: translateX(100%); }
+//   100% { transform: translateX(100%); }
+// `;
+
+// const spin = keyframes`
+//   0% { transform: rotate(0deg); }
+//   100% { transform: rotate(360deg); }
+// `;
+
+// const ShimmerOverlay = styled('div')({
+//   position: 'absolute',
+//   top: 0,
+//   left: 0,
+//   width: '100%',
+//   height: '100%',
+//   background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+//   animation: `${wave} 1.5s infinite linear`,
+//   zIndex: 1,
+// });
+
+// const LoadingBar = styled('div')({
+//   position: 'absolute',
+//   top: 0,
+//   left: 0,
+//   height: 4,
+//   background: 'linear-gradient(90deg, transparent, #1976d2, transparent)',
+//   width: '100%',
+//   animation: `${wave} 1.5s infinite linear`,
+//   zIndex: 2,
+// });
+
+// const SentRequestsTab = ({ requests }) => (
+//   <List>
+//     {requests.map((request) => (
+//       <ListItem key={request.id} sx={{ py: 2 }}>
+//         <ListItemAvatar>
+//           <Avatar src={request.receiver?.profileImage} />
+//         </ListItemAvatar>
+//         <ListItemText
+//           primary={`${request.receiver?.firstName} ${request.receiver?.lastName}`}
+//           secondary="Request sent - Pending"
+//         />
+//         <CancelRequestButton friendshipId={request.id} />
+//       </ListItem>
+//     ))}
+//   </List>
+// );
+
+// const FriendRequestsPage = () => {
+//   const dispatch = useDispatch();
+//   const [tabValue, setTabValue] = useState(0);
+//   const { pendingRequests, sentRequests, status, error } = useSelector((state) => state.friendship);
+//   const { isLoading } = useSelector((state) => state.loading);
+
+//   useEffect(() => {
+//     const loadRequests = async () => {
+//       dispatch(startLoading({ message: 'Loading friend requests...', animationType: 'wave' }));
+//       try {
+//         await Promise.all([dispatch(getPendingRequests()), dispatch(getSentRequests())]);
+//       } finally {
+//         dispatch(stopLoading());
+//       }
+//     };
+//     loadRequests();
+//   }, [dispatch]);
+
+//   const handleAccept = async (friendshipId, requester) => {
+//     dispatch(startLoading({ message: 'Accepting friend request...', animationType: 'wave' }));
+//     try {
+//       dispatch(showSnackbar({
+//         message: 'Accepting friend request...',
+//         severity: 'info',
+//         persist: true,
+//       }));
+
+//       const resultAction = await dispatch(acceptFriendRequest(friendshipId));
+
+//       if (acceptFriendRequest.fulfilled.match(resultAction)) {
+//         const user = resultAction.payload?.user || requester || {};
+//         dispatch(showSnackbar({
+//           message: `🎉 You are now friends with ${user.firstName || 'user'}!`,
+//           severity: 'success',
+//           duration: 8000,
+//           username: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+//           avatarUrl: user.profileImage || '/default-avatar.png',
+//         }));
+//         setTimeout(() => dispatch(getPendingRequests()), 1000);
+//       } else {
+//         const error = resultAction.payload;
+//         throw new Error(error?.code || 'accept_failed');
+//       }
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: getFriendlyErrorMessage(error.message),
+//         severity: 'error',
+//         icon: <DeclineIcon />,
+//         duration: 4000,
+//       }));
+//     } finally {
+//       dispatch(stopLoading());
+//     }
+//   };
+
+//   const handleReject = async (friendshipId, requester) => {
+//     dispatch(startLoading({ message: 'Rejecting friend request...', animationType: 'wave' }));
+//     try {
+//       dispatch(showSnackbar({
+//         message: 'Processing rejection...',
+//         severity: 'info',
+//         persist: true,
+//       }));
+
+//       const resultAction = await dispatch(rejectFriendRequest(friendshipId));
+
+//       if (rejectFriendRequest.fulfilled.match(resultAction)) {
+//         const user = resultAction.payload?.user || requester || {};
+//         dispatch(showSnackbar({
+//           message: `❌ You declined ${user.firstName || 'user'}'s friend request.`,
+//           severity: 'warning',
+//           duration: 8000,
+//           username: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+//           avatarUrl: user.profileImage || '/default-avatar.png',
+//         }));
+//         setTimeout(() => dispatch(getPendingRequests()), 1000);
+//       } else {
+//         const error = resultAction.payload;
+//         throw new Error(error?.code || 'reject_failed');
+//       }
+//     } catch (error) {
+//       dispatch(showSnackbar({
+//         message: getFriendlyErrorMessage(error.message),
+//         severity: 'error',
+//         icon: <DeclineIcon />,
+//         duration: 4000,
+//       }));
+//     } finally {
+//       dispatch(stopLoading());
+//     }
+//   };
+
+//   const handleTabChange = (event, newValue) => {
+//     setTabValue(newValue);
+//   };
+
+//   return (
+//     <Container maxWidth="md" sx={{ py: 4 }}>
+//       <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+//         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+//           <Typography variant="h4">Friend Requests</Typography>
+//           <Chip label={`${pendingRequests.data?.length || 0} pending`} color="primary" sx={{ ml: 2 }} />
+//         </Box>
+
+//         <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+//           <Tab label="Received" />
+//           <Tab label="Sent" />
+//         </Tabs>
+
+//         {tabValue === 0 ? (
+//           pendingRequests.data?.length === 0 ? (
+//             <Typography variant="body1" color="text.secondary">
+//               No pending friend requests
+//             </Typography>
+//           ) : (
+//             <List>
+//               {pendingRequests.data?.map((request) => (
+//                 <React.Fragment key={request.id}>
+//                   <ListItem>
+//                     <ListItemAvatar>
+//                       <Avatar src={request.requester?.profileImage} />
+//                     </ListItemAvatar>
+//                     <ListItemText
+//                       primary={`${request.requester?.firstName} ${request.requester?.lastName}`}
+//                       secondary="Sent you a friend request"
+//                     />
+//                     <Box sx={{ display: 'flex', gap: 1 }}>
+//                       <Button
+//                         variant="contained"
+//                         color="success"
+//                         startIcon={<AcceptIcon />}
+//                         onClick={() => handleAccept(request.id, request.requester)}
+//                         disabled={isLoading}
+//                         sx={{ minWidth: 110 }}
+//                       >
+//                         Accept
+//                       </Button>
+//                       <Button
+//                         variant="outlined"
+//                         color="error"
+//                         startIcon={<DeclineIcon />}
+//                         onClick={() => handleReject(request.id, request.requester)}
+//                         disabled={isLoading}
+//                         sx={{ minWidth: 110 }}
+//                       >
+//                         Decline
+//                       </Button>
+//                     </Box>
+//                   </ListItem>
+//                   <Divider />
+//                 </React.Fragment>
+//               ))}
+//             </List>
+//           )
+//         ) : (
+//           <SentRequestsTab requests={sentRequests.data || []} />
+//         )}
+//       </Paper>
+//     </Container>
+//   );
+// };
+
+// export default FriendRequestsPage;
 
 
 

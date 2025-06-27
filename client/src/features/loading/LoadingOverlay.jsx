@@ -1,78 +1,17 @@
-// features/loading/LoadingOverlay.jsx
-// ===============================
-// 2️⃣ Overlay Loader: LoadingOverlay.jsx
-// ===============================
-
-// src/features/loading/LoadingOverlay.jsx
-// import { Box, styled } from '@mui/material';
-// import { useSelector } from 'react-redux';
-
-// const bounce = {
-//   '0%, 80%, 100%': { transform: 'scale(0)' },
-//   '40%': { transform: 'scale(1)' },
-// };
-
-// const Dot = styled('span')(({ theme, index }) => ({
-//   width: 10,
-//   height: 10,
-//   margin: '0 5px',
-//   borderRadius: '50%',
-//   backgroundColor: theme.palette.primary.main,
-//   display: 'inline-block',
-//   animation: 'bounce 1.4s infinite ease-in-out',
-//   animationDelay: `${index * 0.2}s`,
-//   '@keyframes bounce': bounce
-// }));
-
-// const OverlayWrapper = styled(Box)(({ theme }) => ({
-//   position: 'absolute',
-//   top: 0,
-//   left: 0,
-//   right: 0,
-//   bottom: 0,
-//   backgroundColor: theme.palette.background.paper + 'cc',
-//   backdropFilter: 'blur(2px)',
-//   display: 'flex',
-//   alignItems: 'center',
-//   justifyContent: 'center',
-//   zIndex: 10,
-//   borderRadius: theme.shape.borderRadius
-// }));
-
-// const LoadingOverlay = ({ loadingId, label = '', children, height = 'auto' }) => {
-//   const item = useSelector((state) => state.loading.items.find(i => i.id === loadingId));
-//   const isLoading = !!item;
-
-//   return (
-//     <Box position="relative" minHeight={height}>
-//       {isLoading && (
-//         <OverlayWrapper>
-//           <Box display="flex" flexDirection="column" alignItems="center">
-//             <Box>
-//               {[0, 1, 2].map(i => <Dot key={i} index={i} />)}
-//             </Box>
-//             {label && <Box mt={1} fontSize="0.875rem">{label}</Box>}
-//           </Box>
-//         </OverlayWrapper>
-//       )}
-//       {children}
-//     </Box>
-//   );
-// };
-
-// export default LoadingOverlay;
-
-
-
-
-
-
-
-//! original
-// features/loading/LoadingOverlay.jsx
-import { Backdrop, Box, CircularProgress, Typography } from '@mui/material';
+ // features/loading/LoadingOverlay.jsx
+ // features/loading/LoadingOverlay.jsx
+import { Backdrop, Box, Typography } from '@mui/material';
+import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import LoadingBar from './LoadingBar';
+
+const waveColors = [
+  '#FF008C', // Pink
+  '#D309E1', // Purple
+  '#9C1AFF', // Violet
+  '#7700FF', // Blue
+  '#4400FF'  // Dark Blue
+];
 
 const LoadingOverlay = () => {
   const { isLoading, message } = useSelector((state) => state.loading);
@@ -87,38 +26,64 @@ const LoadingOverlay = () => {
           color: '#fff',
           zIndex: (theme) => theme.zIndex.drawer + 1300,
           flexDirection: 'column',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(8px)',
         }}
         open={isLoading}
       >
-        <CircularProgress color="inherit" />
         {message && (
-          <Typography variant="subtitle1" sx={{ mt: 2 }}>
-            {message}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            mb: 3,
+            gap: 2
+          }}>
+            <Typography variant="h6" sx={{ 
+              fontWeight: 600,
+              background: 'linear-gradient(90deg, #FF008C, #7700FF)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 2
+            }}>
+              {message}
+            </Typography>
+            
             <Box
-              component="span"
+              component={motion.div}
+              initial="hidden"
+              animate="visible"
               sx={{
-                display: 'inline-flex',
-                ml: 1,
-                '& > span': {
-                  display: 'inline-block',
-                  width: '4px',
-                  height: '4px',
-                  bgcolor: 'currentColor',
-                  borderRadius: '50%',
-                  mx: 0.5,
-                  animation: 'pulse 0.6s infinite ease-in-out',
-                  '&:nth-of-type(2)': { animationDelay: '0.2s' },
-                  '&:nth-of-type(3)': { animationDelay: '0.4s' },
-                },
+                display: 'flex',
+                alignItems: 'flex-end',
+                height: 40,
+                gap: 1
               }}
             >
-              <span></span>
-              <span></span>
-              <span></span>
+              {waveColors.map((color, i) => (
+                <Box
+                  key={i}
+                  component={motion.div}
+                  initial={{ height: 10 }}
+                  animate={{
+                    height: [10, 40, 10],
+                    backgroundColor: [color, waveColors[(i + 1) % waveColors.length], color],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    duration: 1.2,
+                    delay: i * 0.15,
+                    ease: "easeInOut"
+                  }}
+                  sx={{
+                    width: 8,
+                    borderRadius: 4,
+                  }}
+                />
+              ))}
             </Box>
-          </Typography>
+          </Box>
         )}
       </Backdrop>
     </>
@@ -126,3 +91,144 @@ const LoadingOverlay = () => {
 };
 
 export default LoadingOverlay;
+ //! WAVE
+// import { Backdrop, Box, Typography } from '@mui/material';
+// import { motion } from 'framer-motion';
+// import { useSelector } from 'react-redux';
+// import LoadingBar from './LoadingBar';
+
+// const waveAnimation = {
+//   animate: {
+//     x: [0, 100, 0],
+//     transition: {
+//       x: {
+//         repeat: Infinity,
+//         repeatType: "loop",
+//         duration: 1.5,
+//         ease: "easeInOut"
+//       }
+//     }
+//   }
+// };
+
+// const LoadingOverlay = () => {
+//   const { isLoading, message } = useSelector((state) => state.loading);
+
+//   if (!isLoading) return null;
+
+//   return (
+//     <>
+//       <LoadingBar />
+//       <Backdrop
+//         sx={{
+//           color: '#fff',
+//           zIndex: (theme) => theme.zIndex.drawer + 1300,
+//           flexDirection: 'column',
+//           backgroundColor: 'rgba(0, 0, 0, 0.5)',
+//           backdropFilter: 'blur(4px)',
+//         }}
+//         open={isLoading}
+//       >
+//         {message && (
+//           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+//             <Typography variant="subtitle1" sx={{ mr: 2 }}>
+//               {message}
+//             </Typography>
+//             <Box
+//               component={motion.div}
+//               initial={{ x: 0 }}
+//               animate="animate"
+//               variants={waveAnimation}
+//               sx={{
+//                 display: 'flex',
+//                 alignItems: 'flex-end',
+//                 height: 24,
+//               }}
+//             >
+//               {[0, 1, 2, 3, 4].map((i) => (
+//                 <Box
+//                   key={i}
+//                   component={motion.div}
+//                   animate={{
+//                     height: [8, 24, 8],
+//                     transition: {
+//                       repeat: Infinity,
+//                       repeatType: "reverse",
+//                       duration: 1.5,
+//                       delay: i * 0.2
+//                     }
+//                   }}
+//                   sx={{
+//                     width: 4,
+//                     backgroundColor: 'currentColor',
+//                     borderRadius: 2,
+//                     mx: 0.5,
+//                   }}
+//                 />
+//               ))}
+//             </Box>
+//           </Box>
+//         )}
+//       </Backdrop>
+//     </>
+//   );
+// };
+
+// export default LoadingOverlay;
+//! original
+// import { Backdrop, Box, CircularProgress, Typography } from '@mui/material';
+// import { useSelector } from 'react-redux';
+// import LoadingBar from './LoadingBar';
+
+// const LoadingOverlay = () => {
+//   const { isLoading, message } = useSelector((state) => state.loading);
+
+//   if (!isLoading) return null;
+
+//   return (
+//     <>
+//       <LoadingBar />
+//       <Backdrop
+//         sx={{
+//           color: '#fff',
+//           zIndex: (theme) => theme.zIndex.drawer + 1300,
+//           flexDirection: 'column',
+//           backgroundColor: 'rgba(0, 0, 0, 0.5)',
+//           backdropFilter: 'blur(4px)',
+//         }}
+//         open={isLoading}
+//       >
+//         <CircularProgress color="inherit" />
+//         {message && (
+//           <Typography variant="subtitle1" sx={{ mt: 2 }}>
+//             {message}
+//             <Box
+//               component="span"
+//               sx={{
+//                 display: 'inline-flex',
+//                 ml: 1,
+//                 '& > span': {
+//                   display: 'inline-block',
+//                   width: '4px',
+//                   height: '4px',
+//                   bgcolor: 'currentColor',
+//                   borderRadius: '50%',
+//                   mx: 0.5,
+//                   animation: 'pulse 0.6s infinite ease-in-out',
+//                   '&:nth-of-type(2)': { animationDelay: '0.2s' },
+//                   '&:nth-of-type(3)': { animationDelay: '0.4s' },
+//                 },
+//               }}
+//             >
+//               <span></span>
+//               <span></span>
+//               <span></span>
+//             </Box>
+//           </Typography>
+//         )}
+//       </Backdrop>
+//     </>
+//   );
+// };
+
+// export default LoadingOverlay;

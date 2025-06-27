@@ -1,5 +1,6 @@
-import React from 'react'
-import './NotFound.css' // Make sure to create and import the CSS file
+// Updated NotFound.jsx with animated loading-style dots
+
+import './NotFound.css';
 
 const NotFound = () => {
   return (
@@ -14,10 +15,37 @@ const NotFound = () => {
         <span className="dot dot3"></span>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default NotFound
+export default NotFound;
+
+
+
+
+
+
+//! original
+// import React from 'react'
+// import './NotFound.css' // Make sure to create and import the CSS file
+
+// const NotFound = () => {
+//   return (
+//     <div className="error-container">
+//       <h1 className="error-code">404</h1>
+//       <p className="error-message">
+//         Oops! The page you're looking for doesn't exist.
+//       </p>
+//       <div className="animation">
+//         <span className="dot dot1"></span>
+//         <span className="dot dot2"></span>
+//         <span className="dot dot3"></span>
+//       </div>
+//     </div>
+//   )
+// }
+
+// export default NotFound
 
 //! test
 // import React from 'react';

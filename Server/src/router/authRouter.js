@@ -4,7 +4,6 @@ const {
   handleLogin,
   handleLogout,
   handleRefreshToken,
-  handleProtectedRoute,
 } = require('../controller/authController');
 const { validateLogin } = require('../validators/user');
 const runValidation = require('../validators');
@@ -20,8 +19,6 @@ authRouter.post('/logout', isLoggedIn, handleLogout); // Logout route
 // Token Routes
 authRouter.post('/refresh-token', handleRefreshToken); // Refresh token route
 
-// Protected Routes
-authRouter.get('/protected', isLoggedIn, handleProtectedRoute); // Access protected resource
 
 module.exports = authRouter;
 

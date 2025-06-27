@@ -144,100 +144,32 @@ const handleLogout = (req, res, next) => {
 };
 
 // Handle Refresh Token
-const handleRefreshToken = async (req, res, next) => {
+const handleRefreshToken = (req, res, next) => {
+  const oldRefreshToken = req.cookies.refreshToken;
+  if (!oldRefreshToken) {
+    return next(createError(401, 'No refresh token provided.'));
+  }
+
   try {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) throw createError(401, 'Refresh token missing');
-
-    const decoded = jwt.verify(refreshToken, jwtRefreshKey);
-
-    const user = await User.findByPk(decoded.id);
-    if (!user) throw createError(401, 'Invalid refresh token');
-
+    const decodedToken = jwt.verify(oldRefreshToken, jwtRefreshKey);
     const newAccessToken = createJSONWebToken(
-      { id: user.id },
+      {
+        id: decodedToken.id,
+        email: decodedToken.email,
+        isAdmin: decodedToken.isAdmin,
+      },
       jwtAccessKey,
       '15m'
     );
-
     setAccessTokenCookie(res, newAccessToken);
 
     return successResponse(res, {
       statusCode: 200,
-      message: 'Access token refreshed successfully',
-      payload: { user },
+      message: 'New access token generated',
+      payload: { accessToken: newAccessToken },
     });
   } catch (error) {
-    next(error);
-  }
-};
-
-//! Protected Route Handler
-const handleProtectedRoute = (req, res, next) => {
-  const accessToken = req.cookies.accessToken;
-
-  if (!accessToken) {
-    return next(createError(401, 'No access token provided. Please log in.'));
-  }
-
-  try {
-    const decodedToken = jwt.verify(accessToken, jwtAccessKey);
-    req.user = decodedToken;
-
-    const tokenExpirationTime = decodedToken.exp * 1000;
-    const currentTime = Date.now();
-    const timeRemaining = tokenExpirationTime - currentTime;
-
-    if (timeRemaining < 5 * 60 * 1000) {
-      const newAccessToken = createJSONWebToken(
-        {
-          id: decodedToken.id,
-          email: decodedToken.email,
-          isAdmin: decodedToken.isAdmin,
-        },
-        jwtAccessKey,
-        '15m'
-      );
-      setAccessTokenCookie(res, newAccessToken);
-    }
-
-    return successResponse(res, {
-      statusCode: 200,
-      message: 'Accessed protected resources successfully',
-      payload: {
-        user: {
-          id: decodedToken.id,
-          email: decodedToken.email,
-          isAdmin: decodedToken.isAdmin,
-        },
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc   Destroy all active sessions for a user
- * @param  {number} userId - User ID
- * @return {Promise<void>}
- */
-const handledestroyAllSessions = async (userId) => {
-  try {
-    // In a real implementation, you would:
-    // 1. Invalidate all refresh tokens for this user
-    // 2. Clear any session records in your database
-    // 3. Optionally notify connected WebSocket clients
-
-    // For now, we'll just log this action
-    console.log(`All sessions destroyed for user ${userId}`);
-
-    // In a production app, you might:
-    // await RefreshToken.destroy({ where: { userId } });
-    // await Session.destroy({ where: { userId } });
-  } catch (error) {
-    console.error('Failed to destroy sessions:', error);
-    throw error;
+    return next(createError(403, 'Invalid or expired refresh token.'));
   }
 };
 
@@ -245,6 +177,4 @@ module.exports = {
   handleLogin,
   handleLogout,
   handleRefreshToken,
-  handleProtectedRoute,
-  handledestroyAllSessions,
 };
